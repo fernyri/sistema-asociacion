@@ -384,12 +384,16 @@ class Evento(models.Model):
 class Mensaje(models.Model):
     remitente = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="mensajes_enviados",
     )
     destinatario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="mensajes_recibidos",
     )
 
@@ -412,4 +416,6 @@ class Mensaje(models.Model):
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"{self.asunto} ({self.remitente} -> {self.destinatario})"
+        rem = self.remitente.username if self.remitente else "Usuario eliminado"
+        des = self.destinatario.username if self.destinatario else "Usuario eliminado"
+        return f"{self.asunto} ({rem} -> {des})"

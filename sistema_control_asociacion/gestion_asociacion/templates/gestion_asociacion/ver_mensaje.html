@@ -25,12 +25,22 @@
             <div class="msg-meta mb-3">
                 <div class="msg-chip">
                     <span class="msg-chip-label">De</span>
-                    <span class="msg-chip-value">{{ msg.remitente.username }}</span>
+                    <span class="msg-chip-value">
+                        {% if msg.remitente %}
+                            {{ msg.remitente.username }}
+                        {% else %}
+                            <span class="text-muted">Usuario eliminado</span> {% endif %}
+                    </span>
                 </div>
 
                 <div class="msg-chip">
                     <span class="msg-chip-label">Para</span>
-                    <span class="msg-chip-value">{{ msg.destinatario.username }}</span>
+                    <span class="msg-chip-value">
+                        {% if msg.destinatario %}
+                            {{ msg.destinatario.username }}
+                        {% else %}
+                            <span class="text-muted">Usuario eliminado</span> {% endif %}
+                    </span>
                 </div>
 
                 <div class="msg-chip">
