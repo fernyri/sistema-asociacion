@@ -1,0 +1,398 @@
+/* =========================================================
+   comunicacion.css
+   - Estilos SOLO para Comunicación (Interna/Admin/Ver mensaje)
+   - No afecta otras pantallas (scope: .comunicacion-page)
+   ========================================================= */
+
+
+/* =========================
+   Wrapper del módulo
+   ========================= */
+
+.comunicacion-page {
+    width: 100%;
+    padding: 18px 12px;
+    display: flex;
+    justify-content: center;
+}
+
+
+/* =========================
+   Tarjeta principal (glass)
+   ========================= */
+
+.comunicacion-card {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(20, 20, 20, 0.72);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+
+/* =========================
+   Header del módulo
+   - Se ve bien con bg-primary / bg-dark que ya usas
+   ========================= */
+
+.comunicacion-page .card-header {
+    padding: 16px 22px;
+    margin: 0;
+    text-align: left;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.comunicacion-page .card-header h5 {
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+
+/* Botón volver en ver_mensaje (outline-light) que no se pierda */
+
+.comunicacion-page .card-header .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.comunicacion-page .card-header .btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+
+/* =========================
+   Body del módulo
+   ========================= */
+
+.comunicacion-page .card-body {
+    padding: 20px 22px;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+
+/* =========================
+   Tipografía interna
+   ========================= */
+
+.comunicacion-page h5 {
+    margin-bottom: 10px;
+    font-weight: 800;
+}
+
+.comunicacion-page p.text-muted {
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.70) !important;
+}
+
+
+/* =========================
+   Alerts (messages)
+   ========================= */
+
+.comunicacion-page .alert {
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+
+/* =========================
+   Badges
+   ========================= */
+
+.comunicacion-page .badge {
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
+
+/* =========================
+   AVATAR (inicial)
+   - usado en tablas (msg-avatar-sm, msg-avatar-out)
+   ========================= */
+
+.comunicacion-page .msg-avatar-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(13, 110, 253, 0.35);
+    border: 1px solid rgba(13, 110, 253, 0.55);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+    flex: 0 0 auto;
+}
+
+
+/* enviados (gris/neutral) */
+
+.comunicacion-page .msg-avatar-out {
+    background: rgba(108, 117, 125, 0.35);
+    border: 1px solid rgba(108, 117, 125, 0.55);
+}
+
+
+/* =========================
+   TABLAS
+   ========================= */
+
+.comunicacion-page .table-responsive {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* tabla */
+
+.comunicacion-page .table {
+    margin-bottom: 0;
+    font-size: 14px;
+    table-layout: auto;
+}
+
+
+/* encabezado tabla */
+
+.comunicacion-page .table thead th {
+    white-space: nowrap;
+    border-color: rgba(255, 255, 255, 0.10);
+}
+
+
+/* celdas */
+
+.comunicacion-page .table tbody td {
+    vertical-align: middle;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.90);
+}
+
+.comunicacion-page .table td,
+.comunicacion-page .table th {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+
+/* truncado bonito para textos largos dentro de celdas */
+
+.comunicacion-page .text-truncate {
+    max-width: 100%;
+}
+
+
+/* zebra suave */
+
+.comunicacion-page .table tbody tr:nth-child(odd) td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+
+/* hover suave */
+
+.comunicacion-page .table-hover tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+
+/* =========================
+   Fila NO LEÍDA (msg-unread)
+   - Resaltado pro + barrita lateral
+   ========================= */
+
+.comunicacion-page tr.msg-unread td {
+    background: rgba(255, 193, 7, 0.10) !important;
+}
+
+.comunicacion-page tr.msg-unread td:first-child {
+    position: relative;
+}
+
+.comunicacion-page tr.msg-unread td:first-child::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    border-radius: 10px;
+    background: rgba(255, 193, 7, 0.85);
+}
+
+
+/* =========================
+   BOTONES
+   ========================= */
+
+.comunicacion-page .btn {
+    border-radius: 10px;
+    font-weight: 800;
+}
+
+.comunicacion-page .btn.btn-success.btn-lg {
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 0.2px;
+}
+
+
+/* Botones "Ver" se vean más finos en dark */
+
+.comunicacion-page .btn-primary,
+.comunicacion-page .btn-secondary {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+
+/* =========================
+   FORMULARIO
+   ========================= */
+
+.comunicacion-page .form-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.80);
+}
+
+.comunicacion-page .form-control,
+.comunicacion-page .form-select {
+    border-radius: 10px;
+    padding: 10px 12px;
+    height: 44px;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.comunicacion-page .form-control:focus,
+.comunicacion-page .form-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    border-color: rgba(13, 110, 253, 0.55);
+}
+
+.comunicacion-page textarea.form-control {
+    height: auto;
+    min-height: 130px;
+    resize: vertical;
+}
+
+
+/* placeholder */
+
+.comunicacion-page .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+
+/* helper text */
+
+.comunicacion-page .form-text {
+    color: rgba(255, 255, 255, 0.60) !important;
+}
+
+
+/* =========================
+   Vista ver_mensaje.html
+   (msg-meta/msg-body)
+   ========================= */
+
+.comunicacion-page .msg-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.comunicacion-page .msg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.comunicacion-page .msg-chip-label {
+    font-size: 0.85rem;
+    opacity: 0.75;
+    font-weight: 700;
+}
+
+.comunicacion-page .msg-chip-value {
+    font-weight: 900;
+}
+
+.comunicacion-page .msg-chip-link {
+    color: #9ec5fe;
+    text-decoration: none;
+    font-weight: 900;
+}
+
+.comunicacion-page .msg-chip-link:hover {
+    text-decoration: underline;
+}
+
+.comunicacion-page .msg-body {
+    margin-top: 10px;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    line-height: 1.65;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 992px) {
+    .comunicacion-card {
+        width: 100%;
+        max-width: 100%;
+    }
+    .comunicacion-page .card-body {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+    .comunicacion-page {
+        padding: 12px 10px;
+    }
+    .comunicacion-page .card-body {
+        padding: 14px;
+    }
+    .comunicacion-page .table,
+    .comunicacion-page .form-control,
+    .comunicacion-page .form-select,
+    .comunicacion-page textarea {
+        font-size: 13px;
+    }
+    .comunicacion-page .btn.btn-success.btn-lg {
+        font-size: 15px;
+    }
+    .comunicacion-page .msg-body {
+        font-size: 0.95rem;
+        padding: 14px;
+    }
+}

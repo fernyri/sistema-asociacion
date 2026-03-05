@@ -1,0 +1,116 @@
+/* ==============================
+   RESET DONE (igual a login/reset)
+   ============================== */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+
+/* ✅ Fondo igual que login/reset */
+
+.done-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #1d976c, #93f9b9);
+}
+
+
+/* ✅ Tarjeta igual que login/reset */
+
+.done-container {
+    width: 400px;
+    padding: 35px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+
+/* ✅ Icono centrado y con tamaño correcto */
+
+.done-icon {
+    font-size: 44px;
+    margin-bottom: 10px;
+    color: #3498db;
+}
+
+
+/* Título */
+
+.done-container h2 {
+    font-size: 26px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+
+/* Texto */
+
+.done-container p {
+    font-size: 16px;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+
+/* ✅ Botón más pequeño (ya no enorme) */
+
+.btn-done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px 14px;
+    /* ⬅️ más compacto */
+    margin-top: 12px;
+    background: linear-gradient(135deg, #3498db, #2ecc71);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    /* ⬅️ antes 18px */
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-done:hover {
+    opacity: 0.95;
+}
+
+
+/* Animación */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .done-container {
+        width: 90%;
+        padding: 25px;
+    }
+}

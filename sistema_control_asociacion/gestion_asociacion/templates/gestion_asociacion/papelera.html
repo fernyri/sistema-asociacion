@@ -1,0 +1,243 @@
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Papelera{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+<div class="comunicacion-page">
+    <div class="comunicacion-card card">
+
+        <!-- HEADER -->
+        <div class="card-header bg-secondary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-trash-alt me-2"></i> Papelera
+            </h5>
+
+            <div class="d-flex align-items-center gap-2">
+                <span class="small text-white-50">Total:</span>
+                <span class="badge bg-light text-dark">
+          {{ recibidos|length|add:enviados|length }}
+        </span>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            {% if messages %}
+            <div class="alert alert-info mb-4">
+                {% for message in messages %}
+                <div>{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- NAV TABS -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-recibidos" data-bs-toggle="tab" data-bs-target="#pane-recibidos" type="button" role="tab">
+            <i class="fas fa-inbox me-1"></i> Recibidos
+            {% if recibidos|length > 0 %}
+              <span class="badge bg-dark ms-2">{{ recibidos|length }}</span>
+            {% endif %}
+          </button>
+                </li>
+
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-enviados" data-bs-toggle="tab" data-bs-target="#pane-enviados" type="button" role="tab">
+            <i class="fas fa-paper-plane me-1"></i> Enviados
+            {% if enviados|length > 0 %}
+              <span class="badge bg-dark ms-2">{{ enviados|length }}</span>
+            {% endif %}
+          </button>
+                </li>
+
+                <li class="ms-auto nav-item d-flex align-items-center">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url es_admin|yesno:'comunicacion_admin,comunicacion_interna' %}">
+                        <i class="fas fa-arrow-left me-1"></i> Volver
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+
+                <!-- ===================== -->
+                <!-- RECIBIDOS -->
+                <!-- ===================== -->
+                <div class="tab-pane fade show active" id="pane-recibidos" role="tabpanel" aria-labelledby="tab-recibidos">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 220px;">De</th>
+                                    <th>Asunto</th>
+                                    <th style="width: 170px;">Fecha</th>
+                                    <th style="width: 220px;">Acciones</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for m in recibidos %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="msg-avatar-sm">
+                                                {{ m.remitente.username|first|upper }}
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="fw-semibold">{{ m.remitente.username }}</div>
+                                                <div class="small text-muted">Remitente</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                                        <div class="small text-muted text-truncate">
+                                            {{ m.cuerpo|striptags|truncatechars:90 }}
+                                        </div>
+                                    </td>
+
+                                    <td class="small text-muted">
+                                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                                    </td>
+
+                                    <td>
+                                        <div class="d-grid gap-2">
+                                            <a class="btn btn-sm btn-secondary" href="{% url 'ver_mensaje' m.id %}">
+                                                <i class="fas fa-eye me-1"></i> Ver
+                                            </a>
+
+                                            <div class="d-flex gap-2">
+                                                <!-- RESTAURAR (confirmación global en base.html) -->
+                                                <form method="post" action="{% url 'restaurar_mensaje' m.id %}" class="w-50 js-confirm-restaurar">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tab" value="recibidos">
+                                                    <button class="btn btn-sm btn-success w-100" type="submit">
+                            <i class="fas fa-undo me-1"></i> Restaurar
+                          </button>
+                                                </form>
+
+                                                <!-- ELIMINAR DEFINITIVO (confirmación global en base.html) -->
+                                                <form method="post" action="{% url 'eliminar_definitivo' m.id %}" class="w-50 js-confirm-eliminar">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tab" value="recibidos">
+                                                    <button class="btn btn-sm btn-danger w-100" type="submit">
+                            <i class="fas fa-times me-1"></i> Eliminar
+                          </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        No tienes mensajes recibidos en la papelera.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===================== -->
+                <!-- ENVIADOS -->
+                <!-- ===================== -->
+                <div class="tab-pane fade" id="pane-enviados" role="tabpanel" aria-labelledby="tab-enviados">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 220px;">Para</th>
+                                    <th>Asunto</th>
+                                    <th style="width: 170px;">Fecha</th>
+                                    <th style="width: 220px;">Acciones</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for m in enviados %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="msg-avatar-sm msg-avatar-out">
+                                                {{ m.destinatario.username|first|upper }}
+                                            </div>
+                                            <div class="text-truncate">
+                                                <div class="fw-semibold">{{ m.destinatario.username }}</div>
+                                                <div class="small text-muted">Destinatario</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                                        <div class="small text-muted text-truncate">
+                                            {{ m.cuerpo|striptags|truncatechars:90 }}
+                                        </div>
+                                    </td>
+
+                                    <td class="small text-muted">
+                                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                                    </td>
+
+                                    <td>
+                                        <div class="d-grid gap-2">
+                                            <a class="btn btn-sm btn-secondary" href="{% url 'ver_mensaje' m.id %}">
+                                                <i class="fas fa-eye me-1"></i> Ver
+                                            </a>
+
+                                            <div class="d-flex gap-2">
+                                                <!-- RESTAURAR (confirmación global en base.html) -->
+                                                <form method="post" action="{% url 'restaurar_mensaje' m.id %}" class="w-50 js-confirm-restaurar">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tab" value="enviados">
+                                                    <button type="submit" class="btn btn-sm btn-success w-100">
+                            <i class="fas fa-undo me-1"></i> Restaurar
+                          </button>
+                                                </form>
+
+                                                <!-- ELIMINAR DEFINITIVO (confirmación global en base.html) -->
+                                                <form method="post" action="{% url 'eliminar_definitivo' m.id %}" class="w-50 js-confirm-eliminar">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="tab" value="enviados">
+                                                    <button type="submit" class="btn btn-sm btn-danger w-100">
+                            <i class="fas fa-times me-1"></i> Eliminar
+                          </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        No tienes mensajes enviados en la papelera.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ Al recargar, abre el tab indicado en ?tab=enviados o ?tab=recibidos -->
+<script>
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab");
+        if (!tab) return;
+
+        const btn = document.getElementById(tab === "enviados" ? "tab-enviados" : "tab-recibidos");
+        if (!btn) return;
+
+        // Bootstrap 5 tabs
+        const bsTab = new bootstrap.Tab(btn);
+        bsTab.show();
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Dashboard{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}"> {% endblock %} {% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4 text-center">📊 Dashboard</h1>
+
+    <!-- 🔹 Tarjetas Resumen de Asistencia -->
+    <div class="row mt-4 g-3">
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow-sm p-3">
+                <h5 class="card-title text-center"><i class="fas fa-user-check"></i> Presentes</h5>
+                <p class="card-text text-center fs-4">12</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white shadow-sm p-3">
+                <h5 class="card-title text-center"><i class="fas fa-user-times"></i> Ausentes</h5>
+                <p class="card-text text-center fs-4">5</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark shadow-sm p-3">
+                <h5 class="card-title text-center"><i class="fas fa-clock"></i> Retardos</h5>
+                <p class="card-text text-center fs-4">3</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔹 Tabla de Registros de Asistencia -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Registros de Asistencia</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Fecha</th>
+                        <th>Hora de Entrada</th>
+                        <th>Hora de Salida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Juan Pérez</td>
+                        <td>10/02/2024</td>
+                        <td>08:00 AM</td>
+                        <td>05:00 PM</td>
+                    </tr>
+                    <tr>
+                        <td>María López</td>
+                        <td>10/02/2024</td>
+                        <td>08:15 AM</td>
+                        <td>05:00 PM</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No hay más registros</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 🔹 Últimas Notificaciones -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-bell"></i> Últimas Notificaciones</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                <li class="list-group-item">✅ Asistencia del día ha sido actualizada.</li>
+                <li class="list-group-item">🔔 Se ha programado una reunión para el viernes.</li>
+                <li class="list-group-item text-muted text-center">No hay más notificaciones.</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

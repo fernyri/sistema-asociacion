@@ -1,0 +1,285 @@
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Comunicación (Admin){% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+<div class="comunicacion-page">
+    <div class="comunicacion-card card">
+
+        <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-comments me-2"></i> Comunicación (Administrador)
+            </h5>
+
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <!-- ✅ Info de papelera (sin link para no duplicar) -->
+                {% if papelera_count|default:0 > 0 %}
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-trash"></i>
+                    <span class="small text-white-50">Papelera:</span>
+                    <span class="badge bg-danger">{{ papelera_count }}</span>
+                </div>
+                {% endif %} {% if no_leidos|default:0 > 0 %}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-white-50">No leídos:</span>
+                    <span class="badge bg-danger">{{ no_leidos }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            {% if messages %}
+            <div class="alert alert-info mb-4">
+                {% for message in messages %}
+                <div>{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- ✅ BUSCADOR -->
+            <div class="row g-2 mb-3">
+                <div class="col-md-12">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input id="msgSearch" type="text" class="form-control" placeholder="Buscar por asunto o texto...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECIBIDOS -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <h5 class="d-flex align-items-center gap-2 mb-0">
+                        <span><i class="fas fa-inbox me-1"></i> Recibidos</span> {% if no_leidos|default:0 > 0 %}
+                        <span class="badge bg-danger">{{ no_leidos }}</span> {% endif %}
+                    </h5>
+
+                    <span class="text-muted small">Tip: Los mensajes “Nuevos” se resaltan automáticamente.</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tablaRecibidos" class="table table-hover table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 210px;">De</th>
+                                <th>Asunto</th>
+                                <th style="width: 170px;">Fecha</th>
+                                <th style="width: 120px;">Estado</th>
+                                <th style="width: 180px;">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for m in recibidos %}
+                            <tr class="{% if not m.leido %}msg-unread{% endif %}">
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="msg-avatar-sm">
+                                            {{ m.remitente.username|first|upper }}
+                                        </div>
+                                        <div class="text-truncate">
+                                            <div class="fw-semibold">{{ m.remitente.username }}</div>
+                                            <div class="small text-muted">Remitente</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- ✅ PREVIEW -->
+                                <td>
+                                    <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                                    <div class="small text-muted text-truncate">
+                                        {{ m.cuerpo|striptags|truncatechars:80 }}
+                                    </div>
+                                </td>
+
+                                <td class="small text-muted">
+                                    {{ m.creado_en|date:"d/m/Y H:i" }}
+                                </td>
+
+                                <td>
+                                    {% if m.leido %}
+                                    <span class="badge bg-success">Leído</span> {% else %}
+                                    <span class="badge bg-warning text-dark">Nuevo</span> {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a class="btn btn-sm btn-primary flex-fill" href="{% url 'ver_mensaje' m.id %}">
+                                            <i class="fas fa-eye me-1"></i> Ver
+                                        </a>
+
+                                        <!-- ✅ MOVER A PAPELERA (con confirmación bonita) -->
+                                        <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No tienes mensajes.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ENVIADOS -->
+            <div class="mb-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <h5 class="mb-0"><i class="fas fa-paper-plane me-1"></i> Enviados</h5>
+                    <span class="text-muted small">Historial de mensajes enviados.</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="tablaEnviados" class="table table-hover table-bordered align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 210px;">Para</th>
+                                <th>Asunto</th>
+                                <th style="width: 170px;">Fecha</th>
+                                <th style="width: 180px;">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for m in enviados %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="msg-avatar-sm msg-avatar-out">
+                                            {{ m.destinatario.username|first|upper }}
+                                        </div>
+                                        <div class="text-truncate">
+                                            <div class="fw-semibold">{{ m.destinatario.username }}</div>
+                                            <div class="small text-muted">Destinatario</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- ✅ PREVIEW -->
+                                <td>
+                                    <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                                    <div class="small text-muted text-truncate">
+                                        {{ m.cuerpo|striptags|truncatechars:80 }}
+                                    </div>
+                                </td>
+
+                                <td class="small text-muted">
+                                    {{ m.creado_en|date:"d/m/Y H:i" }}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a class="btn btn-sm btn-secondary flex-fill" href="{% url 'ver_mensaje' m.id %}">
+                                            <i class="fas fa-eye me-1"></i> Ver
+                                        </a>
+
+                                        <!-- ✅ MOVER A PAPELERA (con confirmación bonita) -->
+                                        <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No has enviado mensajes.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ENVIAR A MIEMBRO -->
+            <div class="mt-4">
+                <h5 class="mb-2"><i class="fas fa-envelope me-1"></i> Enviar mensaje a Miembro</h5>
+                <p class="text-muted small mb-3">Selecciona un miembro, escribe asunto y mensaje. Puedes adjuntar archivo.</p>
+
+                <form id="formEnviarAdmin" method="post" action="{% url 'enviar_mensaje_admin' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Destinatario</label>
+                            <select class="form-select" name="destinatario_id" required>
+                                <option value="" selected disabled>Selecciona un miembro</option>
+                                {% for u in miembros %}
+                                <option value="{{ u.id }}">{{ u.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Asunto</label>
+                            <input class="form-control" type="text" name="asunto" placeholder="Ej. Reunión, Aviso, Recordatorio..." required>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Mensaje</label>
+                            <textarea class="form-control" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Adjuntar archivo (opcional)</label>
+                            <input class="form-control" type="file" name="archivo">
+                            <div class="form-text">Formatos comunes: PDF, imagen, Word, Excel.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <button id="btnEnviarAdmin" class="btn btn-success btn-lg w-100" type="submit">
+                                <i class="fas fa-paper-plane me-2"></i> Enviar
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <script>
+                    (function() {
+                        const form = document.getElementById("formEnviarAdmin");
+                        const btn = document.getElementById("btnEnviarAdmin");
+                        if (!form || !btn) return;
+
+                        form.addEventListener("submit", function() {
+                            btn.disabled = true;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
+                        });
+                    })();
+                </script>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ✅ JS BUSCADOR SIMPLE (FILTRA RECIBIDOS Y ENVIADOS) -->
+<script>
+    (function() {
+        const input = document.getElementById("msgSearch");
+        if (!input) return;
+
+        function filtrarTabla(table) {
+            if (!table) return;
+            const rows = table.querySelectorAll("tbody tr");
+            const q = (input.value || "").toLowerCase().trim();
+
+            rows.forEach(r => {
+                const text = (r.innerText || "").toLowerCase();
+                r.style.display = text.includes(q) ? "" : "none";
+            });
+        }
+
+        input.addEventListener("input", () => {
+            filtrarTabla(document.getElementById("tablaRecibidos"));
+            filtrarTabla(document.getElementById("tablaEnviados"));
+        });
+    })();
+</script>
+{% endblock %}

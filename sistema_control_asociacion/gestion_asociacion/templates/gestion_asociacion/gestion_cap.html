@@ -1,0 +1,72 @@
+{% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Capacitaciones{% endblock %} {% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Título principal -->
+        <div class="col-12 text-center mb-4">
+            <h1 class="fw-bold text-primary"><i class="fas fa-chalkboard-teacher"></i> Gestión de Capacitaciones</h1>
+        </div>
+
+        <!-- Sección de Capacitaciones Próximas -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-calendar-alt"></i> Calendario de Capacitaciones Próximas</h4>
+                <p class="text-muted">Aquí se mostrarán las capacitaciones programadas.</p>
+                <button class="btn btn-primary w-100"><i class="fas fa-plus-circle"></i> Nueva Capacitación</button>
+            </div>
+        </div>
+
+        <!-- Lista de Capacitaciones -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-list"></i> Lista de Capacitaciones</h4>
+                <table class="table table-striped mt-3">
+                    <thead class="table-dark text-center">
+                        <tr>
+                            <th>Nombre del Curso</th>
+                            <th>Fecha</th>
+                            <th>Empleados Asignados</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        <tr>
+                            <td>Curso de Liderazgo</td>
+                            <td>01/11/2023</td>
+                            <td>Juan Pérez, María López</td>
+                            <td class="text-warning fw-bold">Pendiente</td>
+                        </tr>
+                        <tr>
+                            <td>Taller de Comunicación</td>
+                            <td>15/11/2023</td>
+                            <td>Carlos Díaz, Ana García</td>
+                            <td class="text-success fw-bold">En Proceso</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detalles de la Capacitación -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-info-circle"></i> Detalles de la Capacitación</h4>
+                <p class="text-muted">Aquí se mostrarán los participantes, progreso y resultados.</p>
+            </div>
+        </div>
+
+        <!-- Materiales de Capacitación -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-folder-open"></i> Materiales de Capacitación</h4>
+                <p class="text-muted">Aquí podrás agregar materiales.</p>
+                <button class="btn btn-info w-100"><i class="fas fa-upload"></i> Subir Material</button>
+            </div>
+        </div>
+
+        <!-- Botón de Informe de Participación -->
+        <div class="col-12 mt-4">
+            <button class="btn btn-success w-100 p-3"><i class="fas fa-file-alt"></i> Generar Informe de Participación</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

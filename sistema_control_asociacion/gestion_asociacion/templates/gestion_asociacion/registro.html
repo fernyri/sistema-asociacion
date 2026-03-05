@@ -1,0 +1,338 @@
+{% extends "gestion_asociacion/base_auth.html" %} {% load static %} {% block title %}Registro de Usuario{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5"> {% endblock %} {% block content %}
+<div class="main-container d-flex justify-content-center align-items-center">
+    <div class="register-container p-4 shadow rounded bg-white">
+        <h2 class="text-center mb-4">Registro de Usuario</h2>
+
+        {% if messages %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post" id="registroForm" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3 row-cols-1 row-cols-md-2">
+                <div class="col">
+                    <label for="username" class="form-label">Nombre de usuario:</label>
+                    <input type="text" id="username" name="username" class="form-control" required autocomplete="username">
+                    <div id="error-username-email"></div>
+                </div>
+
+                <div class="col">
+                    <label for="first_name" class="form-label">Nombre:</label>
+                    <input type="text" id="first_name" name="first_name" class="form-control" required autocomplete="given-name">
+                </div>
+
+                <div class="col">
+                    <label for="last_name" class="form-label">Apellido:</label>
+                    <input type="text" id="last_name" name="last_name" class="form-control" required autocomplete="family-name">
+                </div>
+
+                <div class="col">
+                    <label for="email" class="form-label">Correo electrónico:</label>
+                    <input type="email" id="email" name="email" class="form-control" required autocomplete="email">
+                </div>
+
+                <div class="col">
+                    <label for="telefono" class="form-label">Teléfono:</label>
+                    <input type="text" id="telefono" name="telefono" class="form-control" inputmode="numeric" autocomplete="tel">
+                    <div id="error-telefono"></div>
+                </div>
+
+                <div class="col">
+                    <label for="direccion" class="form-label">Dirección:</label>
+                    <input type="text" id="direccion" name="direccion" class="form-control" autocomplete="street-address">
+                    <div id="error-direccion"></div>
+                </div>
+
+                <div class="col">
+                    <label for="genero" class="form-label">Género:</label>
+                    <select id="genero" name="genero" class="form-select">
+            <option value="M">Masculino</option>
+            <option value="F">Femenino</option>
+            <option value="O">Otro</option>
+          </select>
+                </div>
+
+                <div class="col">
+                    <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento:</label>
+                    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control" autocomplete="bday">
+                </div>
+
+                <div class="col">
+                    <label for="password1" class="form-label">Contraseña:</label>
+                    <div class="input-group">
+                        <input type="password" id="password1" name="password1" class="form-control" required autocomplete="new-password">
+                        <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
+              <i class="fa fa-eye"></i>
+            </span>
+                    </div>
+                    <div id="error-password"></div>
+                </div>
+
+                <div class="col">
+                    <label for="password2" class="form-label">Confirmar contraseña:</label>
+                    <div class="input-group">
+                        <input type="password" id="password2" name="password2" class="form-control" required autocomplete="new-password">
+                        <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
+              <i class="fa fa-eye"></i>
+            </span>
+                    </div>
+                    <div id="error-password2"></div>
+                </div>
+            </div>
+
+            <button id="btnRegistrar" type="submit" class="btn btn-primary w-100 mt-4">Registrar</button>
+            <div id="registroHint" class="mt-2 text-center"></div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById("registroForm");
+        const btn = document.getElementById("btnRegistrar");
+        const hint = document.getElementById("registroHint");
+
+        const usernameInput = document.getElementById("username");
+        const emailInput = document.getElementById("email");
+        const telefonoInput = document.getElementById("telefono");
+        const direccionInput = document.getElementById("direccion");
+        const password1Input = document.getElementById("password1");
+        const password2Input = document.getElementById("password2");
+
+        const errorUserEmail = document.getElementById("error-username-email");
+        const errorTel = document.getElementById("error-telefono");
+        const errorDir = document.getElementById("error-direccion");
+        const errorPass1 = document.getElementById("error-password");
+        const errorPass2 = document.getElementById("error-password2");
+
+        const verificarUrl = "{% url 'verificar_usuario' %}";
+
+        // ✅ En el híbrido, NO bloqueamos por “campo vacío”
+        // (eso lo controla el backend al enviar + el navegador por required)
+        // Solo bloqueamos por: verificando, enviando, duplicado, password mismatch/min, tel/dirección inválidos.
+        let estado = {
+            duplicado: false,
+            validTelefono: true,
+            validDireccion: true,
+            validPasswordMin: true,
+            validPasswordsMatch: true,
+            verificando: false,
+            enviando: false,
+        };
+
+        function setHint(msgs) {
+            hint.innerHTML = msgs.length ?
+                `<small class="text-danger">⚠️ ${msgs.join(" • ")}</small>` :
+                "";
+        }
+
+        function actualizarBoton() {
+            const errores = [];
+
+            if (estado.verificando) errores.push("Verificando disponibilidad…");
+            if (estado.duplicado) errores.push("El usuario o correo ya están registrados");
+            if (!estado.validTelefono) errores.push("Teléfono inválido");
+            if (!estado.validDireccion) errores.push("Dirección muy corta");
+            if (!estado.validPasswordMin) errores.push("Contraseña muy corta");
+            if (!estado.validPasswordsMatch) errores.push("Las contraseñas no coinciden");
+
+            const bloquear = estado.enviando || estado.verificando || estado.duplicado ||
+                !estado.validTelefono || !estado.validDireccion ||
+                !estado.validPasswordMin || !estado.validPasswordsMatch;
+
+            btn.disabled = bloquear;
+            btn.textContent = estado.enviando ?
+                "Registrando…" :
+                (estado.verificando ? "Verificando…" : "Registrar");
+
+            setHint(errores);
+        }
+
+        // 👁 Mostrar / ocultar contraseña
+        function togglePassword(btnEye) {
+            const input = btnEye.parentElement.querySelector("input");
+            const icon = btnEye.querySelector("i");
+            if (!input || !icon) return;
+
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.replace("fa-eye", "fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.replace("fa-eye-slash", "fa-eye");
+            }
+        }
+
+        document.querySelectorAll(".toggle-password").forEach(btnEye => {
+            btnEye.addEventListener("click", () => togglePassword(btnEye));
+            btnEye.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    togglePassword(btnEye);
+                }
+            });
+        });
+
+        // =========================
+        // Normalización (igual que forms.py)
+        // =========================
+        function normUsernameDisplay(v) {
+            // Solo limpia espacios, respeta mayúsculas
+            return (v || "").trim().replace(/\s+/g, " ");
+        }
+
+        function normUsernameForCheck(v) {
+            // Para comparar en backend (username_norm)
+            return normUsernameDisplay(v).toLowerCase();
+        }
+
+        function normEmailDisplay(v) {
+            return (v || "").trim().toLowerCase();
+        }
+
+        function validarTelefono() {
+            const v = telefonoInput.value.trim();
+            estado.validTelefono = !v || (/^[0-9]+$/.test(v) && v.length >= 7 && v.length <= 15);
+            errorTel.innerHTML = estado.validTelefono ?
+                "" :
+                "<small class='text-danger'>Solo números (7-15 dígitos)</small>";
+            actualizarBoton();
+        }
+
+        function validarDireccion() {
+            const v = direccionInput.value.trim();
+            estado.validDireccion = !v || v.length >= 10;
+            errorDir.innerHTML = estado.validDireccion ?
+                "" :
+                "<small class='text-danger'>Mínimo 10 caracteres</small>";
+            actualizarBoton();
+        }
+
+        function validarContrasenas() {
+            const p1 = password1Input.value;
+            const p2 = password2Input.value;
+
+            // Solo mostramos error si el usuario ya escribió algo
+            estado.validPasswordMin = !p1 || p1.length >= 8;
+            estado.validPasswordsMatch = !p2 || p1 === p2;
+
+            errorPass1.innerHTML = estado.validPasswordMin ?
+                "" :
+                "<small class='text-danger'>Mínimo 8 caracteres</small>";
+            errorPass2.innerHTML = estado.validPasswordsMatch ?
+                "" :
+                "<small class='text-danger'>No coinciden</small>";
+
+            actualizarBoton();
+        }
+
+        // 🔁 Verificación AJAX (cancelable + debounce)
+        let debounceTimer = null;
+        let controller = null;
+
+        function debounce(fn, delay = 400) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(fn, delay);
+        }
+
+        function validarUsuarioEmail() {
+            const usernameCheck = normUsernameForCheck(usernameInput.value);
+            const emailCheck = normEmailDisplay(emailInput.value);
+
+            // ✅ Si no hay nada que verificar, no bloquees
+            if (!usernameCheck && !emailCheck) {
+                estado.duplicado = false;
+                errorUserEmail.innerHTML = "";
+                actualizarBoton();
+                return;
+            }
+
+            estado.verificando = true;
+            actualizarBoton();
+
+            if (controller) controller.abort();
+            controller = new AbortController();
+
+            fetch(`${verificarUrl}?username=${encodeURIComponent(usernameCheck)}&email=${encodeURIComponent(emailCheck)}`, {
+                    signal: controller.signal
+                })
+                .then(r => r.json())
+                .then(data => {
+                    estado.duplicado = !!data.exists;
+                    errorUserEmail.innerHTML = estado.duplicado ?
+                        "<small class='text-danger'>El usuario o correo ya están registrados.</small>" :
+                        "";
+                })
+                .catch(err => {
+                    if (err.name === "AbortError") return;
+                    // Si falla la verificación, NO bloqueamos duro, solo avisamos.
+                    estado.duplicado = false;
+                    errorUserEmail.innerHTML = "<small class='text-warning'>No se pudo validar por el momento.</small>";
+                })
+                .finally(() => {
+                    estado.verificando = false;
+                    actualizarBoton();
+                });
+        }
+
+        usernameInput.addEventListener("blur", () => {
+            usernameInput.value = normUsernameDisplay(usernameInput.value);
+            validarUsuarioEmail();
+        });
+
+        emailInput.addEventListener("blur", () => {
+            emailInput.value = normEmailDisplay(emailInput.value);
+            validarUsuarioEmail();
+        });
+
+        usernameInput.addEventListener("input", () => debounce(validarUsuarioEmail));
+        emailInput.addEventListener("input", () => debounce(validarUsuarioEmail));
+
+        telefonoInput.addEventListener("input", validarTelefono);
+        direccionInput.addEventListener("input", validarDireccion);
+        password1Input.addEventListener("input", validarContrasenas);
+        password2Input.addEventListener("input", validarContrasenas);
+
+        form.addEventListener("submit", function(e) {
+            // ✅ Si está verificando o enviando, evita doble submit
+            if (estado.verificando || estado.enviando) {
+                e.preventDefault();
+                return;
+            }
+
+            // ✅ Normalización final
+            usernameInput.value = normUsernameDisplay(usernameInput.value);
+            emailInput.value = normEmailDisplay(emailInput.value);
+
+            // ✅ Revalida campos “suaves”
+            validarTelefono();
+            validarDireccion();
+            validarContrasenas();
+
+            // ✅ Deja que el navegador bloquee por required / email inválido,
+            // pero si tus validaciones “suaves” fallan, sí frenamos.
+            if (btn.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            estado.enviando = true;
+            actualizarBoton();
+        });
+
+        // Estado inicial (no bloquea por vacíos)
+        validarTelefono();
+        validarDireccion();
+        validarContrasenas();
+        actualizarBoton();
+    });
+</script>
+{% endblock %}

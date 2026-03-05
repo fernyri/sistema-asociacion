@@ -1,0 +1,59 @@
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.log
+*.pot
+
+# Django
+*.sqlite3
+db.sqlite3
+/media/
+staticfiles/
+
+# Migrations cache
+**/*.pyc
+
+# =========================
+# Entornos / credenciales
+# =========================
+.env
+.env.*
+*.env
+*.key
+*.pem
+
+# =========================
+# Virtualenv
+# =========================
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# =========================
+# IDE / OS
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========================
+# Build / Dist
+# =========================
+dist/
+build/
+*.zip
+*.tar.gz
+
+# =========================
+# Node (por si acaso)
+# =========================
+node_modules/

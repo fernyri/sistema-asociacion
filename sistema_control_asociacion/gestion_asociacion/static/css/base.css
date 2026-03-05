@@ -1,0 +1,139 @@
+/* =========================
+   Estilos generales
+   ========================= */
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+}
+
+
+/* ✅ Cuando hay sesión, el navbar es fixed-top:
+   esto evita que el contenido quede debajo del navbar */
+
+.auth-body {
+    padding-top: 70px;
+    /* 60px navbar + margen */
+}
+
+
+/* =========================
+   Navbar (fijo)
+   ========================= */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1050;
+    background: #ffffff;
+    border-bottom: 2px solid #ddd;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+}
+
+
+/* =========================
+   Sidebar (fijo)
+   ========================= */
+
+.sidebar {
+    width: 260px;
+    background: #2c3e50;
+    color: white;
+    padding: 20px;
+    height: calc(100vh - 60px);
+    position: fixed;
+    left: 0;
+    top: 60px;
+    /* deja espacio al navbar */
+    overflow-y: auto;
+    z-index: 1040;
+}
+
+
+/* =========================
+   ✅ Layout: que Bootstrap controle ancho
+   - Como el sidebar es fixed, el grid no lo "cuenta"
+   - Entonces empujamos el contenido con padding-left
+   ========================= */
+
+
+/* Por defecto (Admin): deja espacio para el sidebar fijo */
+
+.app-with-sidebar {
+    padding-left: 260px;
+}
+
+
+/* Miembro: sin sidebar, no empujes nada */
+
+.app-no-sidebar {
+    padding-left: 0;
+}
+
+
+/* =========================
+   Contenido principal
+   - Sin width/margin-left: Bootstrap manda el ancho
+   ========================= */
+
+.main-content {
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    margin-top: 0;
+    width: 100%;
+    /* ocupa lo que Bootstrap le dé */
+}
+
+
+/* ✅ Evita que se genere scroll horizontal por padding + columnas */
+
+.container-fluid.app-with-sidebar,
+.container-fluid.app-no-sidebar {
+    overflow-x: hidden;
+}
+
+
+/* 🔴 Puntito de notificación (GLOBAL: desktop + móvil) */
+
+.notification-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+
+/* =========================
+   Responsividad
+   ========================= */
+
+@media screen and (max-width: 768px) {
+    .sidebar {
+        width: 220px;
+        padding: 15px;
+    }
+    /* En móviles, NO empujamos el contenido (porque el sidebar colapsa/overlay) */
+    .app-with-sidebar {
+        padding-left: 0;
+    }
+    .navbar {
+        padding: 8px 10px;
+    }
+    .auth-body {
+        padding-top: 70px;
+    }
+}

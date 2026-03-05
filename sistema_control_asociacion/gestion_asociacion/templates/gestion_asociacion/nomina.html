@@ -1,0 +1,65 @@
+{% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Nómina{% endblock %} {% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Título principal -->
+        <div class="col-12 text-center mb-4">
+            <h1 class="fw-bold text-primary"><i class="fas fa-money-check-alt"></i> Gestión de Nómina</h1>
+        </div>
+
+        <!-- Lista de Empleados -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-users"></i> Lista de Empleados</h4>
+                <table class="table table-striped mt-3">
+                    <thead class="table-dark text-center">
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Salario Base</th>
+                            <th>Descuentos</th>
+                            <th>Bonificaciones</th>
+                            <th>Total a Pagar</th>
+                            <th>Estado del Pago</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        <tr>
+                            <td>Juan Pérez</td>
+                            <td>$1000</td>
+                            <td>$100</td>
+                            <td>$50</td>
+                            <td>$950</td>
+                            <td class="text-warning fw-bold">Pendiente</td>
+                        </tr>
+                        <tr>
+                            <td>María López</td>
+                            <td>$1200</td>
+                            <td>$150</td>
+                            <td>$100</td>
+                            <td>$1150</td>
+                            <td class="text-success fw-bold">Pagado</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="btn btn-primary w-100 mt-3"><i class="fas fa-plus-circle"></i> Nuevo Pago</button>
+            </div>
+        </div>
+
+        <!-- Historial de Pagos -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-history"></i> Historial de Pagos</h4>
+                <p class="text-muted">Consulta los pagos realizados a los empleados.</p>
+            </div>
+        </div>
+
+        <!-- Exportar Informes -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4 text-center">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-file-export"></i> Exportar Informes</h4>
+                <button class="btn btn-success mx-2"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+                <button class="btn btn-danger mx-2"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

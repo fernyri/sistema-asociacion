@@ -1,0 +1,27 @@
+/* Tabla de Asistencia */
+
+.asistencia-container {
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.asistencia-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.asistencia-table th,
+.asistencia-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.asistencia-table th {
+    background: #007bff;
+    color: white;
+}

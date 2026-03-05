@@ -1,0 +1,85 @@
+{% extends 'gestion_asociacion/base.html' %} {% block title %}Evaluaciones de Desempeño{% endblock %} {% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Título principal -->
+        <div class="col-12 text-center mb-4">
+            <h1 class="fw-bold text-primary"><i class="fas fa-chart-line"></i> Evaluaciones de Desempeño</h1>
+        </div>
+
+        <!-- Lista de empleados -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-users"></i> Lista de Empleados</h4>
+                <table class="table table-striped mt-3">
+                    <thead class="table-dark text-center">
+                        <tr>
+                            <th>Nombre del Empleado</th>
+                            <th>Fecha de Última Evaluación</th>
+                            <th>Resultado</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        <tr>
+                            <td>Juan Pérez</td>
+                            <td>10/10/2023</td>
+                            <td class="text-success fw-bold">Excelente</td>
+                        </tr>
+                        <tr>
+                            <td>María López</td>
+                            <td>12/09/2023</td>
+                            <td class="text-warning fw-bold">Bueno</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="btn btn-primary mt-3 w-100"><i class="fas fa-plus-circle"></i> Nueva Evaluación</button>
+            </div>
+        </div>
+
+        <!-- Formulario de Evaluación -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="fw-bold text-secondary"><i class="fas fa-edit"></i> Formulario de Evaluación</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="fw-bold"><i class="fas fa-user"></i> Nombre del Empleado:</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold"><i class="fas fa-tasks"></i> Competencias Evaluadas:</label>
+                        <textarea name="competencias" rows="4" class="form-control" required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold"><i class="fas fa-star"></i> Calificación (1-5):</label>
+                        <input type="number" name="calificacion" min="1" max="5" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold"><i class="fas fa-comment-dots"></i> Comentarios del Evaluador:</label>
+                        <textarea name="comentarios" rows="4" class="form-control"></textarea>
+                    </div>
+
+                    <button class="btn btn-success w-100"><i class="fas fa-paper-plane"></i> Enviar Evaluación</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sección de estadísticas -->
+        <div class="col-md-6 mt-4">
+            <div class="card shadow-sm p-4 text-white bg-info text-center">
+                <h4 class="fw-bold"><i class="fas fa-chart-bar"></i> Evaluaciones Realizadas</h4>
+                <h2>50</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 mt-4">
+            <div class="card shadow-sm p-4 text-white bg-success text-center">
+                <h4 class="fw-bold"><i class="fas fa-thumbs-up"></i> Promedio de Evaluaciones</h4>
+                <h2>4.5</h2>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'gestion_asociacion/base_auth.html' %} {% load static %} {% block title %}Inicio de Sesión{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login.css' %}?v={{ STATIC_VERSION }}"> {% endblock %} {% block content %}
+<div class="login-page">
+    <div class="login-container">
+        <h2 class="text-center fw-bold">Bienvenido</h2>
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            <!-- 📌 Campo de Correo Electrónico -->
+            <div class="form-group">
+                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ request.POST.email }}" required> {% for message in messages %} {% if "email_error" in message.tags %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i> {{ message }}
+                </div>
+                {% endif %} {% endfor %}
+            </div>
+
+            <!-- 📌 Campo de Contraseña -->
+            <div class="form-group password-container">
+                <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+                <span class="toggle-password" id="togglePassword">
+                    <i class="fa fa-eye"></i>
+                </span>
+            </div>
+
+            <!-- 📌 Error de contraseña -->
+            {% for message in messages %} {% if "password_error" in message.tags %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+            </div>
+            {% endif %} {% endfor %}
+
+            <!-- 📌 Botón -->
+            <button type="submit" class="btn-login">
+                Iniciar sesión
+            </button>
+
+            <!-- 📌 Enlaces -->
+            <a href="{% url 'registro' %}">
+                ¿No tienes cuenta? Regístrate aquí
+            </a>
+
+            <a href="{% url 'password_reset' %}">
+                ¿Olvidaste tu contraseña?
+            </a>
+        </form>
+    </div>
+</div>
+
+<!-- 🔹 Script mostrar/ocultar contraseña -->
+<script>
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordField = document.getElementById('password');
+        const icon = this.querySelector('i');
+
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    });
+</script>
+{% endblock %}

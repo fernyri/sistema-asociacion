@@ -1,0 +1,33 @@
+{% extends 'gestion_asociacion/base.html' %} {% block title %}Añadir Nuevo Personal{% endblock %} {% block content %}
+<div class="sidebar">
+    <h2>Menú</h2>
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <a href="{% url 'gestion' %}">Gestión de personal</a>
+    <a href="{% url 'control' %}">Asistencia</a>
+    <a href="{% url 'evaluaciones' %}">Evaluaciones</a>
+    <a href="{% url 'capacitaciones' %}">Capacitaciones</a>
+    <a href="{% url 'nomina' %}">Nómina</a>
+    <a href="{% url 'comunicacion' %}">Comunicación interna</a>
+</div>
+
+<div class="main-content">
+    <div class="form-container">
+        <h2>Añadir Nuevo Personal</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" name="nombre" placeholder="Nombre completo" required>
+            <input type="email" name="email" placeholder="Correo electrónico" required>
+            <input type="text" name="telefono" placeholder="Teléfono">
+            <select name="departamento" required>
+                    <option value="">Seleccione un departamento</option>
+                    <option value="Recursos Humanos">Recursos Humanos</option>
+                    <option value="IT">IT</option>
+                    <option value="Finanzas">Finanzas</option>
+                    <option value="Operaciones">Operaciones</option>
+                </select>
+            <textarea name="comentarios" placeholder="Comentarios adicionales"></textarea>
+            <button type="submit">Guardar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
