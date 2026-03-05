@@ -3,20 +3,23 @@
 # =========================
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-*.pyc
 *.log
 *.pot
 
 # Django
-*.sqlite3
 db.sqlite3
-/media/
+*.sqlite3
+media/
 staticfiles/
 
-# Migrations cache
-**/*.pyc
+# =========================
+# Caches / tooling
+# =========================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # =========================
 # Entornos / credenciales
@@ -52,6 +55,11 @@ dist/
 build/
 *.zip
 *.tar.gz
+
+# =========================
+# DB dumps / local folders (si aplica)
+# =========================
+database/
 
 # =========================
 # Node (por si acaso)
