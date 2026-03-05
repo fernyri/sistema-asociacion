@@ -3,6 +3,9 @@
 # =========================
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.pyc
 *.log
 *.pot
 
@@ -20,6 +23,7 @@ staticfiles/
 .ruff_cache/
 .coverage
 htmlcov/
+.cache/
 
 # =========================
 # Entornos / credenciales
@@ -53,15 +57,34 @@ Thumbs.db
 # =========================
 dist/
 build/
+*.egg-info/
+*.egg
+*.whl
+pip-wheel-metadata/
 *.zip
 *.tar.gz
 
 # =========================
-# DB dumps / local folders (si aplica)
+# Base de datos / backups
 # =========================
 database/
+*.sql
+*.dump
+*.bak
+
+# =========================
+# Logs
+# =========================
+*.log
 
 # =========================
 # Node (por si acaso)
 # =========================
 node_modules/
+
+# =========================
+# Archivos temporales
+# =========================
+*.tmp
+*.swp
+*.swo
