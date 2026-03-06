@@ -9,6 +9,7 @@ from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetVie
 from django.conf import settings
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
+from datetime import datetime, time
 
 from django.contrib.sessions.models import Session
 from django.utils import timezone
@@ -453,7 +454,86 @@ def eliminar_definitivo(request, mensaje_id: int):
 @login_required
 @admin_only
 def control(request):
-    return render(request, "gestion_asociacion/control.html")
+    hoy = timezone.localdate()
+
+    fecha_inicio_str = request.GET.get("fecha_inicio") or hoy.strftime("%Y-%m-%d")
+    fecha_fin_str = request.GET.get("fecha_fin") or hoy.strftime("%Y-%m-%d")
+
+    try:
+        fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+    except ValueError:
+        fecha_inicio = hoy
+
+    try:
+        fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+    except ValueError:
+        fecha_fin = hoy
+
+    # ✅ Si el usuario mete fechas invertidas, las acomodamos
+    if fecha_inicio > fecha_fin:
+        fecha_inicio, fecha_fin = fecha_fin, fecha_inicio
+
+    asistencias_qs = (
+        Asistencia.objects
+        .select_related("usuario")
+        .filter(fecha__range=(fecha_inicio, fecha_fin))
+        .order_by("-fecha", "usuario__username")
+    )
+
+    # ✅ Hora límite para considerar retardo
+    hora_limite_retraso = time(9, 15)
+
+    registros = []
+    for asistencia in asistencias_qs:
+        if not asistencia.hora_entrada:
+            estado = "Sin entrada"
+            badge = "secondary"
+        elif asistencia.hora_entrada > hora_limite_retraso:
+            estado = "Retardo"
+            badge = "warning"
+        elif asistencia.hora_salida:
+            estado = "Asistencia completa"
+            badge = "success"
+        else:
+            estado = "Pendiente salida"
+            badge = "info"
+
+        registros.append({
+            "obj": asistencia,
+            "estado": estado,
+            "badge": badge,
+        })
+
+    # ✅ Resúmenes reales
+    dias_trabajados = asistencias_qs.filter(hora_entrada__isnull=False).count()
+    dias_con_retrasos = asistencias_qs.filter(hora_entrada__gt=hora_limite_retraso).count()
+
+    # ✅ Sin campo departamento real, usamos miembros activos para calcular "sin registro"
+    usuarios_activos = Usuario.objects.filter(is_active=True, rol="Miembro")
+    total_miembros_activos = usuarios_activos.count()
+
+    usuarios_con_registro = (
+        asistencias_qs
+        .exclude(usuario__isnull=True)
+        .values_list("usuario_id", flat=True)
+        .distinct()
+        .count()
+    )
+
+    usuarios_sin_registro = max(total_miembros_activos - usuarios_con_registro, 0)
+
+    context = {
+        "registros": registros,
+        "fecha_inicio_valor": fecha_inicio.strftime("%Y-%m-%d"),
+        "fecha_fin_valor": fecha_fin.strftime("%Y-%m-%d"),
+        "total_registros": asistencias_qs.count(),
+        "dias_trabajados": dias_trabajados,
+        "dias_con_retrasos": dias_con_retrasos,
+        "usuarios_sin_registro": usuarios_sin_registro,
+        "total_miembros_activos": total_miembros_activos,
+        "hora_limite_retraso_texto": "09:15 AM",
+    }
+    return render(request, "gestion_asociacion/control.html", context)
 
 
 @login_required

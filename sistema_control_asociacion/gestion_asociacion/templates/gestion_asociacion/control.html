@@ -9,15 +9,15 @@
                 <i class="fas fa-user-clock me-2"></i>Control de Asistencia
             </h1>
             <p class="text-muted mb-0">
-                Consulta, registra y exporta asistencias del personal.
+                Consulta y revisa los registros reales de asistencia del personal.
             </p>
         </div>
 
         <div class="d-flex gap-2 flex-wrap">
-            <button class="btn btn-success shadow-sm">
+            <button class="btn btn-success shadow-sm" disabled>
                 <i class="fas fa-user-check me-2"></i>Registrar Asistencia
             </button>
-            <button class="btn btn-outline-primary shadow-sm">
+            <button class="btn btn-outline-primary shadow-sm" disabled>
                 <i class="fas fa-file-export me-2"></i>Exportar Reporte
             </button>
         </div>
@@ -29,11 +29,17 @@
             <div class="card control-card h-100">
                 <div class="card-body">
                     <h5 class="fw-bold text-secondary mb-3">
-                        <i class="fas fa-calendar-alt me-2"></i>Fecha de consulta
+                        <i class="fas fa-calendar-alt me-2"></i>Consulta rápida
                     </h5>
-                    <input type="date" class="form-control form-control-lg">
+                    <form method="get">
+                        <input type="hidden" name="fecha_inicio" value="{{ fecha_inicio_valor }}">
+                        <input type="date" class="form-control form-control-lg" name="fecha_fin" value="{{ fecha_fin_valor }}">
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            <i class="fas fa-search me-2"></i>Consultar día
+                        </button>
+                    </form>
                     <small class="text-muted d-block mt-2">
-                        Selecciona una fecha específica para revisar asistencias del día.
+                        Revisa asistencias de una fecha específica.
                     </small>
                 </div>
             </div>
@@ -43,14 +49,15 @@
             <div class="card control-card h-100">
                 <div class="card-body d-flex flex-column justify-content-center">
                     <h5 class="fw-bold text-secondary mb-3">
-                        <i class="fas fa-bolt me-2"></i>Acción rápida
+                        <i class="fas fa-info-circle me-2"></i>Estado del módulo
                     </h5>
-                    <button class="btn btn-success btn-lg w-100">
-                        <i class="fas fa-check-circle me-2"></i>Registrar Asistencia Manualmente
-                    </button>
-                    <small class="text-muted d-block mt-2">
-                        Usa esta opción para capturar una asistencia fuera del registro automático.
-                    </small>
+                    <div class="alert alert-light border mb-0">
+                        <div><b>Total de miembros activos:</b> {{ total_miembros_activos }}</div>
+                        <div><b>Límite de retardo:</b> {{ hora_limite_retraso_texto }}</div>
+                        <div class="small text-muted mt-2">
+                            El módulo ya usa datos reales del modelo <b>Asistencia</b>.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -63,38 +70,41 @@
                 <h4 class="fw-bold text-secondary mb-0">
                     <i class="fas fa-filter me-2"></i>Filtros
                 </h4>
-                <button class="btn btn-outline-secondary btn-sm">
+                <a href="{% url 'control' %}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-eraser me-1"></i>Limpiar filtros
-                </button>
+                </a>
             </div>
 
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="fw-bold mb-2">Departamento</label>
-                    <select class="form-select">
-                        <option value="all">Todos</option>
-                        <option value="hr">Recursos Humanos</option>
-                        <option value="it">Tecnología</option>
-                        <option value="sales">Ventas</option>
-                    </select>
-                </div>
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2">Departamento</label>
+                        <select class="form-select" disabled>
+                            <option value="all">Todos</option>
+                            <option value="hr">Recursos Humanos</option>
+                            <option value="it">Tecnología</option>
+                            <option value="sales">Ventas</option>
+                        </select>
+                        <small class="text-muted">Filtro visual temporal.</small>
+                    </div>
 
-                <div class="col-md-4">
-                    <label class="fw-bold mb-2">Fecha Inicio</label>
-                    <input type="date" class="form-control">
-                </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2">Fecha Inicio</label>
+                        <input type="date" class="form-control" name="fecha_inicio" value="{{ fecha_inicio_valor }}">
+                    </div>
 
-                <div class="col-md-4">
-                    <label class="fw-bold mb-2">Fecha Fin</label>
-                    <input type="date" class="form-control">
-                </div>
+                    <div class="col-md-4">
+                        <label class="fw-bold mb-2">Fecha Fin</label>
+                        <input type="date" class="form-control" name="fecha_fin" value="{{ fecha_fin_valor }}">
+                    </div>
 
-                <div class="col-12">
-                    <button class="btn btn-primary w-100 mt-2">
-                        <i class="fas fa-search me-2"></i>Aplicar Filtros
-                    </button>
+                    <div class="col-12">
+                        <button class="btn btn-primary w-100 mt-2" type="submit">
+                            <i class="fas fa-search me-2"></i>Aplicar Filtros
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -103,10 +113,10 @@
         <div class="col-md-4">
             <div class="card summary-card summary-success h-100">
                 <div class="card-body text-center">
-                    <div class="small summary-label mb-2">Periodo actual</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-user-check me-2"></i>Días Trabajados</h5>
-                    <h2 class="fw-bold mb-1">20</h2>
-                    <div class="small">83% del periodo</div>
+                    <div class="small summary-label mb-2">Periodo seleccionado</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-user-check me-2"></i>Registros con Entrada</h5>
+                    <h2 class="fw-bold mb-1">{{ dias_trabajados }}</h2>
+                    <div class="small">Asistencias registradas</div>
                 </div>
             </div>
         </div>
@@ -114,10 +124,10 @@
         <div class="col-md-4">
             <div class="card summary-card summary-danger h-100">
                 <div class="card-body text-center">
-                    <div class="small summary-label mb-2">Periodo actual</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-user-times me-2"></i>Días Ausentes</h5>
-                    <h2 class="fw-bold mb-1">2</h2>
-                    <div class="small">8% del periodo</div>
+                    <div class="small summary-label mb-2">Periodo seleccionado</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-user-times me-2"></i>Sin Registro</h5>
+                    <h2 class="fw-bold mb-1">{{ usuarios_sin_registro }}</h2>
+                    <div class="small">Miembros activos sin asistencia</div>
                 </div>
             </div>
         </div>
@@ -125,10 +135,10 @@
         <div class="col-md-4">
             <div class="card summary-card summary-warning h-100">
                 <div class="card-body text-center">
-                    <div class="small summary-label mb-2">Periodo actual</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-clock me-2"></i>Días con Retrasos</h5>
-                    <h2 class="fw-bold mb-1">1</h2>
-                    <div class="small">4% del periodo</div>
+                    <div class="small summary-label mb-2">Periodo seleccionado</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-clock me-2"></i>Registros con Retraso</h5>
+                    <h2 class="fw-bold mb-1">{{ dias_con_retrasos }}</h2>
+                    <div class="small">Después de {{ hora_limite_retraso_texto }}</div>
                 </div>
             </div>
         </div>
@@ -141,7 +151,7 @@
                 <h4 class="fw-bold text-secondary mb-0">
                     <i class="fas fa-list me-2"></i>Registro de Asistencias
                 </h4>
-                <span class="badge bg-secondary">1 registro mostrado</span>
+                <span class="badge bg-secondary">{{ total_registros }} registro(s)</span>
             </div>
 
             <div class="table-responsive">
@@ -153,27 +163,33 @@
                             <th>Hora de Entrada</th>
                             <th>Hora de Salida</th>
                             <th>Estado</th>
-                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="text-center">
+                        {% for item in registros %}
                         <tr>
-                            <td class="fw-semibold">Juan Pérez</td>
-                            <td>04/10/2024</td>
-                            <td>09:00 AM</td>
-                            <td>18:00 PM</td>
-                            <td><span class="badge bg-success">Presente</span></td>
+                            <td class="fw-semibold">
+                                {% if item.obj.usuario %} {{ item.obj.usuario.username }} {% else %}
+                                <span class="text-muted">Usuario eliminado</span> {% endif %}
+                            </td>
+                            <td>{{ item.obj.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ item.obj.hora_entrada|time:"h:i A"|default:"-" }}</td>
+                            <td>{{ item.obj.hora_salida|time:"h:i A"|default:"-" }}</td>
                             <td>
-                                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                    <button class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i>Ver
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-warning">
-                                        <i class="fas fa-edit me-1"></i>Editar
-                                    </button>
-                                </div>
+                                {% if item.badge == "warning" %}
+                                <span class="badge bg-warning text-dark">{{ item.estado }}</span> {% elif item.badge == "success" %}
+                                <span class="badge bg-success">{{ item.estado }}</span> {% elif item.badge == "info" %}
+                                <span class="badge bg-info text-dark">{{ item.estado }}</span> {% else %}
+                                <span class="badge bg-secondary">{{ item.estado }}</span> {% endif %}
                             </td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox me-2"></i>No hay registros de asistencia para el periodo seleccionado.
+                            </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -188,18 +204,18 @@
                     <i class="fas fa-file-export me-2"></i>Exportar Informes
                 </h4>
                 <p class="text-muted mb-0">
-                    Descarga el reporte filtrado en el formato que necesites.
+                    La exportación se conectará después de terminar el módulo de consulta real.
                 </p>
             </div>
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <button class="btn btn-outline-success w-100">
+                    <button class="btn btn-outline-success w-100" disabled>
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </button>
                 </div>
                 <div class="col-md-6">
-                    <button class="btn btn-outline-danger w-100">
+                    <button class="btn btn-outline-danger w-100" disabled>
                         <i class="fas fa-file-pdf me-2"></i>Exportar a PDF
                     </button>
                 </div>
