@@ -1,110 +1,211 @@
-{% extends 'gestion_asociacion/base.html' %} {% block title %}Control de Asistencia{% endblock %} {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <!-- Título principal -->
-        <div class="col-12 text-center mb-4">
-            <h1 class="fw-bold text-primary"><i class="fas fa-user-clock"></i> Control de Asistencia</h1>
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Control de Asistencia{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/control.css' %}?v={{ STATIC_VERSION|default:'1.1' }}"> {% endblock %} {% block content %}
+<div class="control-page container mt-4">
+
+    <!-- Encabezado -->
+    <div class="control-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h1 class="fw-bold text-primary mb-1">
+                <i class="fas fa-user-clock me-2"></i>Control de Asistencia
+            </h1>
+            <p class="text-muted mb-0">
+                Consulta, registra y exporta asistencias del personal.
+            </p>
         </div>
 
-        <!-- Calendario y Registrar Asistencia -->
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-calendar-alt"></i> Calendario</h4>
-                <input type="date" class="form-control mt-2">
-            </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-success shadow-sm">
+                <i class="fas fa-user-check me-2"></i>Registrar Asistencia
+            </button>
+            <button class="btn btn-outline-primary shadow-sm">
+                <i class="fas fa-file-export me-2"></i>Exportar Reporte
+            </button>
         </div>
+    </div>
 
-        <div class="col-md-6">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-user-check"></i> Registrar Asistencia Manualmente</h4>
-                <button class="btn btn-success mt-3 w-100"><i class="fas fa-check-circle"></i> Registrar Asistencia</button>
-            </div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-filter"></i> Filtros</h4>
-                <div class="row">
-                    <div class="col-md-4">
-                        <label class="fw-bold">Departamento:</label>
-                        <select class="form-select">
-                            <option value="all">Todos</option>
-                            <option value="hr">Recursos Humanos</option>
-                            <option value="it">Tecnología</option>
-                            <option value="sales">Ventas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold">Fecha Inicio:</label>
-                        <input type="date" class="form-control">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="fw-bold">Fecha Fin:</label>
-                        <input type="date" class="form-control">
-                    </div>
-                    <div class="col-12 mt-3">
-                        <button class="btn btn-primary w-100"><i class="fas fa-search"></i> Aplicar Filtros</button>
-                    </div>
+    <!-- Acciones rápidas -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card control-card h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold text-secondary mb-3">
+                        <i class="fas fa-calendar-alt me-2"></i>Fecha de consulta
+                    </h5>
+                    <input type="date" class="form-control form-control-lg">
+                    <small class="text-muted d-block mt-2">
+                        Selecciona una fecha específica para revisar asistencias del día.
+                    </small>
                 </div>
             </div>
         </div>
 
-        <!-- Tabla de Asistencias -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-list"></i> Registro de Asistencias</h4>
-                <table class="table table-hover table-striped mt-3">
+        <div class="col-lg-6">
+            <div class="card control-card h-100">
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <h5 class="fw-bold text-secondary mb-3">
+                        <i class="fas fa-bolt me-2"></i>Acción rápida
+                    </h5>
+                    <button class="btn btn-success btn-lg w-100">
+                        <i class="fas fa-check-circle me-2"></i>Registrar Asistencia Manualmente
+                    </button>
+                    <small class="text-muted d-block mt-2">
+                        Usa esta opción para capturar una asistencia fuera del registro automático.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card control-card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h4 class="fw-bold text-secondary mb-0">
+                    <i class="fas fa-filter me-2"></i>Filtros
+                </h4>
+                <button class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-eraser me-1"></i>Limpiar filtros
+                </button>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="fw-bold mb-2">Departamento</label>
+                    <select class="form-select">
+                        <option value="all">Todos</option>
+                        <option value="hr">Recursos Humanos</option>
+                        <option value="it">Tecnología</option>
+                        <option value="sales">Ventas</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="fw-bold mb-2">Fecha Inicio</label>
+                    <input type="date" class="form-control">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="fw-bold mb-2">Fecha Fin</label>
+                    <input type="date" class="form-control">
+                </div>
+
+                <div class="col-12">
+                    <button class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-search me-2"></i>Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card summary-card summary-success h-100">
+                <div class="card-body text-center">
+                    <div class="small summary-label mb-2">Periodo actual</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-user-check me-2"></i>Días Trabajados</h5>
+                    <h2 class="fw-bold mb-1">20</h2>
+                    <div class="small">83% del periodo</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card summary-danger h-100">
+                <div class="card-body text-center">
+                    <div class="small summary-label mb-2">Periodo actual</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-user-times me-2"></i>Días Ausentes</h5>
+                    <h2 class="fw-bold mb-1">2</h2>
+                    <div class="small">8% del periodo</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card summary-card summary-warning h-100">
+                <div class="card-body text-center">
+                    <div class="small summary-label mb-2">Periodo actual</div>
+                    <h5 class="fw-bold mb-2"><i class="fas fa-clock me-2"></i>Días con Retrasos</h5>
+                    <h2 class="fw-bold mb-1">1</h2>
+                    <div class="small">4% del periodo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card control-card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h4 class="fw-bold text-secondary mb-0">
+                    <i class="fas fa-list me-2"></i>Registro de Asistencias
+                </h4>
+                <span class="badge bg-secondary">1 registro mostrado</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mt-2 control-table">
                     <thead class="table-dark text-center">
                         <tr>
                             <th>Empleado</th>
                             <th>Fecha</th>
                             <th>Hora de Entrada</th>
                             <th>Hora de Salida</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="text-center">
                         <tr>
-                            <td>Juan Pérez</td>
+                            <td class="fw-semibold">Juan Pérez</td>
                             <td>04/10/2024</td>
                             <td>09:00 AM</td>
                             <td>18:00 PM</td>
+                            <td><span class="badge bg-success">Presente</span></td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                    <button class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-edit me-1"></i>Editar
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Resumen de asistencia -->
-        <div class="col-md-4 mt-4">
-            <div class="card shadow-sm text-white bg-success p-4 text-center">
-                <h4 class="fw-bold"><i class="fas fa-user-check"></i> Días Trabajados</h4>
-                <h2>20</h2>
+    <!-- Exportación -->
+    <div class="card control-card">
+        <div class="card-body">
+            <div class="text-center mb-3">
+                <h4 class="fw-bold text-secondary mb-1">
+                    <i class="fas fa-file-export me-2"></i>Exportar Informes
+                </h4>
+                <p class="text-muted mb-0">
+                    Descarga el reporte filtrado en el formato que necesites.
+                </p>
             </div>
-        </div>
 
-        <div class="col-md-4 mt-4">
-            <div class="card shadow-sm text-white bg-danger p-4 text-center">
-                <h4 class="fw-bold"><i class="fas fa-user-times"></i> Días Ausentes</h4>
-                <h2>2</h2>
-            </div>
-        </div>
-
-        <div class="col-md-4 mt-4">
-            <div class="card shadow-sm text-white bg-warning p-4 text-center">
-                <h4 class="fw-bold"><i class="fas fa-clock"></i> Días con Retrasos</h4>
-                <h2>1</h2>
-            </div>
-        </div>
-
-        <!-- Exportar Informes -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4 text-center">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-file-export"></i> Exportar Informes</h4>
-                <button class="btn btn-outline-success m-2"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
-                <button class="btn btn-outline-danger m-2"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <button class="btn btn-outline-success w-100">
+                        <i class="fas fa-file-excel me-2"></i>Exportar a Excel
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-outline-danger w-100">
+                        <i class="fas fa-file-pdf me-2"></i>Exportar a PDF
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+
 </div>
 {% endblock %}
