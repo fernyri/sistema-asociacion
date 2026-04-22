@@ -217,6 +217,9 @@ EMAIL_HOST_PASSWORD = config("BREVO_SMTP_PASSWORD", default="")
 # ✅ Tiempo de validez del token de reset
 PASSWORD_RESET_TIMEOUT = 600  # 10 min
 
+# Verificación de correo
+EMAIL_VERIFICATION_TIMEOUT = 1800  # 30 min
+VERIFICATION_RESEND_COOLDOWN = 20 # 20 segundos entre reenvíos
 
 # =========================
 # Extra recomendado (opc.)
