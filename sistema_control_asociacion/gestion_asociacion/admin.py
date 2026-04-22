@@ -2,7 +2,17 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Usuario, Asistencia, Tarea, Reporte, Notification, AttendanceSummary, Personal, Evento
+from .models import (
+    Usuario,
+    Asistencia,
+    Tarea,
+    Reporte,
+    Notification,
+    AttendanceSummary,
+    Personal,
+    Evento,
+    BitacoraAcceso,
+)
 
 
 @admin.register(Usuario)
@@ -13,17 +23,36 @@ class UsuarioAdmin(UserAdmin):
     ordering = ("username",)
     list_per_page = 20
 
-    # Búsqueda (incluye el campo real case-insensitive)
+    # Búsqueda
     search_fields = ("username", "username_norm", "email", "first_name", "last_name")
 
-    # read-only (porque lo generas en save())
+    # Solo lectura
     readonly_fields = ("username_norm", "last_login", "date_joined")
 
-    # Campos extra en el formulario admin
+    # Campos en edición
     fieldsets = (
         (None, {"fields": ("username", "username_norm", "password")}),
-        (_("Información personal"), {"fields": ("first_name", "last_name", "email", "telefono", "direccion", "genero", "fecha_nacimiento")}),
-        (_("Permisos"), {"fields": ("rol", "is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (_("Información personal"), {
+            "fields": (
+                "first_name",
+                "last_name",
+                "email",
+                "telefono",
+                "direccion",
+                "genero",
+                "fecha_nacimiento",
+            )
+        }),
+        (_("Permisos"), {
+            "fields": (
+                "rol",
+                "is_active",
+                "is_staff",
+                "is_superuser",
+                "groups",
+                "user_permissions",
+            )
+        }),
         (_("Fechas importantes"), {"fields": ("last_login", "date_joined")}),
     )
 
@@ -69,7 +98,6 @@ class AttendanceSummaryAdmin(admin.ModelAdmin):
     ordering = ("-date",)
 
 
-# Si ya usas Personal/Evento en la app, mejor también registrarlos
 @admin.register(Personal)
 class PersonalAdmin(admin.ModelAdmin):
     list_display = ("nombre", "email", "departamento", "fecha_creacion")
@@ -84,3 +112,25 @@ class EventoAdmin(admin.ModelAdmin):
     list_filter = ("fecha",)
     search_fields = ("titulo", "descripcion")
     ordering = ("-fecha",)
+
+
+@admin.register(BitacoraAcceso)
+class BitacoraAdmin(admin.ModelAdmin):
+    list_display = (
+        "usuario",
+        "fecha",
+        "hora_entrada",
+        "hora_salida",
+        "estado_sesion",
+        "ip",
+    )
+    list_filter = ("fecha", "usuario")
+    search_fields = ("usuario__username", "usuario__username_norm", "usuario__email")
+    ordering = ("-hora_entrada",)
+
+    def estado_sesion(self, obj):
+        if obj.hora_salida:
+            return "🔴 Cerrada"
+        return "🟢 Activa"
+
+    estado_sesion.short_description = "Estado"

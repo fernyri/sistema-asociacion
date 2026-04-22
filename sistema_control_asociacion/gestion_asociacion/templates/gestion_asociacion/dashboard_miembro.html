@@ -1,0 +1,106 @@
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Mi Panel{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}"> {% endblock %} {% block content %}
+<div class="container-fluid px-4">
+    <h1 class="mt-4 text-center">👤 Mi Panel</h1>
+
+    <div class="row mt-4 g-3">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm p-3 h-100">
+                <h5 class="card-title text-center"><i class="fas fa-envelope"></i> Mensajes no leídos</h5>
+                <p class="card-text text-center fs-4 mb-0">{{ mensajes_no_leidos }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow-sm p-3 h-100">
+                <h5 class="card-title text-center"><i class="fas fa-signal"></i> Sesiones activas</h5>
+                <p class="card-text text-center fs-4 mb-0">{{ total_sesiones_activas }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-info text-white shadow-sm p-3 h-100">
+                <h5 class="card-title text-center"><i class="fas fa-user-clock"></i> Último acceso</h5>
+                <p class="card-text text-center fs-6 mb-0">
+                    {% if ultimo_acceso %} {{ ultimo_acceso.hora_entrada|date:"d/m/Y h:i A" }} {% else %} Sin registros {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-circle text-success"></i> Mi sesión actual</h5>
+        </div>
+        <div class="card-body">
+            {% if sesiones_activas %}
+            <ul class="list-group">
+                {% for acceso in sesiones_activas %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ acceso.usuario.username }}</strong>
+                        <span class="text-muted">— inició:</span> {{ acceso.hora_entrada|date:"d/m/Y h:i A" }}
+                    </div>
+                    <span class="badge bg-success">Activa</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted text-center mb-0">No tienes sesiones activas en este momento.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Mis últimas asistencias</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Hora de Entrada</th>
+                            <th>Hora de Salida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if ultimas_asistencias %} {% for asistencia in ultimas_asistencias %}
+                        <tr>
+                            <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if asistencia.hora_entrada %} {{ asistencia.hora_entrada|time:"h:i A" }} {% else %}
+                                <span class="text-muted">Sin entrada</span> {% endif %}
+                            </td>
+                            <td>
+                                {% if asistencia.hora_salida %} {{ asistencia.hora_salida|time:"h:i A" }} {% else %}
+                                <span class="text-muted">Pendiente</span> {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %} {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No tienes registros de asistencia.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-bolt"></i> Accesos rápidos</h5>
+        </div>
+        <div class="card-body text-center">
+            <a href="{% url 'comunicacion_interna' %}" class="btn btn-primary">
+                <i class="fas fa-comments"></i> Ir a Mensajes
+            </a>
+            <a href="{% url 'logout' %}" class="btn btn-danger ms-2">
+                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

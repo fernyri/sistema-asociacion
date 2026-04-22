@@ -1,5 +1,5 @@
 {% extends "gestion_asociacion/base_auth.html" %} {% load static %} {% block title %}Registro de Usuario{% endblock %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5"> {% endblock %} {% block content %}
+<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5"> {% endblock %} {% block content %} {% now "Y-m-d" as hoy %}
 <div class="main-container d-flex justify-content-center align-items-center">
     <div class="register-container p-4 shadow rounded bg-white">
         <h2 class="text-center mb-4">Registro de Usuario</h2>
@@ -20,49 +20,50 @@
             <div class="row g-3 row-cols-1 row-cols-md-2">
                 <div class="col">
                     <label for="username" class="form-label">Nombre de usuario:</label>
-                    <input type="text" id="username" name="username" class="form-control" required autocomplete="username">
+                    <input type="text" id="username" name="username" class="form-control" required autocomplete="username" value="{{ form.username.value|default:'' }}">
                     <div id="error-username-email"></div>
                 </div>
 
                 <div class="col">
                     <label for="first_name" class="form-label">Nombre:</label>
-                    <input type="text" id="first_name" name="first_name" class="form-control" required autocomplete="given-name">
+                    <input type="text" id="first_name" name="first_name" class="form-control" required autocomplete="given-name" value="{{ form.first_name.value|default:'' }}">
                 </div>
 
                 <div class="col">
                     <label for="last_name" class="form-label">Apellido:</label>
-                    <input type="text" id="last_name" name="last_name" class="form-control" required autocomplete="family-name">
+                    <input type="text" id="last_name" name="last_name" class="form-control" required autocomplete="family-name" value="{{ form.last_name.value|default:'' }}">
                 </div>
 
                 <div class="col">
                     <label for="email" class="form-label">Correo electrónico:</label>
-                    <input type="email" id="email" name="email" class="form-control" required autocomplete="email">
+                    <input type="email" id="email" name="email" class="form-control" required autocomplete="email" value="{{ form.email.value|default:'' }}">
                 </div>
 
                 <div class="col">
                     <label for="telefono" class="form-label">Teléfono:</label>
-                    <input type="text" id="telefono" name="telefono" class="form-control" inputmode="numeric" autocomplete="tel">
+                    <input type="text" id="telefono" name="telefono" class="form-control" inputmode="numeric" autocomplete="tel" value="{{ form.telefono.value|default:'' }}">
                     <div id="error-telefono"></div>
                 </div>
 
                 <div class="col">
                     <label for="direccion" class="form-label">Dirección:</label>
-                    <input type="text" id="direccion" name="direccion" class="form-control" autocomplete="street-address">
+                    <input type="text" id="direccion" name="direccion" class="form-control" autocomplete="street-address" value="{{ form.direccion.value|default:'' }}">
                     <div id="error-direccion"></div>
                 </div>
 
                 <div class="col">
                     <label for="genero" class="form-label">Género:</label>
                     <select id="genero" name="genero" class="form-select">
-            <option value="M">Masculino</option>
-            <option value="F">Femenino</option>
-            <option value="O">Otro</option>
-          </select>
+                        <option value="M" {% if form.genero.value == "M" %}selected{% endif %}>Masculino</option>
+                        <option value="F" {% if form.genero.value == "F" %}selected{% endif %}>Femenino</option>
+                        <option value="O" {% if form.genero.value == "O" %}selected{% endif %}>Otro</option>
+                    </select>
                 </div>
 
                 <div class="col">
                     <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento:</label>
-                    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control" autocomplete="bday">
+                    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control" autocomplete="bday" value="{{ form.fecha_nacimiento.value|default:'' }}" min="1900-01-01" max="{{ hoy }}">
+                    <div id="error-fecha-nacimiento"></div>
                 </div>
 
                 <div class="col">
@@ -70,8 +71,8 @@
                     <div class="input-group">
                         <input type="password" id="password1" name="password1" class="form-control" required autocomplete="new-password">
                         <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
-              <i class="fa fa-eye"></i>
-            </span>
+                            <i class="fa fa-eye"></i>
+                        </span>
                     </div>
                     <div id="error-password"></div>
                 </div>
@@ -81,8 +82,8 @@
                     <div class="input-group">
                         <input type="password" id="password2" name="password2" class="form-control" required autocomplete="new-password">
                         <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
-              <i class="fa fa-eye"></i>
-            </span>
+                            <i class="fa fa-eye"></i>
+                        </span>
                     </div>
                     <div id="error-password2"></div>
                 </div>
@@ -104,24 +105,25 @@
         const emailInput = document.getElementById("email");
         const telefonoInput = document.getElementById("telefono");
         const direccionInput = document.getElementById("direccion");
+        const fechaNacimientoInput = document.getElementById("fecha_nacimiento");
         const password1Input = document.getElementById("password1");
         const password2Input = document.getElementById("password2");
 
         const errorUserEmail = document.getElementById("error-username-email");
         const errorTel = document.getElementById("error-telefono");
         const errorDir = document.getElementById("error-direccion");
+        const errorFechaNacimiento = document.getElementById("error-fecha-nacimiento");
         const errorPass1 = document.getElementById("error-password");
         const errorPass2 = document.getElementById("error-password2");
 
         const verificarUrl = "{% url 'verificar_usuario' %}";
+        const fechaMaxima = "{{ hoy }}";
 
-        // ✅ En el híbrido, NO bloqueamos por “campo vacío”
-        // (eso lo controla el backend al enviar + el navegador por required)
-        // Solo bloqueamos por: verificando, enviando, duplicado, password mismatch/min, tel/dirección inválidos.
         let estado = {
             duplicado: false,
             validTelefono: true,
             validDireccion: true,
+            validFechaNacimiento: true,
             validPasswordMin: true,
             validPasswordsMatch: true,
             verificando: false,
@@ -141,11 +143,13 @@
             if (estado.duplicado) errores.push("El usuario o correo ya están registrados");
             if (!estado.validTelefono) errores.push("Teléfono inválido");
             if (!estado.validDireccion) errores.push("Dirección muy corta");
+            if (!estado.validFechaNacimiento) errores.push("Fecha de nacimiento inválida");
             if (!estado.validPasswordMin) errores.push("Contraseña muy corta");
             if (!estado.validPasswordsMatch) errores.push("Las contraseñas no coinciden");
 
             const bloquear = estado.enviando || estado.verificando || estado.duplicado ||
                 !estado.validTelefono || !estado.validDireccion ||
+                !estado.validFechaNacimiento ||
                 !estado.validPasswordMin || !estado.validPasswordsMatch;
 
             btn.disabled = bloquear;
@@ -156,7 +160,6 @@
             setHint(errores);
         }
 
-        // 👁 Mostrar / ocultar contraseña
         function togglePassword(btnEye) {
             const input = btnEye.parentElement.querySelector("input");
             const icon = btnEye.querySelector("i");
@@ -181,16 +184,11 @@
             });
         });
 
-        // =========================
-        // Normalización (igual que forms.py)
-        // =========================
         function normUsernameDisplay(v) {
-            // Solo limpia espacios, respeta mayúsculas
             return (v || "").trim().replace(/\s+/g, " ");
         }
 
         function normUsernameForCheck(v) {
-            // Para comparar en backend (username_norm)
             return normUsernameDisplay(v).toLowerCase();
         }
 
@@ -200,10 +198,10 @@
 
         function validarTelefono() {
             const v = telefonoInput.value.trim();
-            estado.validTelefono = !v || (/^[0-9]+$/.test(v) && v.length >= 7 && v.length <= 15);
+            estado.validTelefono = !v || (/^[0-9]+$/.test(v) && v.length >= 7 && v.length <= 10);
             errorTel.innerHTML = estado.validTelefono ?
                 "" :
-                "<small class='text-danger'>Solo números (7-15 dígitos)</small>";
+                "<small class='text-danger'>Solo números (10 dígitos)</small>";
             actualizarBoton();
         }
 
@@ -216,11 +214,49 @@
             actualizarBoton();
         }
 
+        function validarFechaNacimiento() {
+            const v = fechaNacimientoInput.value;
+
+            if (!v) {
+                estado.validFechaNacimiento = true;
+                errorFechaNacimiento.innerHTML = "";
+                actualizarBoton();
+                return;
+            }
+
+            const partes = v.split("-");
+            let year = partes[0] || "";
+
+            if (year.length > 4) {
+                year = year.slice(0, 4);
+                partes[0] = year;
+                fechaNacimientoInput.value = partes.join("-");
+            }
+
+            const fechaIngresada = fechaNacimientoInput.value;
+            const anio = parseInt(year, 10);
+
+            estado.validFechaNacimiento = true;
+            errorFechaNacimiento.innerHTML = "";
+
+            if (year.length !== 4) {
+                estado.validFechaNacimiento = false;
+                errorFechaNacimiento.innerHTML = "<small class='text-danger'>El año debe tener 4 dígitos</small>";
+            } else if (anio < 1900) {
+                estado.validFechaNacimiento = false;
+                errorFechaNacimiento.innerHTML = "<small class='text-danger'>El año no puede ser menor a 1900</small>";
+            } else if (fechaIngresada > fechaMaxima) {
+                estado.validFechaNacimiento = false;
+                errorFechaNacimiento.innerHTML = "<small class='text-danger'>La fecha no puede ser futura</small>";
+            }
+
+            actualizarBoton();
+        }
+
         function validarContrasenas() {
             const p1 = password1Input.value;
             const p2 = password2Input.value;
 
-            // Solo mostramos error si el usuario ya escribió algo
             estado.validPasswordMin = !p1 || p1.length >= 8;
             estado.validPasswordsMatch = !p2 || p1 === p2;
 
@@ -234,7 +270,6 @@
             actualizarBoton();
         }
 
-        // 🔁 Verificación AJAX (cancelable + debounce)
         let debounceTimer = null;
         let controller = null;
 
@@ -247,7 +282,6 @@
             const usernameCheck = normUsernameForCheck(usernameInput.value);
             const emailCheck = normEmailDisplay(emailInput.value);
 
-            // ✅ Si no hay nada que verificar, no bloquees
             if (!usernameCheck && !emailCheck) {
                 estado.duplicado = false;
                 errorUserEmail.innerHTML = "";
@@ -273,7 +307,6 @@
                 })
                 .catch(err => {
                     if (err.name === "AbortError") return;
-                    // Si falla la verificación, NO bloqueamos duro, solo avisamos.
                     estado.duplicado = false;
                     errorUserEmail.innerHTML = "<small class='text-warning'>No se pudo validar por el momento.</small>";
                 })
@@ -298,27 +331,25 @@
 
         telefonoInput.addEventListener("input", validarTelefono);
         direccionInput.addEventListener("input", validarDireccion);
+        fechaNacimientoInput.addEventListener("input", validarFechaNacimiento);
+        fechaNacimientoInput.addEventListener("blur", validarFechaNacimiento);
         password1Input.addEventListener("input", validarContrasenas);
         password2Input.addEventListener("input", validarContrasenas);
 
         form.addEventListener("submit", function(e) {
-            // ✅ Si está verificando o enviando, evita doble submit
             if (estado.verificando || estado.enviando) {
                 e.preventDefault();
                 return;
             }
 
-            // ✅ Normalización final
             usernameInput.value = normUsernameDisplay(usernameInput.value);
             emailInput.value = normEmailDisplay(emailInput.value);
 
-            // ✅ Revalida campos “suaves”
             validarTelefono();
             validarDireccion();
+            validarFechaNacimiento();
             validarContrasenas();
 
-            // ✅ Deja que el navegador bloquee por required / email inválido,
-            // pero si tus validaciones “suaves” fallan, sí frenamos.
             if (btn.disabled) {
                 e.preventDefault();
                 return;
@@ -328,9 +359,9 @@
             actualizarBoton();
         });
 
-        // Estado inicial (no bloquea por vacíos)
         validarTelefono();
         validarDireccion();
+        validarFechaNacimiento();
         validarContrasenas();
         actualizarBoton();
     });

@@ -3,77 +3,173 @@
 <div class="container-fluid px-4">
     <h1 class="mt-4 text-center">📊 Dashboard</h1>
 
-    <!-- 🔹 Tarjetas Resumen de Asistencia -->
+    <!-- Resumen general -->
     <div class="row mt-4 g-3">
-        <div class="col-md-4">
-            <div class="card bg-success text-white shadow-sm p-3">
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm p-3 h-100">
                 <h5 class="card-title text-center"><i class="fas fa-user-check"></i> Presentes</h5>
-                <p class="card-text text-center fs-4">12</p>
+                <p class="card-text text-center fs-4 mb-0">
+                    {% if attendance_summary %}{{ attendance_summary.present }}{% else %}0{% endif %}
+                </p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-danger text-white shadow-sm p-3">
+
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow-sm p-3 h-100">
                 <h5 class="card-title text-center"><i class="fas fa-user-times"></i> Ausentes</h5>
-                <p class="card-text text-center fs-4">5</p>
+                <p class="card-text text-center fs-4 mb-0">
+                    {% if attendance_summary %}{{ attendance_summary.absent }}{% else %}0{% endif %}
+                </p>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-dark shadow-sm p-3">
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark shadow-sm p-3 h-100">
                 <h5 class="card-title text-center"><i class="fas fa-clock"></i> Retardos</h5>
-                <p class="card-text text-center fs-4">3</p>
+                <p class="card-text text-center fs-4 mb-0">
+                    {% if attendance_summary %}{{ attendance_summary.late }}{% else %}0{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm p-3 h-100">
+                <h5 class="card-title text-center"><i class="fas fa-signal"></i> Usuarios conectados</h5>
+                <p class="card-text text-center fs-4 mb-0">{{ total_usuarios_conectados }}</p>
             </div>
         </div>
     </div>
 
-    <!-- 🔹 Tabla de Registros de Asistencia -->
+    <!-- Usuarios conectados -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-circle text-success"></i> Sesiones activas</h5>
+        </div>
+        <div class="card-body">
+            {% if usuarios_conectados %}
+            <ul class="list-group">
+                {% for acceso in usuarios_conectados %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ acceso.usuario.username }}</strong>
+                        <span class="text-muted">— inició:</span> {{ acceso.hora_entrada|date:"d/m/Y h:i A" }}
+                    </div>
+                    <span class="badge bg-success">Activa</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted text-center mb-0">No hay usuarios conectados en este momento.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tabla de registros de asistencia -->
     <div class="card mt-4 shadow-sm">
         <div class="card-header bg-dark text-white">
             <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Registros de Asistencia</h5>
         </div>
         <div class="card-body">
-            <table class="table table-hover table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Fecha</th>
-                        <th>Hora de Entrada</th>
-                        <th>Hora de Salida</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Juan Pérez</td>
-                        <td>10/02/2024</td>
-                        <td>08:00 AM</td>
-                        <td>05:00 PM</td>
-                    </tr>
-                    <tr>
-                        <td>María López</td>
-                        <td>10/02/2024</td>
-                        <td>08:15 AM</td>
-                        <td>05:00 PM</td>
-                    </tr>
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">No hay más registros</td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Fecha</th>
+                            <th>Hora de Entrada</th>
+                            <th>Hora de Salida</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if attendance_records %} {% for asistencia in attendance_records %}
+                        <tr>
+                            <td>
+                                {% if asistencia.usuario %} {{ asistencia.usuario.username }} {% else %}
+                                <span class="text-muted">Sin usuario</span> {% endif %}
+                            </td>
+                            <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+                            <td>
+                                {% if asistencia.hora_entrada %} {{ asistencia.hora_entrada|time:"h:i A" }} {% else %}
+                                <span class="text-muted">Sin entrada</span> {% endif %}
+                            </td>
+                            <td>
+                                {% if asistencia.hora_salida %} {{ asistencia.hora_salida|time:"h:i A" }} {% else %}
+                                <span class="text-muted">Pendiente</span> {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %} {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No hay registros de asistencia.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- 🔹 Últimas Notificaciones -->
+    <!-- Bitácora de accesos -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-history"></i> Últimos accesos</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if ultimos_accesos %} {% for acceso in ultimos_accesos %}
+                        <tr>
+                            <td>{{ acceso.usuario.username }}</td>
+                            <td>{{ acceso.hora_entrada|date:"d/m/Y h:i A" }}</td>
+                            <td>
+                                {% if acceso.hora_salida %} {{ acceso.hora_salida|date:"d/m/Y h:i A" }} {% else %}
+                                <span class="text-muted">Sesión abierta</span> {% endif %}
+                            </td>
+                            <td>
+                                {% if acceso.hora_salida %}
+                                <span class="badge bg-danger">Cerrada</span> {% else %}
+                                <span class="badge bg-success">Activa</span> {% endif %}
+                            </td>
+                            <td>{{ acceso.ip|default:"-" }}</td>
+                        </tr>
+                        {% endfor %} {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No hay registros en la bitácora.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Últimas notificaciones -->
     <div class="card mt-4 shadow-sm">
         <div class="card-header bg-info text-white">
             <h5 class="mb-0"><i class="fas fa-bell"></i> Últimas Notificaciones</h5>
         </div>
         <div class="card-body">
+            {% if notifications %}
             <ul class="list-group">
-                <li class="list-group-item">✅ Asistencia del día ha sido actualizada.</li>
-                <li class="list-group-item">🔔 Se ha programado una reunión para el viernes.</li>
-                <li class="list-group-item text-muted text-center">No hay más notificaciones.</li>
+                {% for notification in notifications %}
+                <li class="list-group-item">
+                    {{ notification.message }}
+                </li>
+                {% endfor %}
             </ul>
+            {% else %}
+            <p class="text-muted text-center mb-0">No hay notificaciones disponibles.</p>
+            {% endif %}
         </div>
     </div>
-
 </div>
 {% endblock %}

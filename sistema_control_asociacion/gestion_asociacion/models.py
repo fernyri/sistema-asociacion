@@ -18,7 +18,7 @@ def nombre_bonito(valor: str) -> str:
         return ""
 
     minusculas = {"de", "la", "del", "y", "e", "los", "las"}
-    partes = str(valor).strip().split()  # ✅ split() ya colapsa espacios
+    partes = str(valor).strip().split()
     resultado = []
 
     for p in partes:
@@ -51,10 +51,7 @@ class UsuarioManager(BaseUserManager):
         if not email:
             raise ValueError("El email es obligatorio")
 
-        # ✅ Email siempre normalizado
         email = (self.normalize_email(email) or "").strip().lower()
-
-        # ✅ Username limpio (colapsa espacios)
         username_clean = " ".join((username or "").strip().split())
 
         user = self.model(
@@ -64,11 +61,7 @@ class UsuarioManager(BaseUserManager):
         )
 
         user.set_password(password)
-
-        # ✅ username_norm obligatorio antes de validar (case-insensitive real + espacios)
         user.username_norm = username_norm_value(username_clean)
-
-        # ✅ Validaciones del modelo
         user.full_clean()
         user.save(using=self._db)
         return user
@@ -77,8 +70,8 @@ class UsuarioManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
 
-        # ✅ Tu app decide el acceso por rol, así que el superuser debe ser Administrador
-        extra_fields.setdefault("rol", "Administrador")
+        # ✅ El superusuario será el nivel más alto del sistema
+        extra_fields.setdefault("rol", "Dios")
 
         return self.create_user(username, email, password, **extra_fields)
 
@@ -88,13 +81,11 @@ class UsuarioManager(BaseUserManager):
 # =========================
 class Usuario(AbstractUser):
 
-    # ✅ Email único (y lo guardamos siempre en minúsculas en save())
     email = models.EmailField(
         unique=True,
         verbose_name="Correo electrónico"
     )
 
-    # ✅ Username case-insensitive real (y además soporta espacios colapsados)
     username_norm = models.CharField(
         max_length=150,
         unique=True,
@@ -137,6 +128,7 @@ class Usuario(AbstractUser):
     rol = models.CharField(
         max_length=50,
         choices=[
+            ("Dios", "Dios"),
             ("Administrador", "Administrador"),
             ("Miembro", "Miembro"),
         ],
@@ -150,16 +142,10 @@ class Usuario(AbstractUser):
     # SAVE NORMALIZADO
     # =========================
     def save(self, *args, **kwargs):
-
-        # ✅ Email siempre minúscula
         self.email = (self.email or "").strip().lower()
-
-        # ✅ Guardado bonito (también colapsa espacios)
         self.username = nombre_bonito(self.username)
         self.first_name = nombre_bonito(self.first_name)
         self.last_name = nombre_bonito(self.last_name)
-
-        # ✅ Username normalizado (Luis == luis) + espacios colapsados
         self.username_norm = username_norm_value(self.username)
 
         super().save(*args, **kwargs)
@@ -167,6 +153,9 @@ class Usuario(AbstractUser):
     # =========================
     # Helpers de rol
     # =========================
+    def is_dios(self):
+        return self.rol == "Dios"
+
     def is_admin(self):
         return self.rol == "Administrador"
 
@@ -183,8 +172,6 @@ class Usuario(AbstractUser):
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
         ordering = ["username"]
-
-        # ✅ Unicidad real de email sin importar mayúsculas (recomendado)
         constraints = [
             models.UniqueConstraint(Lower("email"), name="uniq_usuario_email_lower"),
         ]
@@ -341,17 +328,9 @@ class Personal(models.Model):
 
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
-    # =========================
-    # SAVE NORMALIZADO
-    # =========================
     def save(self, *args, **kwargs):
-
-        # ✅ Nombre bonito
         self.nombre = nombre_bonito(self.nombre)
-
-        # ✅ Email minúscula
         self.email = (self.email or "").strip().lower()
-
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -408,8 +387,6 @@ class Mensaje(models.Model):
 
     leido = models.BooleanField(default=False, db_index=True)
     creado_en = models.DateTimeField(auto_now_add=True, db_index=True)
-
-    # ✅ Papelera (soft-delete)
     en_papelera = models.BooleanField(default=False, db_index=True)
 
     class Meta:
@@ -419,3 +396,19 @@ class Mensaje(models.Model):
         rem = self.remitente.username if self.remitente else "Usuario eliminado"
         des = self.destinatario.username if self.destinatario else "Usuario eliminado"
         return f"{self.asunto} ({rem} -> {des})"
+
+
+class BitacoraAcceso(models.Model):
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="bitacora_accesos"
+    )
+
+    fecha = models.DateField(auto_now_add=True)
+    hora_entrada = models.DateTimeField(null=True, blank=True)
+    hora_salida = models.DateTimeField(null=True, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.usuario} - {self.fecha}"

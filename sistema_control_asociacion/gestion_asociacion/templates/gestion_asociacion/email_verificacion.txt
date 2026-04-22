@@ -1,0 +1,11 @@
+Hola {{ user.first_name|default:user.username }},
+
+Gracias por registrarte en {{ site_name }}.
+
+Para activar tu cuenta y poder iniciar sesión, abre este enlace:
+
+{{ activation_link }}
+
+Este enlace estará disponible durante aproximadamente {{ timeout_minutes }} minutos.
+
+Si tú no realizaste este registro, puedes ignorar este correo.

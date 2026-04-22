@@ -12,6 +12,9 @@ urlpatterns = [
     path("", views.primer_login, name="primer_login"),
     path("mi_login/", views.login_view, name="login"),
     path("registro/", views.registro, name="registro"),
+    path("registro/exito/", views.registro_exito, name="registro_exito"),
+    path("activar/<uidb64>/<token>/", views.activar_cuenta, name="activar_cuenta"),
+    path("reenviar-verificacion/", views.reenviar_verificacion, name="reenviar_verificacion"),
     path("verificar_usuario/", views.verificar_usuario, name="verificar_usuario"),
     path("logout/", views.logout_view, name="logout"),
 
@@ -23,8 +26,9 @@ urlpatterns = [
     path("gestion_cap/", views.gestion_cap, name="gestion_cap"),
     path("gestion/", views.gestion, name="gestion"),
 
-    # ✅ Detalle/Perfil de usuario (Admin)
     path("gestion/usuarios/<int:user_id>/", views.usuario_detalle, name="usuario_detalle"),
+    path("gestion/usuarios/<int:user_id>/editar/", views.editar_usuario, name="editar_usuario"),
+    path("gestion/usuarios/<int:user_id>/cambiar-rol/", views.cambiar_rol_usuario, name="cambiar_rol_usuario"),
     path("promover/<int:user_id>/", views.promover_usuario, name="promover_usuario"),
     path("eliminar/<int:user_id>/", views.eliminar_usuario, name="eliminar_usuario"),
 
@@ -49,7 +53,7 @@ urlpatterns = [
     path("comunicacion/<int:mensaje_id>/eliminar/", views.eliminar_definitivo, name="eliminar_definitivo"),
 
     # =========================
-    # Password reset (custom + templates)
+    # Password reset
     # =========================
     path("password_reset/", views.CustomPasswordResetView.as_view(), name="password_reset"),
     path(

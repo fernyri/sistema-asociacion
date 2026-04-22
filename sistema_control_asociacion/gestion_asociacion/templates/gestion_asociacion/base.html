@@ -20,25 +20,21 @@
 <body class="{% if request.user.is_authenticated %}auth-body{% endif %}">
 
     {% if request.user.is_authenticated %}
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow">
         <div class="container-fluid">
 
-            {# ✅ Botón hamburguesa SOLO si hay sidebar (Admin) #} {% if request.user.rol != "Miembro" %}
+            {% if request.user.rol != "Miembro" %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span> Menú
             </button> {% endif %}
 
             <div class="d-flex align-items-center ms-auto flex-wrap gap-2">
 
-                {# ✅ Comunicación + Papelera SOLO para Miembro (Admin lo usa en Sidebar) #} {% if request.user.rol == "Miembro" %} {# ✅ Comunicación (Miembro) | usa no_leidos (excluye papelera) #}
+                {% if request.user.rol == "Miembro" %}
                 <a href="{% url 'comunicacion_interna' %}" class="nav-link text-dark fw-semibold me-2 position-relative d-flex align-items-center">
-
                     <span class="position-relative me-2">
                         <i class="fas fa-comments {% if no_leidos|default:0 > 0 %}text-danger{% endif %}"></i>
-
                         {% if no_leidos|default:0 > 0 %}
-                        <!-- 🔴 Puntito rojo -->
                         <span class="notification-dot"></span> {% endif %}
                     </span>
 
@@ -46,12 +42,9 @@
                     <span class="badge bg-danger ms-2">{{ no_leidos }}</span> {% endif %}
                 </a>
 
-                {# ✅ Papelera (Miembro) #}
                 <a href="{% url 'papelera' %}" class="nav-link text-dark fw-semibold me-2 position-relative d-flex align-items-center">
-
                     <span class="position-relative me-2">
                         <i class="fas fa-trash"></i>
-
                         {% if papelera_count|default:0 > 0 %}
                         <span class="notification-dot"></span> {% endif %}
                     </span>
@@ -59,7 +52,6 @@
                     Papelera {% if papelera_count|default:0 > 0 %}
                     <span class="badge bg-danger ms-2">{{ papelera_count }}</span> {% endif %}
                 </a>
-
                 {% endif %}
 
                 <div class="navbar-text me-2">
@@ -80,33 +72,29 @@
     </nav>
     {% endif %}
 
-    <!-- ✅ Bootstrap controla ancho / tu CSS solo empuja con padding-left cuando hay sidebar -->
     <div class="container-fluid {% if request.user.is_authenticated and request.user.rol != 'Miembro' %}app-with-sidebar{% else %}app-no-sidebar{% endif %}">
         <div class="row">
 
-            {# ✅ Sidebar fijo: SOLO si NO es Miembro #} {% if request.user.is_authenticated and request.user.rol != "Miembro" %}
+            {% if request.user.is_authenticated and request.user.rol != "Miembro" %}
             <nav id="sidebarMenu" class="sidebar collapse d-md-block bg-dark text-white py-4">
                 <h4 class="text-center"><i class="fas fa-bars me-2"></i> Menú</h4>
 
                 <ul class="nav flex-column px-2">
 
-                    <!-- Inicio -->
                     <li class="nav-item">
                         <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                             <i class="fas fa-home me-2"></i> Inicio
                         </a>
                     </li>
 
-                    {% if request.user.rol == "Administrador" %}
+                    {% if request.user.rol == "Administrador" or request.user.rol == "Dios" %}
 
-                    <!-- Gestión -->
                     <li class="nav-item">
                         <a href="{% url 'gestion' %}" class="nav-link {% if request.resolver_match.url_name == 'gestion' %}active{% endif %}">
                             <i class="fas fa-user-tie me-2"></i> Gestión de Personal
                         </a>
                     </li>
 
-                    <!-- Comunicación -->
                     <li class="nav-item">
                         <a href="{% url 'comunicacion_admin' %}" class="nav-link {% if request.resolver_match.url_name == 'comunicacion_admin' %}active{% endif %}">
                             <i class="fas fa-comments me-2"></i> Comunicación {% if no_leidos|default:0 > 0 %}
@@ -114,7 +102,6 @@
                         </a>
                     </li>
 
-                    <!-- Papelera -->
                     <li class="nav-item">
                         <a href="{% url 'papelera' %}" class="nav-link {% if request.resolver_match.url_name == 'papelera' %}active{% endif %}">
                             <i class="fas fa-trash me-2"></i> Papelera {% if papelera_count|default:0 > 0 %}
@@ -122,28 +109,24 @@
                         </a>
                     </li>
 
-                    <!-- Control -->
                     <li class="nav-item">
                         <a href="{% url 'control' %}" class="nav-link {% if request.resolver_match.url_name == 'control' %}active{% endif %}">
                             <i class="fas fa-user-clock me-2"></i> Control de Asistencia
                         </a>
                     </li>
 
-                    <!-- Evaluación -->
                     <li class="nav-item">
                         <a href="{% url 'evaluacion_desem' %}" class="nav-link {% if request.resolver_match.url_name == 'evaluacion_desem' %}active{% endif %}">
                             <i class="fas fa-chart-line me-2"></i> Evaluación de Desempeño
                         </a>
                     </li>
 
-                    <!-- Capacitaciones -->
                     <li class="nav-item">
                         <a href="{% url 'gestion_cap' %}" class="nav-link {% if request.resolver_match.url_name == 'gestion_cap' %}active{% endif %}">
                             <i class="fas fa-chalkboard-teacher me-2"></i> Capacitaciones
                         </a>
                     </li>
 
-                    <!-- Nómina -->
                     <li class="nav-item">
                         <a href="{% url 'nomina' %}" class="nav-link {% if request.resolver_match.url_name == 'nomina' %}active{% endif %}">
                             <i class="fas fa-money-check-alt me-2"></i> Nómina
@@ -155,7 +138,6 @@
             </nav>
             {% endif %}
 
-            <!-- ✅ Main -->
             <main class="col-12 main-content">
                 {% block content %}{% endblock %}
             </main>
@@ -163,13 +145,9 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- ✅ SweetAlert2 (global) -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- ✅ Toasts bonitos (Django messages) -->
     {% if messages %}
     <script id="django-messages" type="application/json">
         [{ %
@@ -219,8 +197,6 @@
     </script>
     {% endif %}
 
-
-    <!-- ✅ Confirmaciones bonitas globales (Papelera / Restaurar / Eliminar definitivo) -->
     <script>
         (function() {
             if (typeof Swal === "undefined") return;
@@ -267,7 +243,6 @@
                 });
             }
 
-            // 🗑️ Mover a papelera
             bindConfirm("form.js-confirm-papelera", {
                 icon: "warning",
                 title: "¿Mover a papelera?",
@@ -277,7 +252,6 @@
                 confirmButtonColor: "#d33",
             });
 
-            // 🔁 Restaurar
             bindConfirm("form.js-confirm-restaurar", {
                 icon: "question",
                 title: "¿Restaurar mensaje?",
@@ -286,7 +260,6 @@
                 cancelButtonText: "Cancelar",
             });
 
-            // ❌ Eliminar definitivo
             bindConfirm("form.js-confirm-eliminar", {
                 icon: "warning",
                 title: "Eliminar definitivamente",
@@ -296,7 +269,6 @@
                 confirmButtonColor: "#d33",
             });
 
-            // 🛡️ Cambiar rol (Miembro -> Administrador)
             bindConfirm("form.js-confirm-rol", {
                 icon: "question",
                 title: "Cambiar rol",

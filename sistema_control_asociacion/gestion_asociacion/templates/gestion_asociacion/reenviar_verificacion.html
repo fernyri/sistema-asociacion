@@ -1,0 +1,67 @@
+{% extends "gestion_asociacion/base_auth.html" %} {% load static %} {% block title %}Reenviar verificación{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5">
+
+<style>
+    .status-container {
+        max-width: 520px;
+        width: 100%;
+    }
+    
+    .status-title {
+        font-weight: 700;
+    }
+    
+    .status-message {
+        color: #555;
+        line-height: 1.6;
+    }
+    
+    .status-links a {
+        text-decoration: none;
+    }
+</style>
+{% endblock %} {% block content %}
+<div class="main-container d-flex justify-content-center align-items-center">
+    <div class="register-container status-container p-4 shadow rounded bg-white">
+
+        <h2 class="text-center mb-3 status-title">
+            📩 Reenviar verificación
+        </h2>
+
+        <p class="text-center status-message mb-4">
+            Escribe el correo con el que te registraste y te enviaremos un nuevo enlace si tu cuenta aún está pendiente de activación.
+        </p>
+
+        {% if messages %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo electrónico:</label>
+                <input type="email" id="email" name="email" class="form-control" required autocomplete="email" placeholder="Ingresa tu correo electrónico" value="{{ request.POST.email }}">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                Reenviar enlace
+            </button>
+
+        </form>
+
+        <div class="status-links text-center mt-3">
+            <a href="{% url 'login' %}" class="text-primary">
+                Volver al login
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

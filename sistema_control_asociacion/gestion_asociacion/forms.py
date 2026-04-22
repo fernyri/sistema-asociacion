@@ -17,7 +17,7 @@ def nombre_bonito(valor: str) -> str:
         return ""
 
     minusculas = {"de", "la", "del", "y", "e", "los", "las"}
-    partes = str(valor).strip().split()  # split() ya colapsa espacios
+    partes = str(valor).strip().split()
 
     resultado = []
     for p in partes:
@@ -71,7 +71,8 @@ class RegistroForm(UserCreationForm):
         required=False,
         widget=forms.DateInput(attrs={
             "type": "date",
-            "placeholder": "Selecciona tu fecha de nacimiento"
+            "placeholder": "Selecciona tu fecha de nacimiento",
+            "min": "1900-01-01",
         })
     )
 
@@ -89,6 +90,13 @@ class RegistroForm(UserCreationForm):
             "email": forms.EmailInput(attrs={"placeholder": "Introduce tu correo electrónico"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Máximo dinámico: hoy
+        hoy = timezone.localdate().strftime("%Y-%m-%d")
+        self.fields["fecha_nacimiento"].widget.attrs["max"] = hoy
+
     # -------------------------
     # Helpers de normalización
     # -------------------------
@@ -105,10 +113,9 @@ class RegistroForm(UserCreationForm):
     # -------------------------
     def clean_username(self):
         raw = self.cleaned_data.get("username")
-        uname_display = self._display_texto(raw)          # lo que se guarda/ve
-        uname_norm = username_norm_value(uname_display)  # lo que se compara (igual que models.py)
+        uname_display = self._display_texto(raw)
+        uname_norm = username_norm_value(uname_display)
 
-        # ✅ Comparación contra username_norm (case-insensitive real)
         if Usuario.objects.filter(username_norm=uname_norm).exists():
             raise forms.ValidationError("El nombre de usuario ya está registrado. Prueba con otro.")
 
@@ -122,7 +129,6 @@ class RegistroForm(UserCreationForm):
 
     def clean_email(self):
         email = self._norm_email(self.cleaned_data.get("email"))
-        # ✅ El modelo ya tiene constraint uniq lower, pero dejamos mensaje amigable
         if Usuario.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("El correo electrónico ya está en uso. Usa otro.")
         return email
@@ -130,7 +136,6 @@ class RegistroForm(UserCreationForm):
     def clean_telefono(self):
         telefono = (self.cleaned_data.get("telefono") or "").strip()
         if telefono:
-            # ✅ solo dígitos, longitud “sana”
             if not telefono.isdigit():
                 raise forms.ValidationError("El número de teléfono debe contener solo dígitos.")
             if len(telefono) < 7:
@@ -141,22 +146,36 @@ class RegistroForm(UserCreationForm):
 
     def clean_direccion(self):
         direccion = (self.cleaned_data.get("direccion") or "").strip()
-        # ✅ Si la capturan, que no sea “xx”
         if direccion and len(direccion) < 10:
             raise forms.ValidationError("La dirección debe tener al menos 10 caracteres.")
         return direccion
 
     def clean_fecha_nacimiento(self):
         fecha_nacimiento = self.cleaned_data.get("fecha_nacimiento")
+
         if fecha_nacimiento:
             hoy = timezone.localdate()
+
+            # No futura
             if fecha_nacimiento > hoy:
                 raise forms.ValidationError("La fecha de nacimiento no puede ser en el futuro.")
+
+            # Año mínimo razonable
+            if fecha_nacimiento.year < 1900:
+                raise forms.ValidationError("El año de nacimiento no puede ser menor a 1900.")
+
+            # Año máximo válido
+            if fecha_nacimiento.year > hoy.year:
+                raise forms.ValidationError("El año de nacimiento no es válido.")
+
+            # Blindaje extra por si llega algo raro
+            if len(str(fecha_nacimiento.year)) != 4:
+                raise forms.ValidationError("El año debe tener exactamente 4 dígitos.")
+
         return fecha_nacimiento
 
     def clean_password1(self):
         password = self.cleaned_data.get("password1")
-        # ✅ username ya viene “bonito”; normalizamos igual que el modelo
         username = self.cleaned_data.get("username") or ""
         uname_norm = username_norm_value(username)
 
@@ -190,20 +209,17 @@ class RegistroForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
 
-        # ✅ Guardado “bonito”
         user.username = self._display_texto(user.username)
         user.first_name = self._display_texto(user.first_name)
         user.last_name = self._display_texto(user.last_name)
-
-        # ✅ Email siempre minúsculas
         user.email = self._norm_email(user.email)
 
-        # ✅ SIEMPRE registrar como Miembro
         user.rol = "Miembro"
 
         if commit:
             user.save()
         return user
+
 
 class MensajeForm(forms.ModelForm):
     class Meta:

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Verifica tu cuenta</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f4f6f9; font-family: Arial, Helvetica, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9; padding: 30px 0;">
+        <tr>
+            <td align="center">
+
+                <!-- Card -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background:#ffffff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08); overflow:hidden;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:#0d6efd; padding:20px; text-align:center; color:white;">
+                            <h2 style="margin:0; font-weight:600;">
+                                Control de Asociación
+                            </h2>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:30px; text-align:center;">
+
+                            <h3 style="margin-bottom:10px; color:#333;">
+                                Hola {{ user.first_name|default:user.username }},
+                            </h3>
+
+                            <p style="color:#555; font-size:15px; line-height:1.6;">
+                                Gracias por registrarte en nuestro sistema.
+                                <br> Para completar tu registro, necesitas verificar tu cuenta.
+                            </p>
+
+                            <!-- Aviso de expiración -->
+                            <p style="color:#999; font-size:13px; margin-top:10px;">
+                                ⏳ Este enlace estará disponible durante aproximadamente
+                                <strong>{{ timeout_minutes }} minutos</strong>.
+                            </p>
+
+                            <!-- Botón -->
+                            <div style="margin:30px 0;">
+                                <a href="{{ activation_link }}" style="
+                                        background:#0d6efd;
+                                        color:#ffffff;
+                                        text-decoration:none;
+                                        padding:12px 26px;
+                                        border-radius:8px;
+                                        font-size:15px;
+                                        font-weight:600;
+                                        display:inline-block;
+                                   ">
+                                    ✅ Verificar mi cuenta
+                                </a>
+                            </div>
+
+                            <!-- Link alternativo -->
+                            <p style="font-size:13px; color:#888;">
+                                Si el botón no funciona, copia y pega este enlace en tu navegador:
+                            </p>
+
+                            <p style="word-break: break-all; font-size:12px; margin-top:10px;">
+                                <a href="{{ activation_link }}" style="color:#0d6efd;">
+                                    {{ activation_link }}
+                                </a>
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding:20px; text-align:center; font-size:12px; color:#999; line-height:1.5;">
+                            Si tú no realizaste este registro, puedes ignorar este correo sin problema.
+                            <br><br> © {{ site_name }} - Sistema de gestión
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+
+</html>
