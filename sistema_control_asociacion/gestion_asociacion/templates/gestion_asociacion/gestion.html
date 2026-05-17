@@ -1,10 +1,10 @@
 {% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Personal{% endblock %} {% block content %}
 
-<div class="container-fluid mt-4">
-    <div class="row">
+<div class="container-fluid mt-4 px-0">
+    <div class="row m-0 justify-content-center">
 
-        <main class="col-md-10 d-flex justify-content-center">
-            <div class="card shadow-lg p-4 bg-white rounded w-75">
+        <main class="col-12 px-0">
+            <div class="card shadow-lg p-4 bg-white rounded w-100">
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <h2 class="m-0 text-dark">
@@ -19,6 +19,7 @@
 
                     <div class="input-group" style="min-width:280px; max-width:520px; width:100%;">
                         <input type="text" id="search" class="form-control rounded-start shadow-sm" placeholder="Buscar por nombre o rol" onkeyup="applyFilters()">
+
                         <button class="btn btn-primary shadow-sm" type="button" onclick="applyFilters()">
                             <i class="fas fa-search"></i> Buscar
                         </button>
@@ -26,34 +27,41 @@
                 </div>
 
                 <ul class="nav nav-pills gap-2 mb-3" id="userFilters" role="tablist">
+
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" type="button" data-filter="all" onclick="setTabFilter(this)">
                             <i class="fas fa-layer-group me-1"></i> Todos
                         </button>
                     </li>
+
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" type="button" data-filter="miembro" onclick="setTabFilter(this)">
                             <i class="fas fa-user me-1"></i> Miembros
                         </button>
                     </li>
+
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" type="button" data-filter="admin" onclick="setTabFilter(this)">
                             <i class="fas fa-user-shield me-1"></i> Administradores
                         </button>
                     </li>
+
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" type="button" data-filter="dios" onclick="setTabFilter(this)">
                             <i class="fas fa-crown me-1"></i> Dios
                         </button>
                     </li>
+
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" type="button" data-filter="inactivo" onclick="setTabFilter(this)">
                             <i class="fas fa-user-slash me-1"></i> Inactivos
                         </button>
                     </li>
+
                 </ul>
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+
                     <div class="text-muted small">
                         <i class="fas fa-filter me-1"></i>
                         <span id="filterSummary">Mostrando 0 de 0</span>
@@ -62,10 +70,13 @@
                     <div class="text-muted small">
                         <i class="fas fa-info-circle"></i> Para editar, eliminar o cambiar rol, abre el <b>Perfil</b>.
                     </div>
+
                 </div>
 
                 <div class="table-responsive">
+
                     <table class="table table-hover text-center align-middle">
+
                         <thead class="table-dark">
                             <tr>
                                 <th>Nombre</th>
@@ -79,46 +90,84 @@
                         </thead>
 
                         <tbody id="employeeTable">
+
                             {% for miembro in miembros %}
+
                             <tr class="row-click" role="button" tabindex="0" data-href="{% url 'usuario_detalle' miembro.id %}" data-rol="{% if miembro.rol == 'Dios' %}dios{% elif miembro.rol == 'Administrador' %}admin{% else %}miembro{% endif %}" data-estado="{% if miembro.is_active %}activo{% else %}inactivo{% endif %}"
                                 title="Abrir perfil de {{ miembro.username }}">
-                                <td class="fw-semibold">{{ miembro.username }}</td>
-                                <td>{{ miembro.cargo|default:"-" }}</td>
-                                <td>{{ miembro.departamento|default:"-" }}</td>
-                                <td>{{ miembro.fecha_ingreso|default:"-" }}</td>
+
+                                <td class="fw-semibold">
+                                    {{ miembro.username }}
+                                </td>
 
                                 <td>
+                                    {{ miembro.cargo|default:"-" }}
+                                </td>
+
+                                <td>
+                                    {{ miembro.departamento|default:"-" }}
+                                </td>
+
+                                <td>
+                                    {{ miembro.fecha_ingreso|default:"-" }}
+                                </td>
+
+                                <td>
+
                                     {% if miembro.rol == "Dios" %}
+
                                     <span class="badge bg-dark">
-                                            <i class="fas fa-crown me-1"></i>Dios
-                                        </span> {% elif miembro.rol == "Administrador" %}
+                                        <i class="fas fa-crown me-1"></i>Dios
+                                    </span> {% elif miembro.rol == "Administrador" %}
+
                                     <span class="badge bg-primary">
-                                            <i class="fas fa-shield-halved me-1"></i>Administrador
-                                        </span> {% else %}
-                                    <span class="badge bg-secondary">Miembro</span> {% endif %}
+                                        <i class="fas fa-shield-halved me-1"></i>Administrador
+                                    </span> {% else %}
+
+                                    <span class="badge bg-secondary">
+                                        Miembro
+                                    </span> {% endif %}
+
                                 </td>
 
                                 <td>
+
                                     {% if miembro.is_active %}
-                                    <span class="badge bg-success">Activo</span> {% else %}
-                                    <span class="badge bg-danger">Inactivo</span> {% endif %}
+
+                                    <span class="badge bg-success">
+                                        Activo
+                                    </span> {% else %}
+
+                                    <span class="badge bg-danger">
+                                        Inactivo
+                                    </span> {% endif %}
+
                                 </td>
 
                                 <td>
+
                                     <a class="btn btn-outline-dark btn-sm btn-view" href="{% url 'usuario_detalle' miembro.id %}">
                                         <i class="fas fa-eye"></i> Ver
                                     </a>
+
                                 </td>
+
                             </tr>
+
                             {% empty %}
+
                             <tr>
                                 <td colspan="7" class="text-center text-muted">
                                     No hay usuarios registrados.
                                 </td>
                             </tr>
+
                             {% endfor %}
+
                         </tbody>
+
                     </table>
+
                 </div>
 
                 <div id="noResults" class="text-center text-muted py-3" style="display:none;">
@@ -127,6 +176,7 @@
 
             </div>
         </main>
+
     </div>
 </div>
 
@@ -138,35 +188,63 @@
     let currentTabFilter = "all";
 
     function setTabFilter(btn) {
-        document.querySelectorAll("#userFilters .nav-link").forEach(b => b.classList.remove("active"));
+
+        document
+            .querySelectorAll("#userFilters .nav-link")
+            .forEach(b => b.classList.remove("active"));
+
         btn.classList.add("active");
+
         currentTabFilter = btn.getAttribute("data-filter") || "all";
+
         applyFilters();
     }
 
     function applyFilters() {
+
         const searchEl = document.getElementById("search");
-        const input = ((searchEl && searchEl.value) || "").toLowerCase().trim();
+
+        const input = (
+            (searchEl && searchEl.value) || ""
+        ).toLowerCase().trim();
 
         const tbody = document.getElementById("employeeTable");
-        const rows = tbody ? Array.from(tbody.getElementsByTagName("tr")) : [];
+
+        const rows = tbody ?
+            Array.from(tbody.getElementsByTagName("tr")) :
+            [];
+
         const noResults = document.getElementById("noResults");
+
         const summary = document.getElementById("filterSummary");
 
         let visibleCount = 0;
 
         rows.forEach((row) => {
+
             const tds = row.getElementsByTagName("td");
+
             if (!tds || tds.length === 0) return;
 
-            const rol = (row.getAttribute("data-rol") || "").toLowerCase();
-            const estado = (row.getAttribute("data-estado") || "").toLowerCase();
+            const rol = (
+                row.getAttribute("data-rol") || ""
+            ).toLowerCase();
+
+            const estado = (
+                row.getAttribute("data-estado") || ""
+            ).toLowerCase();
 
             let passTab = true;
-            if (currentTabFilter === "miembro") passTab = (rol === "miembro");
-            else if (currentTabFilter === "admin") passTab = (rol === "admin");
-            else if (currentTabFilter === "dios") passTab = (rol === "dios");
-            else if (currentTabFilter === "inactivo") passTab = (estado === "inactivo");
+
+            if (currentTabFilter === "miembro") {
+                passTab = (rol === "miembro");
+            } else if (currentTabFilter === "admin") {
+                passTab = (rol === "admin");
+            } else if (currentTabFilter === "dios") {
+                passTab = (rol === "dios");
+            } else if (currentTabFilter === "inactivo") {
+                passTab = (estado === "inactivo");
+            }
 
             const text =
                 ((tds[0] && tds[0].innerText) || "") + " " +
@@ -179,44 +257,72 @@
             const passSearch = text.toLowerCase().includes(input);
 
             const match = passTab && passSearch;
+
             row.style.display = match ? "" : "none";
+
             if (match) visibleCount++;
         });
 
         if (noResults) {
-            noResults.style.display = (rows.length > 0 && visibleCount === 0) ? "block" : "none";
+
+            noResults.style.display =
+                (rows.length > 0 && visibleCount === 0) ?
+                "block" :
+                "none";
         }
 
         if (summary) {
-            summary.innerText = `Mostrando ${visibleCount} de ${rows.length}`;
+            summary.innerText =
+                `Mostrando ${visibleCount} de ${rows.length}`;
         }
     }
 
     (function() {
+
         const tbody = document.getElementById("employeeTable");
+
         if (!tbody) return;
 
         tbody.addEventListener("click", function(e) {
+
             const target = e.target;
-            if (target && (target.closest && target.closest("a.btn-view"))) return;
+
+            if (
+                target &&
+                (target.closest && target.closest("a.btn-view"))
+            ) return;
 
             const row = target.closest("tr.row-click");
+
             if (!row) return;
 
             const href = row.getAttribute("data-href");
-            if (href) window.location.href = href;
+
+            if (href) {
+                window.location.href = href;
+            }
         });
 
         tbody.addEventListener("keydown", function(e) {
-            const row = e.target.closest && e.target.closest("tr.row-click");
+
+            const row =
+                e.target.closest &&
+                e.target.closest("tr.row-click");
+
             if (!row) return;
 
             if (e.key === "Enter" || e.key === " ") {
+
                 e.preventDefault();
+
                 const href = row.getAttribute("data-href");
-                if (href) window.location.href = href;
+
+                if (href) {
+                    window.location.href = href;
+                }
             }
         });
+
     })();
 
     applyFilters();

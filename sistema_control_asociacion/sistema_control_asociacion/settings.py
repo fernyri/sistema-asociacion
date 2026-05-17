@@ -1,6 +1,5 @@
 # settings.py
 from pathlib import Path
-import os
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,11 +9,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Seguridad
 # =========================
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="django-insecure-change-this")
-
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-# ✅ Hosts permitidos (en producción agrega tu dominio)
-ALLOWED_HOSTS = [h.strip() for h in config("ALLOWED_HOSTS", default="127.0.0.1,localhost").split(",") if h.strip()]
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in config("ALLOWED_HOSTS", default="127.0.0.1,localhost").split(",")
+    if h.strip()
+]
 
 
 # =========================
@@ -72,12 +73,10 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-
-                # ✅ Tus context processors
                 "gestion_asociacion.context_processors.excluded_urls",
                 "gestion_asociacion.context_processors.static_version",
                 "gestion_asociacion.context_processors.user_role",
-                'gestion_asociacion.context_processors.contadores_mensajes',
+                "gestion_asociacion.context_processors.contadores_mensajes",
             ],
         },
     },
@@ -85,22 +84,37 @@ TEMPLATES = [
 
 
 # =========================
-# Base de datos MySQL
+# Base de datos
+# - Tu PC: DB_ENGINE=mysql
+# - Otra PC fácil: DB_ENGINE=sqlite
 # =========================
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": config("DB_NAME", default="sistema_web"),
-        "USER": config("DB_USER", default="fernando"),
-        "PASSWORD": config("DB_PASSWORD", default="Fernan29"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="3306"),
-        "OPTIONS": {
-            "charset": "utf8mb4",
-            "use_unicode": True,
-        },
+DB_ENGINE = config("DB_ENGINE", default="sqlite").lower()
+
+if DB_ENGINE == "mysql":
+    import pymysql
+    pymysql.install_as_MySQLdb()
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": config("DB_NAME", default="sistema_web"),
+            "USER": config("DB_USER", default="root"),
+            "PASSWORD": config("DB_PASSWORD", default=""),
+            "HOST": config("DB_HOST", default="localhost"),
+            "PORT": config("DB_PORT", default="3306"),
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "use_unicode": True,
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # =========================
@@ -118,12 +132,10 @@ CACHES = {
 # =========================
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_NAME = "sessionid"
-SESSION_COOKIE_AGE = 1800 # 30 minutos
+SESSION_COOKIE_AGE = 1800
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 SESSION_COOKIE_HTTPONLY = True
-
-# ✅ En producción pon True (HTTPS)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=False, cast=bool)
 SESSION_COOKIE_SAMESITE = "Lax"
 
@@ -133,8 +145,6 @@ SESSION_COOKIE_SAMESITE = "Lax"
 # =========================
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_HTTPONLY = False
-
-# ✅ En producción pon True (HTTPS)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=False, cast=bool)
 CSRF_COOKIE_SAMESITE = "Lax"
 
@@ -166,13 +176,11 @@ STATICFILES_DIRS = [
     BASE_DIR / "gestion_asociacion" / "static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# ✅ Control de versiones de static (tu context processor lo usa)
 STATIC_VERSION = config("STATIC_VERSION", default="1.0")
 
 
 # =========================
-# ✅ MEDIA (NECESARIO para adjuntos de mensajes)
+# Media
 # =========================
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -185,7 +193,6 @@ LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/mi_login/"
 LOGIN_URL = "/mi_login/"
 
-
 AUTHENTICATION_BACKENDS = [
     "gestion_asociacion.backends.EmailAuthBackend",
     "django.contrib.auth.backends.ModelBackend",
@@ -193,35 +200,31 @@ AUTHENTICATION_BACKENDS = [
 
 
 # =========================
-# Email (Brevo SMTP)
+# Email Brevo SMTP
 # =========================
 BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
 DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL",
-    default="Control de Asociación <fernando_mm@tesch.edu.mx>",
+    default="Control de Asociación <no-reply@example.com>",
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config("BREVO_SMTP_HOST", default="smtp-relay.brevo.com")
 EMAIL_PORT = config("BREVO_SMTP_PORT", default=587, cast=int)
-
-# ✅ Para Brevo SMTP en 587: TLS=True, SSL=False
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
-
 EMAIL_HOST_USER = config("BREVO_SMTP_USER", default="")
 EMAIL_HOST_PASSWORD = config("BREVO_SMTP_PASSWORD", default="")
 
-# ✅ Tiempo de validez del token de reset
-PASSWORD_RESET_TIMEOUT = 600  # 10 min
+PASSWORD_RESET_TIMEOUT = 600
 
-# Verificación de correo
-EMAIL_VERIFICATION_TIMEOUT = 1800  # 30 min
-VERIFICATION_RESEND_COOLDOWN = 20 # 20 segundos entre reenvíos
+EMAIL_VERIFICATION_TIMEOUT = config("EMAIL_VERIFICATION_TIMEOUT", default=1800, cast=int)
+VERIFICATION_RESEND_COOLDOWN = config("VERIFICATION_RESEND_COOLDOWN", default=20, cast=int)
+
 
 # =========================
-# Extra recomendado (opc.)
+# Extra
 # =========================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

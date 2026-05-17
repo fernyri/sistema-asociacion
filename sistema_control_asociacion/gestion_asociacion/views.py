@@ -300,11 +300,15 @@ def login_view(request):
         email = (request.POST.get("email") or "").strip().lower()
         password = request.POST.get("password")
 
+        context = {
+            "email_value": email
+        }
+
         user_obj = Usuario.objects.filter(email__iexact=email).first()
 
         if user_obj is None:
             messages.error(request, "El correo no existe.", extra_tags="email_error")
-            return redirect("login")
+            return render(request, "gestion_asociacion/primer_login.html", context)
 
         if not user_obj.is_active:
             messages.error(
@@ -312,7 +316,7 @@ def login_view(request):
                 "Tu cuenta no ha sido verificada. Revisa tu correo o solicita un nuevo enlace.",
                 extra_tags="email_error"
             )
-            return redirect("login")
+            return render(request, "gestion_asociacion/primer_login.html", context)
 
         user = authenticate(request, username=user_obj.username, password=password)
 
@@ -321,7 +325,7 @@ def login_view(request):
             return redirect(settings.LOGIN_REDIRECT_URL)
 
         messages.error(request, "Contraseña incorrecta.", extra_tags="password_error")
-        return redirect("login")
+        return render(request, "gestion_asociacion/primer_login.html", context)
 
     return render(request, "gestion_asociacion/primer_login.html")
 
@@ -441,27 +445,23 @@ def usuario_detalle(request, user_id: int):
 def editar_usuario(request, user_id: int):
     usuario = Usuario.objects.filter(id=user_id).first()
     if not usuario:
-        messages.warning(request, "El usuario no existe (posiblemente fue eliminado).")
+        messages.warning(request, "El usuario no existe.")
         return redirect("gestion")
 
     user_role = getattr(request.user, "rol", "")
 
-    # ❌ Nadie se edita a sí mismo desde esta vista
     if usuario.id == request.user.id:
         messages.error(request, "No puedes editar tu propio usuario desde esta vista.")
         return redirect("usuario_detalle", user_id=user_id)
 
-    # ❌ Nadie edita a un Dios desde esta vista
     if getattr(usuario, "rol", "") == "Dios":
         messages.error(request, "No puedes editar a un usuario con rol Dios desde esta vista.")
         return redirect("usuario_detalle", user_id=user_id)
 
-    # ❌ Administrador solo edita Miembros
     if user_role == "Administrador" and getattr(usuario, "rol", "") != "Miembro":
         messages.error(request, "Solo puedes editar usuarios con rol Miembro.")
         return redirect("usuario_detalle", user_id=user_id)
 
-    # ❌ Solo Dios puede editar Administradores
     if getattr(usuario, "rol", "") == "Administrador" and user_role != "Dios":
         messages.error(request, "Solo un usuario con rol Dios puede editar administradores.")
         return redirect("usuario_detalle", user_id=user_id)
@@ -477,7 +477,6 @@ def editar_usuario(request, user_id: int):
         fecha_nacimiento = (request.POST.get("fecha_nacimiento") or "").strip()
         is_active = request.POST.get("is_active") == "on"
 
-        # Validaciones básicas
         if not username:
             messages.error(request, "El nombre de usuario es obligatorio.")
             return redirect("editar_usuario", user_id=user_id)
@@ -494,39 +493,34 @@ def editar_usuario(request, user_id: int):
             messages.error(request, "El correo electrónico es obligatorio.")
             return redirect("editar_usuario", user_id=user_id)
 
-        # Validar username único
         username_norm = " ".join(username.split()).lower()
         existe_username = Usuario.objects.filter(username_norm=username_norm).exclude(id=usuario.id).exists()
         if existe_username:
             messages.error(request, "Este usuario ya está registrado.")
             return redirect("editar_usuario", user_id=user_id)
 
-        # Validar email único
         existe_email = Usuario.objects.filter(email__iexact=email).exclude(id=usuario.id).exists()
         if existe_email:
             messages.error(request, "Este correo electrónico ya está registrado.")
             return redirect("editar_usuario", user_id=user_id)
 
-        # Validar teléfono
         if telefono:
             if not telefono.isdigit():
                 messages.error(request, "El teléfono debe contener solo números.")
                 return redirect("editar_usuario", user_id=user_id)
-            if len(telefono) < 10 or len(telefono) > 10:
+
+            if len(telefono) != 10:
                 messages.error(request, "El teléfono debe tener 10 dígitos.")
                 return redirect("editar_usuario", user_id=user_id)
 
-        # Validar dirección
         if direccion and len(direccion) < 10:
             messages.error(request, "La dirección debe tener al menos 10 caracteres.")
             return redirect("editar_usuario", user_id=user_id)
 
-        # Validar género
         if genero not in ["M", "F", "O", ""]:
             messages.error(request, "El género seleccionado no es válido.")
             return redirect("editar_usuario", user_id=user_id)
 
-        # Validar fecha
         fecha_nacimiento_value = None
         if fecha_nacimiento:
             try:
@@ -540,6 +534,7 @@ def editar_usuario(request, user_id: int):
                 if fecha_nacimiento_value.year < 1900:
                     messages.error(request, "El año de nacimiento no puede ser menor a 1900.")
                     return redirect("editar_usuario", user_id=user_id)
+
             except ValueError:
                 messages.error(request, "La fecha de nacimiento no es válida.")
                 return redirect("editar_usuario", user_id=user_id)
@@ -553,7 +548,6 @@ def editar_usuario(request, user_id: int):
         usuario.genero = genero or None
         usuario.fecha_nacimiento = fecha_nacimiento_value
         usuario.is_active = is_active
-
         usuario.save()
 
         messages.success(request, "Usuario actualizado correctamente.")
@@ -577,30 +571,25 @@ def eliminar_usuario(request, user_id: int):
         messages.warning(request, "El usuario ya no existe o fue eliminado.")
         return redirect("gestion")
 
-    # ❌ No puede eliminarse a sí mismo
     if usuario.id == request.user.id:
         messages.error(request, "No puedes eliminar tu propio usuario.")
         return redirect("usuario_detalle", user_id=user_id)
 
-    # ❌ No puede eliminar superusuarios
-    if getattr(usuario, "is_superuser", False):
-        messages.error(request, "No puedes eliminar un superusuario.")
-        return redirect("usuario_detalle", user_id=user_id)
-
-    # ❌ Nadie elimina a un usuario con rol Dios desde aquí
     if getattr(usuario, "rol", "") == "Dios":
         messages.error(request, "No puedes eliminar a un usuario con rol Dios.")
         return redirect("usuario_detalle", user_id=user_id)
 
-    # ❌ Solo Dios puede eliminar administradores
     if getattr(usuario, "rol", "") == "Administrador" and getattr(request.user, "rol", "") != "Dios":
-        messages.error(request, "Solo un usuario con rol superuser puede eliminar administradores.")
+        messages.error(request, "Solo un usuario con rol Dios puede eliminar administradores.")
+        return redirect("usuario_detalle", user_id=user_id)
+
+    if getattr(request.user, "rol", "") == "Administrador" and getattr(usuario, "rol", "") != "Miembro":
+        messages.error(request, "Solo puedes eliminar usuarios con rol Miembro.")
         return redirect("usuario_detalle", user_id=user_id)
 
     usuario.delete()
     messages.success(request, "Usuario eliminado correctamente.")
     return redirect("gestion")
-
 
 # ============================================================
 # Comunicación (Miembro / Admin)
@@ -1020,6 +1009,7 @@ def cambiar_rol_usuario(request, user_id):
         return redirect("gestion")
 
     user_role = getattr(request.user, "rol", "")
+
     if user_role != "Dios":
         messages.error(request, "Solo un usuario con rol Dios puede cambiar roles.")
         return redirect("gestion")
@@ -1049,13 +1039,15 @@ def cambiar_rol_usuario(request, user_id):
 
     usuario.rol = nuevo_rol
 
-    # Mantener banderas de acceso del staff
     if nuevo_rol == "Administrador":
         usuario.is_staff = True
+        usuario.is_superuser = False
+
     elif nuevo_rol == "Miembro":
         usuario.is_staff = False
+        usuario.is_superuser = False
 
-    usuario.save(update_fields=["rol", "is_staff"])
+    usuario.save(update_fields=["rol", "is_staff", "is_superuser"])
 
     messages.success(request, f"El rol de {usuario.username} fue actualizado a {nuevo_rol}.")
     return redirect("usuario_detalle", user_id=user_id)

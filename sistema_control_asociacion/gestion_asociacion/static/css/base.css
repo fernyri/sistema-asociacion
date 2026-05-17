@@ -10,12 +10,11 @@ body {
 }
 
 
-/* ✅ Cuando hay sesión, el navbar es fixed-top:
+/* Cuando hay sesión, el navbar es fixed-top:
    esto evita que el contenido quede debajo del navbar */
 
 .auth-body {
     padding-top: 70px;
-    /* 60px navbar + margen */
 }
 
 
@@ -52,50 +51,31 @@ body {
     position: fixed;
     left: 0;
     top: 60px;
-    /* deja espacio al navbar */
     overflow-y: auto;
     z-index: 1040;
 }
 
 
 /* =========================
-   ✅ Layout: que Bootstrap controle ancho
-   - Como el sidebar es fixed, el grid no lo "cuenta"
-   - Entonces empujamos el contenido con padding-left
+   Layout general
    ========================= */
 
 
-/* Por defecto (Admin): deja espacio para el sidebar fijo */
+/* Admin / Dios: deja espacio para el sidebar fijo */
 
 .app-with-sidebar {
-    padding-left: 260px;
+    padding-left: 200px;
 }
 
 
-/* Miembro: sin sidebar, no empujes nada */
+/* Miembro: sin sidebar */
 
 .app-no-sidebar {
     padding-left: 0;
 }
 
 
-/* =========================
-   Contenido principal
-   - Sin width/margin-left: Bootstrap manda el ancho
-   ========================= */
-
-.main-content {
-    padding: 20px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-    margin-top: 0;
-    width: 100%;
-    /* ocupa lo que Bootstrap le dé */
-}
-
-
-/* ✅ Evita que se genere scroll horizontal por padding + columnas */
+/* Evita scroll horizontal por padding + columnas */
 
 .container-fluid.app-with-sidebar,
 .container-fluid.app-no-sidebar {
@@ -103,7 +83,56 @@ body {
 }
 
 
-/* 🔴 Puntito de notificación (GLOBAL: desktop + móvil) */
+/* =========================
+   Wrapper principal
+   ========================= */
+
+.main-content-wrapper {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+
+/* =========================
+   Contenido principal
+   ========================= */
+
+.main-content {
+    width: 100%;
+    max-width: 1250px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 25px;
+    box-sizing: border-box;
+}
+
+
+/* Cuando hay sidebar, centra dentro del espacio disponible */
+
+.app-with-sidebar .main-content-wrapper {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.app-with-sidebar .main-content {
+    max-width: 1250px;
+}
+
+
+/* Cuando NO hay sidebar, puede ocupar un poco más */
+
+.app-no-sidebar .main-content {
+    max-width: 1400px;
+}
+
+
+/* =========================
+   Notificaciones
+   ========================= */
 
 .notification-dot {
     position: absolute;
@@ -126,9 +155,17 @@ body {
         width: 220px;
         padding: 15px;
     }
-    /* En móviles, NO empujamos el contenido (porque el sidebar colapsa/overlay) */
+    /* En móviles, NO empujamos el contenido */
     .app-with-sidebar {
         padding-left: 0;
+    }
+    .main-content-wrapper {
+        padding: 12px;
+    }
+    .main-content {
+        max-width: 100%;
+        padding: 18px;
+        border-radius: 10px;
     }
     .navbar {
         padding: 8px 10px;

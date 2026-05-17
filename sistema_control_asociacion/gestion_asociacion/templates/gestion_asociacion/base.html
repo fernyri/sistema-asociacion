@@ -138,8 +138,10 @@
             </nav>
             {% endif %}
 
-            <main class="col-12 main-content">
-                {% block content %}{% endblock %}
+            <main class="main-content-wrapper">
+                <div class="main-content">
+                    {% block content %}{% endblock %}
+                </div>
             </main>
 
         </div>

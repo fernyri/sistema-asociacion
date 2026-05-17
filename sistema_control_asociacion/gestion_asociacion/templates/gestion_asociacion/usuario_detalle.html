@@ -1,10 +1,10 @@
 {% extends 'gestion_asociacion/base.html' %} {% block title %}Perfil de Usuario{% endblock %} {% block content %}
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <main class="col-md-10 d-flex justify-content-center">
+<div class="container-fluid mt-4 px-0">
+    <div class="row m-0 justify-content-center">
+        <main class="col-12 px-0">
 
-            <div class="card shadow-lg p-4 bg-white rounded w-75">
+            <div class="card shadow-lg p-4 bg-white rounded w-100">
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <h2 class="m-0 text-dark">
@@ -69,15 +69,11 @@
                 <!-- Acciones normales -->
                 <div class="d-flex gap-2 mt-4 flex-wrap">
 
-                    {% if usuario_obj.rol != "Dios" or user_role == "Dios" %} {% if usuario_obj.id != request.user.id %} {% if user_role == "Dios" and usuario_obj.rol != "Dios" %}
+                    {% if usuario_obj.id != request.user.id %} {% if user_role == "Dios" and usuario_obj.rol != "Dios" %}
                     <a href="{% url 'editar_usuario' user_id=usuario_obj.id %}" class="btn btn-info btn-sm">
                         <i class="fas fa-edit"></i> Editar
                     </a>
-                    {% elif user_role == "Administrador" and usuario_obj.rol == "Miembro" %}
-                    <a href="{% url 'editar_usuario' user_id=usuario_obj.id %}" class="btn btn-info btn-sm">
-                        <i class="fas fa-edit"></i> Editar
-                    </a>
-                    {% endif %} {% endif %} {% endif %} {% if usuario_obj.id != request.user.id and not usuario_obj.is_superuser %} {% if user_role == "Dios" and usuario_obj.rol != "Dios" %}
+
                     <form method="post" action="{% url 'eliminar_usuario' user_id=usuario_obj.id %}" class="js-confirm-eliminar" style="display:inline;" data-swal-title="Eliminar usuario" data-swal-html="Esta acción <b>no se puede deshacer</b>.<br>¿Eliminar a <b>{{ usuario_obj.username }}</b>?"
                         data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#d33">
                         {% csrf_token %}
@@ -86,7 +82,12 @@
                                 <i class="fas fa-trash"></i> Eliminar
                             </button>
                     </form>
+
                     {% elif user_role == "Administrador" and usuario_obj.rol == "Miembro" %}
+                    <a href="{% url 'editar_usuario' user_id=usuario_obj.id %}" class="btn btn-info btn-sm">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+
                     <form method="post" action="{% url 'eliminar_usuario' user_id=usuario_obj.id %}" class="js-confirm-eliminar" style="display:inline;" data-swal-title="Eliminar usuario" data-swal-html="Esta acción <b>no se puede deshacer</b>.<br>¿Eliminar a <b>{{ usuario_obj.username }}</b>?"
                         data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#d33">
                         {% csrf_token %}

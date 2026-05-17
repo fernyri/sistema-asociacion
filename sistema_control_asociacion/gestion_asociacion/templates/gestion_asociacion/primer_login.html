@@ -9,7 +9,7 @@
 
             <!-- Campo de Correo Electrónico -->
             <div class="form-group">
-                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ request.POST.email }}" required> {% for message in messages %} {% if "email_error" in message.tags %}
+                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ email_value|default:'' }}" required> {% for message in messages %} {% if "email_error" in message.tags %}
                 <div class="error-message">
                     <i class="fas fa-exclamation-circle"></i> {{ message }}
                 </div>
