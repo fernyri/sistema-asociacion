@@ -1,5 +1,6 @@
 {% extends 'gestion_asociacion/base_auth.html' %} {% load static %} {% block title %}Inicio de Sesión{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/login.css' %}?v={{ STATIC_VERSION }}"> {% endblock %} {% block content %}
+
 <div class="login-page">
     <div class="login-container">
         <h2 class="text-center fw-bold">Bienvenido</h2>
@@ -9,24 +10,31 @@
 
             <!-- Campo de Correo Electrónico -->
             <div class="form-group">
-                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ email_value|default:'' }}" required> {% for message in messages %} {% if "email_error" in message.tags %}
-                <div class="error-message">
-                    <i class="fas fa-exclamation-circle"></i> {{ message }}
-                </div>
-
-                <!-- 🔥 BOTÓN REENVIAR -->
-                <a href="{% url 'reenviar_verificacion' %}" class="btn btn-outline-primary mt-2 w-100">
-    Reenviar verificación
-</a> {% endif %} {% endfor %}
+                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ email_value|default:'' }}" required>
             </div>
 
             <!-- Campo de Contraseña -->
             <div class="form-group password-container">
                 <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+
                 <span class="toggle-password" id="togglePassword">
                     <i class="fa fa-eye"></i>
                 </span>
             </div>
+
+            <!-- Error de correo -->
+            {% for message in messages %} {% if "email_not_found" in message.tags %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+            </div>
+            {% endif %} {% if "email_unverified" in message.tags %}
+            <div class="error-message">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+            </div>
+
+            <a href="{% url 'reenviar_verificacion' %}" class="btn btn-outline-primary mt-2 w-100">
+                        Reenviar verificación
+                    </a> {% endif %} {% endfor %}
 
             <!-- Error de contraseña -->
             {% for message in messages %} {% if "password_error" in message.tags %}
@@ -56,7 +64,6 @@
     </div>
 </div>
 
-<!-- Script mostrar/ocultar contraseña -->
 <script>
     document.getElementById('togglePassword').addEventListener('click', function() {
         const passwordField = document.getElementById('password');
@@ -71,4 +78,5 @@
         }
     });
 </script>
+
 {% endblock %}

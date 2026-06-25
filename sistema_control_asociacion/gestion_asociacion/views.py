@@ -24,12 +24,16 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 
 from .decorators import admin_only
 from .forms import MensajeForm, RegistroForm
 from .models import (
     Asistencia,
     AttendanceSummary,
+    ConfiguracionAsistencia,
     BitacoraAcceso,
     Evento,
     Mensaje,
@@ -44,6 +48,46 @@ User = get_user_model()
 # ============================================================
 # Helpers
 # ============================================================
+
+def obtener_configuracion_asistencia():
+    config = ConfiguracionAsistencia.objects.filter(activa=True).first()
+
+    if not config:
+        config = ConfiguracionAsistencia.objects.create(
+            nombre="Configuración general",
+            hora_entrada=time(9, 0),
+            tolerancia_minutos=15,
+            hora_salida_automatica=time(23, 59),
+            activa=True
+        )
+
+    return config
+
+
+def obtener_hora_limite_retardo():
+    config = obtener_configuracion_asistencia()
+    return config.hora_limite_retardo()
+
+
+def cerrar_asistencias_incompletas_vencidas():
+    hoy = timezone.localdate()
+    config = obtener_configuracion_asistencia()
+
+    asistencias_pendientes = Asistencia.objects.filter(
+        fecha__lt=hoy,
+        hora_entrada__isnull=False,
+        hora_salida__isnull=True
+    )
+
+    for asistencia in asistencias_pendientes:
+        asistencia.hora_salida = config.hora_salida_automatica
+        asistencia.estado = "salida_automatica"
+        asistencia.observacion = (
+            "El usuario no registró salida. "
+            "El sistema cerró la asistencia automáticamente."
+        )
+        asistencia.save(update_fields=["hora_salida", "estado", "observacion"])
+
 def _es_admin(u: Usuario) -> bool:
     return getattr(u, "rol", "") in ["Administrador", "Dios"]
 
@@ -62,6 +106,101 @@ def _mensajes_enviados(user: Usuario):
         .select_related("remitente", "destinatario")
         .order_by("-creado_en")
     )
+
+@login_required
+def registrar_entrada(request):
+    if request.method != "POST":
+        return redirect("dashboard")
+
+    if getattr(request.user, "rol", "") != "Miembro":
+        messages.error(request, "Solo los miembros pueden registrar asistencia.")
+        return redirect("dashboard")
+
+    cerrar_asistencias_incompletas_vencidas()
+
+    hoy = timezone.localdate()
+    hora_actual = timezone.localtime().time()
+    hora_limite_retardo = obtener_hora_limite_retardo()
+    config_asistencia = obtener_configuracion_asistencia()
+    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
+
+    asistencia = Asistencia.objects.filter(
+        usuario=request.user,
+        fecha=hoy
+    ).first()
+
+    if asistencia and asistencia.hora_entrada:
+        messages.warning(request, "Ya registraste tu entrada de hoy.")
+        return redirect("dashboard")
+
+    if not asistencia:
+        asistencia = Asistencia(usuario=request.user, fecha=hoy)
+
+    asistencia.hora_entrada = hora_actual
+    asistencia.hora_salida = None
+    asistencia.estado = "salida_pendiente"
+
+    if hora_actual >= hora_limite_extraordinario:
+        asistencia.observacion = "Entrada registrada fuera del horario laboral."
+    elif hora_actual > hora_limite_retardo:
+         asistencia.observacion = "Entrada registrada con retardo."
+    else:
+         asistencia.observacion = "Entrada registrada correctamente."
+
+    asistencia.save()
+
+    messages.success(request, "Entrada registrada correctamente.")
+    return redirect("dashboard")
+
+
+@login_required
+def registrar_salida(request):
+    if request.method != "POST":
+        return redirect("dashboard")
+
+    if getattr(request.user, "rol", "") != "Miembro":
+        messages.error(request, "Solo los miembros pueden registrar asistencia.")
+        return redirect("dashboard")
+
+    cerrar_asistencias_incompletas_vencidas()
+
+    hoy = timezone.localdate()
+    hora_actual = timezone.localtime().time()
+    hora_limite_retardo = obtener_hora_limite_retardo()
+    config_asistencia = obtener_configuracion_asistencia()
+    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
+
+    asistencia = Asistencia.objects.filter(
+        usuario=request.user,
+        fecha=hoy
+    ).first()
+
+    if not asistencia or not asistencia.hora_entrada:
+        messages.error(request, "Primero debes registrar tu entrada.")
+        return redirect("dashboard")
+
+    if asistencia.hora_salida:
+        messages.warning(request, "Ya registraste tu salida de hoy.")
+        return redirect("dashboard")
+
+    if hora_actual < asistencia.hora_entrada:
+        messages.error(request, "La hora de salida no puede ser menor a la hora de entrada.")
+        return redirect("dashboard")
+
+    asistencia.hora_salida = hora_actual
+    asistencia.estado = "asistencia_completa"
+
+    if asistencia.hora_entrada >= hora_limite_extraordinario:
+        asistencia.observacion = "Asistencia registrada fuera del horario laboral configurado."
+    elif asistencia.hora_entrada > hora_limite_retardo:
+        asistencia.observacion = "Asistencia completa con retardo."
+    else:
+        asistencia.observacion = "Asistencia completa."
+
+    asistencia.save(update_fields=["hora_salida", "estado", "observacion"])
+
+    messages.success(request, "Salida registrada correctamente.")
+    return redirect("dashboard")
 
 
 def _user_puede_ver_mensaje(user: Usuario, msg: Mensaje) -> bool:
@@ -294,6 +433,16 @@ def reenviar_verificacion(request):
 
     return render(request, "gestion_asociacion/reenviar_verificacion.html")
 
+def obtener_ip_cliente(request):
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[0].strip()
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+
+    return ip
+
 
 def login_view(request):
     if request.method == "POST":
@@ -307,42 +456,68 @@ def login_view(request):
         user_obj = Usuario.objects.filter(email__iexact=email).first()
 
         if user_obj is None:
-            messages.error(request, "El correo no existe.", extra_tags="email_error")
+            messages.error(
+                request,
+                "El correo no existe.",
+                extra_tags="email_not_found"
+            )
             return render(request, "gestion_asociacion/primer_login.html", context)
 
         if not user_obj.is_active:
             messages.error(
                 request,
                 "Tu cuenta no ha sido verificada. Revisa tu correo o solicita un nuevo enlace.",
-                extra_tags="email_error"
+                extra_tags="email_unverified"
             )
             return render(request, "gestion_asociacion/primer_login.html", context)
 
-        user = authenticate(request, username=user_obj.username, password=password)
+        user = authenticate(request, username=email, password=password)
 
         if user is not None:
             login(request, user)
+
             return redirect(settings.LOGIN_REDIRECT_URL)
 
-        messages.error(request, "Contraseña incorrecta.", extra_tags="password_error")
+        messages.error(
+            request,
+            "Contraseña incorrecta.",
+            extra_tags="password_error"
+        )
         return render(request, "gestion_asociacion/primer_login.html", context)
 
     return render(request, "gestion_asociacion/primer_login.html")
 
 @login_required
 def logout_view(request):
+    acceso = (
+        BitacoraAcceso.objects
+        .filter(usuario=request.user, hora_salida__isnull=True)
+        .order_by("-hora_entrada")
+        .first()
+    )
+
+    if acceso:
+        acceso.hora_salida = timezone.now()
+        acceso.save(update_fields=["hora_salida"])
+
     auth_logout(request)
     return redirect("login")
-
 
 # ============================================================
 # Dashboard
 # ============================================================
 @login_required
 def dashboard(request):
+    cerrar_asistencias_incompletas_vencidas()
     rol_usuario = getattr(request.user, "rol", "No definido")
 
+
+    # ============================================================
+    # DASHBOARD MIEMBRO
+    # ============================================================
     if rol_usuario == "Miembro":
+        hoy = timezone.localdate()
+
         ultimo_acceso = (
             BitacoraAcceso.objects
             .filter(usuario=request.user)
@@ -362,6 +537,12 @@ def dashboard(request):
             .order_by("-fecha", "-hora_entrada")[:10]
         )
 
+        asistencia_hoy = (
+            Asistencia.objects
+            .filter(usuario=request.user, fecha=hoy)
+            .first()
+        )
+
         mensajes_no_leidos = Mensaje.objects.filter(
             destinatario=request.user,
             leido=False,
@@ -375,17 +556,85 @@ def dashboard(request):
             "sesiones_activas": sesiones_activas,
             "total_sesiones_activas": sesiones_activas.count(),
             "ultimas_asistencias": ultimas_asistencias,
+            "asistencia_hoy": asistencia_hoy,
             "mensajes_no_leidos": mensajes_no_leidos,
         }
+
         return render(request, "gestion_asociacion/dashboard_miembro.html", context)
 
-    attendance_summary = AttendanceSummary.objects.order_by("-date").first()
+    # ============================================================
+    # DASHBOARD ADMIN / DIOS
+    # ============================================================
+    hoy = timezone.localdate()
+    config_asistencia = obtener_configuracion_asistencia()
+    hora_limite_retardo = config_asistencia.hora_limite_retardo()
+
+    miembros_activos = Usuario.objects.filter(
+        rol="Miembro",
+        is_active=True
+    )
+
+    asistencias_hoy = Asistencia.objects.filter(
+        fecha=hoy,
+        usuario__rol="Miembro",
+        usuario__is_active=True
+    )
+
+    presentes = (
+        asistencias_hoy
+        .filter(hora_entrada__isnull=False)
+        .values("usuario")
+        .distinct()
+        .count()
+    )
+
+    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
+
+    retardos = (
+        asistencias_hoy
+        .filter(
+            hora_entrada__gt=hora_limite_retardo,
+            hora_entrada__lt=hora_limite_extraordinario
+        )
+        .values("usuario")
+        .distinct()
+        .count()
+    )
+
+    incompletas = (
+    asistencias_hoy
+    .filter(
+        hora_entrada__isnull=False,
+        hora_salida__isnull=True
+    )
+    .values("usuario")
+    .distinct()
+    .count()
+)
+
+    usuarios_presentes_ids = (
+        asistencias_hoy
+        .filter(hora_entrada__isnull=False)
+        .values_list("usuario_id", flat=True)
+    )
+
+    ausentes = (
+        miembros_activos
+        .exclude(id__in=usuarios_presentes_ids)
+        .count()
+    )
+
     attendance_records = (
         Asistencia.objects
         .select_related("usuario")
         .order_by("-fecha", "-hora_entrada")[:10]
     )
-    notifications = Notification.objects.all().order_by("-created_at")[:5]
+
+    notifications = (
+        Notification.objects
+        .all()
+        .order_by("-created_at")[:5]
+    )
 
     ultimos_accesos = (
         BitacoraAcceso.objects
@@ -402,16 +651,26 @@ def dashboard(request):
 
     context = {
         "notifications": notifications,
-        "attendance_summary": attendance_summary,
         "attendance_records": attendance_records,
         "ultimos_accesos": ultimos_accesos,
         "usuarios_conectados": usuarios_conectados,
         "total_usuarios_conectados": usuarios_conectados.count(),
+
+        # Contadores dinámicos del día
+        "presentes": presentes,
+        "ausentes": ausentes,
+        "retardos": retardos,
+        "incompletas": incompletas, 
+        "fecha_resumen": hoy,
+        "hora_limite_retardo": hora_limite_retardo,
+        "config_asistencia": config_asistencia,
+
+
         "user": request.user,
         "user_role": rol_usuario,
     }
-    return render(request, "gestion_asociacion/dashboard.html", context)
 
+    return render(request, "gestion_asociacion/dashboard.html", context)
 
 # ============================================================
 # Gestión (Admin) - Lista y Perfil
@@ -601,14 +860,37 @@ def comunicacion_interna(request):
 
     recibidos = _mensajes_recibidos(request.user)
     enviados = _mensajes_enviados(request.user)
-    admins = Usuario.objects.filter(rol="Administrador").order_by("username")
+    asunto_valor = request.GET.get("asunto", "")
+    destinatario_id_seleccionado = request.GET.get("destinatario_id", "")
+
+    admins = Usuario.objects.filter(
+        rol__in=["Administrador", "Dios"],
+        is_active=True
+    ).order_by("username")
+
+    no_leidos = Mensaje.objects.filter(
+        destinatario=request.user,
+        leido=False,
+        en_papelera=False
+    ).count()
+
+    papelera_count = Mensaje.objects.filter(
+        en_papelera=True
+    ).filter(
+        Q(remitente=request.user) | Q(destinatario=request.user)
+    ).count()
 
     context = {
         "recibidos": recibidos,
         "enviados": enviados,
         "admins": admins,
         "form": MensajeForm(),
+        "no_leidos": no_leidos,
+        "papelera_count": papelera_count,
+        "asunto_valor": asunto_valor,
+        "destinatario_id_seleccionado": destinatario_id_seleccionado,
     }
+
     return render(request, "gestion_asociacion/comunicacion_interna.html", context)
 
 
@@ -617,33 +899,67 @@ def comunicacion_interna(request):
 def comunicacion_admin(request):
     recibidos = _mensajes_recibidos(request.user)
     enviados = _mensajes_enviados(request.user)
-    miembros = Usuario.objects.filter(rol="Miembro").order_by("username")
+
+    miembros = Usuario.objects.filter(
+        rol="Miembro",
+        is_active=True
+    ).order_by("username")
+
+    no_leidos = Mensaje.objects.filter(
+        destinatario=request.user,
+        leido=False,
+        en_papelera=False
+    ).count()
+
+    papelera_count = Mensaje.objects.filter(
+        en_papelera=True
+    ).filter(
+        Q(remitente=request.user) | Q(destinatario=request.user)
+    ).count()
 
     context = {
         "recibidos": recibidos,
         "enviados": enviados,
         "miembros": miembros,
         "form": MensajeForm(),
+        "no_leidos": no_leidos,
+        "papelera_count": papelera_count,
     }
+
     return render(request, "gestion_asociacion/comunicacion_admin.html", context)
 
 
 @login_required
 def ver_mensaje(request, mensaje_id: int):
-    msg = Mensaje.objects.select_related("remitente", "destinatario").filter(id=mensaje_id).first()
+    msg = Mensaje.objects.select_related(
+        "remitente",
+        "destinatario"
+    ).filter(id=mensaje_id).first()
+
     if not msg:
-        messages.error(request, " Mensaje no encontrado.")
+        messages.error(request, "Mensaje no encontrado.")
         return redirect("dashboard")
 
     if not _user_puede_ver_mensaje(request.user, msg):
-        messages.error(request, " No tienes permiso para ver este mensaje.")
+        messages.error(request, "No tienes permiso para ver este mensaje.")
         return redirect("dashboard")
 
     if msg.destinatario_id == request.user.id and not msg.leido:
         Mensaje.objects.filter(id=msg.id, leido=False).update(leido=True)
+        msg.leido = True
 
-    back_url = "comunicacion_admin" if _es_admin(request.user) else "comunicacion_interna"
-    return render(request, "gestion_asociacion/ver_mensaje.html", {"msg": msg, "back_url": back_url})
+    volver = request.GET.get("volver")
+
+    if volver == "papelera":
+        back_url = "papelera"
+    else:
+        back_url = "comunicacion_admin" if _es_admin(request.user) else "comunicacion_interna"
+
+    return render(request, "gestion_asociacion/ver_mensaje.html", {
+        "msg": msg,
+        "back_url": back_url,
+        "es_admin": _es_admin(request.user),
+    })
 
 
 @login_required
@@ -655,18 +971,47 @@ def enviar_mensaje_miembro(request):
         return redirect("comunicacion_interna")
 
     destinatario_id = request.POST.get("destinatario_id")
-    destinatario = Usuario.objects.filter(id=destinatario_id, rol="Administrador").first()
 
-    if not destinatario:
-        messages.error(request, "Destinatario inválido. Solo puedes enviar a administradores.")
-        return redirect("comunicacion_interna")
+    destinatario = Usuario.objects.filter(
+        id=destinatario_id,
+        rol__in=["Administrador", "Dios"],
+        is_active=True
+    ).first()
+
+    recibidos = _mensajes_recibidos(request.user)
+    enviados = _mensajes_enviados(request.user)
+    admins = Usuario.objects.filter(
+        rol__in=["Administrador", "Dios"],
+        is_active=True
+    ).order_by("username")
+
+    no_leidos = Mensaje.objects.filter(
+        destinatario=request.user,
+        leido=False,
+        en_papelera=False
+    ).count()
+
+    papelera_count = Mensaje.objects.filter(
+        en_papelera=True
+    ).filter(
+        Q(remitente=request.user) | Q(destinatario=request.user)
+    ).count()
 
     form = MensajeForm(request.POST, request.FILES)
-    if not form.is_valid():
-        for field, errs in form.errors.items():
-            for err in errs:
-                messages.error(request, f"{field}: {err}")
-        return redirect("comunicacion_interna")
+
+    if not destinatario:
+        form.add_error(None, "Destinatario inválido. Solo puedes enviar a administradores o Dios.")
+
+    if not form.is_valid() or not destinatario:
+        return render(request, "gestion_asociacion/comunicacion_interna.html", {
+        "recibidos": recibidos,
+        "enviados": enviados,
+        "admins": admins,
+        "form": form,
+        "no_leidos": no_leidos,
+        "papelera_count": papelera_count,
+        "destinatario_id_seleccionado": destinatario_id,
+    })
 
     with transaction.atomic():
         msg = form.save(commit=False)
@@ -674,9 +1019,8 @@ def enviar_mensaje_miembro(request):
         msg.destinatario = destinatario
         msg.save()
 
-    messages.success(request, " Mensaje enviado al administrador.")
+    messages.success(request, "Mensaje enviado correctamente.")
     return redirect("comunicacion_interna")
-
 
 @login_required
 @admin_only
@@ -685,13 +1029,19 @@ def enviar_mensaje_admin(request):
         return redirect("comunicacion_admin")
 
     destinatario_id = request.POST.get("destinatario_id")
-    destinatario = Usuario.objects.filter(id=destinatario_id, rol="Miembro").first()
+
+    destinatario = Usuario.objects.filter(
+        id=destinatario_id,
+        rol="Miembro",
+        is_active=True
+    ).first()
 
     if not destinatario:
-        messages.error(request, "Destinatario inválido (debe ser miembro).")
+        messages.error(request, "Destinatario inválido. Debe ser un miembro activo.")
         return redirect("comunicacion_admin")
 
     form = MensajeForm(request.POST, request.FILES)
+
     if not form.is_valid():
         for field, errs in form.errors.items():
             for err in errs:
@@ -704,7 +1054,7 @@ def enviar_mensaje_admin(request):
         msg.destinatario = destinatario
         msg.save()
 
-    messages.success(request, "Mensaje enviado al miembro.")
+    messages.success(request, "Mensaje enviado correctamente.")
     return redirect("comunicacion_admin")
 
 
@@ -722,9 +1072,12 @@ def papelera(request):
     recibidos = qs.filter(destinatario=request.user)
     enviados = qs.filter(remitente=request.user)
 
+    total_papelera = recibidos.count() + enviados.count()
+
     return render(request, "gestion_asociacion/papelera.html", {
         "recibidos": recibidos,
         "enviados": enviados,
+        "total_papelera": total_papelera,
         "es_admin": _es_admin(request.user),
     })
 
@@ -765,10 +1118,12 @@ def restaurar_mensaje(request, mensaje_id: int):
         return redirect("dashboard")
 
     Mensaje.objects.filter(id=msg.id).update(en_papelera=False)
-    messages.success(request, "Mensaje restaurado.")
+    messages.success(request, "Mensaje restaurado correctamente.")
 
-    tab = request.POST.get("tab", "recibidos")
-    return redirect(f"{reverse('papelera')}?tab={tab}")
+    if _es_admin(request.user):
+        return redirect("comunicacion_admin")
+
+    return redirect("comunicacion_interna")
 
 
 @login_required
@@ -803,9 +1158,6 @@ def eliminar_definitivo(request, mensaje_id: int):
     return redirect(f"{reverse('papelera')}?tab={tab}")
 
 
-# ============================================================
-# Secciones Admin
-# ============================================================
 @login_required
 @admin_only
 def control(request):
@@ -834,22 +1186,44 @@ def control(request):
         .order_by("-fecha", "usuario__username")
     )
 
-    hora_limite_retraso = time(9, 15)
+    config_asistencia = obtener_configuracion_asistencia()
+    hora_limite_retraso = config_asistencia.hora_limite_retardo()
+    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
 
     registros = []
+
     for asistencia in asistencias_qs:
         if not asistencia.hora_entrada:
             estado = "Sin entrada"
             badge = "secondary"
+
+        elif asistencia.estado == "salida_automatica":
+            estado = "Salida automática"
+            badge = "info"
+
+        elif asistencia.hora_entrada and not asistencia.hora_salida:
+            if asistencia.hora_entrada >= hora_limite_extraordinario:
+                estado = "Salida pendiente fuera de horario"
+                badge = "primary"
+            else:
+                estado = "Pendiente salida"
+                badge = "warning"
+
+        elif asistencia.hora_entrada >= hora_limite_extraordinario:
+            estado = "Asistencia fuera de horario"
+            badge = "primary"
+
         elif asistencia.hora_entrada > hora_limite_retraso:
-            estado = "Retardo"
-            badge = "warning"
+            estado = "Asistencia completa con retardo"
+            badge = "danger"
+
         elif asistencia.hora_salida:
             estado = "Asistencia completa"
             badge = "success"
+
         else:
-            estado = "Pendiente salida"
-            badge = "info"
+            estado = "Sin estado"
+            badge = "secondary"
 
         registros.append({
             "obj": asistencia,
@@ -857,10 +1231,20 @@ def control(request):
             "badge": badge,
         })
 
-    dias_trabajados = asistencias_qs.filter(hora_entrada__isnull=False).count()
-    dias_con_retrasos = asistencias_qs.filter(hora_entrada__gt=hora_limite_retraso).count()
+    dias_trabajados = asistencias_qs.filter(
+        hora_entrada__isnull=False
+    ).count()
 
-    usuarios_activos = Usuario.objects.filter(is_active=True, rol="Miembro")
+    dias_con_retrasos = asistencias_qs.filter(
+        hora_entrada__gt=hora_limite_retraso,
+        hora_entrada__lt=hora_limite_extraordinario
+    ).count()
+
+    usuarios_activos = Usuario.objects.filter(
+        is_active=True,
+        rol="Miembro"
+    )
+
     total_miembros_activos = usuarios_activos.count()
 
     usuarios_con_registro = (
@@ -871,7 +1255,10 @@ def control(request):
         .count()
     )
 
-    usuarios_sin_registro = max(total_miembros_activos - usuarios_con_registro, 0)
+    usuarios_sin_registro = max(
+        total_miembros_activos - usuarios_con_registro,
+        0
+    )
 
     context = {
         "registros": registros,
@@ -882,8 +1269,10 @@ def control(request):
         "dias_con_retrasos": dias_con_retrasos,
         "usuarios_sin_registro": usuarios_sin_registro,
         "total_miembros_activos": total_miembros_activos,
-        "hora_limite_retraso_texto": "09:15 AM",
+        "hora_limite_retraso_texto": hora_limite_retraso.strftime("%I:%M %p"),
+        "config_asistencia": config_asistencia,
     }
+
     return render(request, "gestion_asociacion/control.html", context)
 
 

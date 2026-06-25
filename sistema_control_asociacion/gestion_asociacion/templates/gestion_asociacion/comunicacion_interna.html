@@ -5,18 +5,11 @@
 
         <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
             <h5 class="mb-0">
-                <i class="fas fa-comments me-2"></i> Comunicación (Miembro)
+                <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
 
             <div class="d-flex align-items-center gap-3 flex-wrap">
-                <!-- ✅ Info de papelera (sin link para no duplicar) -->
-                {% if papelera_count|default:0 > 0 %}
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-trash"></i>
-                    <span class="small text-white-50">Papelera:</span>
-                    <span class="badge bg-danger">{{ papelera_count }}</span>
-                </div>
-                {% endif %} {% if no_leidos|default:0 > 0 %}
+                {% if no_leidos|default:0 > 0 %}
                 <div class="d-flex align-items-center gap-2">
                     <span class="small text-white-50">No leídos:</span>
                     <span class="badge bg-danger">{{ no_leidos }}</span>
@@ -27,19 +20,13 @@
 
         <div class="card-body">
 
-            {% if messages %}
-            <div class="alert alert-info mb-4">
-                {% for message in messages %}
-                <div>{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- ✅ BUSCADOR -->
+            <!-- BUSCADOR -->
             <div class="row g-2 mb-3">
                 <div class="col-md-12">
                     <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
                         <input id="msgSearch" type="text" class="form-control" placeholder="Buscar por asunto o texto...">
                     </div>
                 </div>
@@ -49,10 +36,13 @@
             <div class="mb-4">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                     <h5 class="d-flex align-items-center gap-2 mb-0">
-                        <span><i class="fas fa-inbox me-1"></i> Recibidos</span> {% if no_leidos|default:0 > 0 %}
+                        <span>
+                            <i class="fas fa-inbox me-1"></i> Recibidos
+                        </span> {% if no_leidos|default:0 > 0 %}
                         <span class="badge bg-danger">{{ no_leidos }}</span> {% endif %}
                     </h5>
-                    <span class="text-muted small">Tip: Los “Nuevos” se ven resaltados.</span>
+
+                    <span class="text-muted small">Tip: Los mensajes nuevos se ven resaltados.</span>
                 </div>
 
                 <div class="table-responsive">
@@ -73,10 +63,13 @@
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="msg-avatar-sm">
-                                            {{ m.remitente.username|first|upper }}
+                                            {% if m.remitente %} {{ m.remitente.username|first|upper }} {% else %} ? {% endif %}
                                         </div>
+
                                         <div class="text-truncate">
-                                            <div class="fw-semibold">{{ m.remitente.username }}</div>
+                                            <div class="fw-semibold">
+                                                {% if m.remitente %} {{ m.remitente.username }} {% else %} Usuario eliminado {% endif %}
+                                            </div>
                                             <div class="small text-muted">Remitente</div>
                                         </div>
                                     </div>
@@ -105,7 +98,6 @@
                                             <i class="fas fa-eye me-1"></i> Ver
                                         </a>
 
-                                        <!-- ✅ MOVER A PAPELERA (con confirmación bonita) -->
                                         <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
                                             {% csrf_token %}
                                             <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
@@ -117,11 +109,10 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted">No tienes mensajes.</td>
+                                <td colspan="5" class="text-center text-muted">No tienes mensajes recibidos.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
-
                     </table>
                 </div>
             </div>
@@ -129,7 +120,10 @@
             <!-- ENVIADOS -->
             <div class="mb-4">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <h5 class="mb-0"><i class="fas fa-paper-plane me-1"></i> Enviados</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-paper-plane me-1"></i> Enviados
+                    </h5>
+
                     <span class="text-muted small">Historial de tus mensajes enviados.</span>
                 </div>
 
@@ -150,10 +144,13 @@
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="msg-avatar-sm msg-avatar-out">
-                                            {{ m.destinatario.username|first|upper }}
+                                            {% if m.destinatario %} {{ m.destinatario.username|first|upper }} {% else %} ? {% endif %}
                                         </div>
+
                                         <div class="text-truncate">
-                                            <div class="fw-semibold">{{ m.destinatario.username }}</div>
+                                            <div class="fw-semibold">
+                                                {% if m.destinatario %} {{ m.destinatario.username }} {% else %} Usuario eliminado {% endif %}
+                                            </div>
                                             <div class="small text-muted">Destinatario</div>
                                         </div>
                                     </div>
@@ -176,7 +173,6 @@
                                             <i class="fas fa-eye me-1"></i> Ver
                                         </a>
 
-                                        <!-- ✅ MOVER A PAPELERA (con confirmación bonita) -->
                                         <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
                                             {% csrf_token %}
                                             <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
@@ -192,93 +188,144 @@
                             </tr>
                             {% endfor %}
                         </tbody>
-
                     </table>
                 </div>
             </div>
 
-            <!-- ENVIAR A ADMIN -->
-            <div class="mt-4">
-                <h5 class="mb-2"><i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador</h5>
-                <p class="text-muted small mb-3">Selecciona un administrador, escribe asunto y mensaje. Puedes adjuntar archivo.</p>
+            <!-- ENVIAR A ADMIN / DIOS -->
+            <div class="mt-4" id="formResponder">
+                <h5 class="mb-2">
+                    <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador / Dios
+                </h5>
 
-                <form id="formEnviarMiembro" method="post" action="{% url 'enviar_mensaje_miembro' %}" enctype="multipart/form-data">
+                <p class="text-muted small mb-3">
+                    Selecciona un destinatario, escribe asunto y mensaje. Puedes adjuntar archivo.
+                </p>
+
+                {% if messages %}
+                <div class="mb-3">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} mb-2">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %} {% if form.non_field_errors %}
+                <div class="alert alert-warning mb-3">
+                    {% for error in form.non_field_errors %}
+                    <div><i class="fas fa-exclamation-triangle me-1"></i> {{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'enviar_mensaje_miembro' %}#formResponder" enctype="multipart/form-data">
                     {% csrf_token %}
 
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Destinatario</label>
-                            <select class="form-select" name="destinatario_id" required>
-                                <option value="" selected disabled>Selecciona un administrador</option>
-                                {% for a in admins %}
-                                <option value="{{ a.id }}">{{ a.username }}</option>
-                                {% endfor %}
-                            </select>
+
+                            <select class="form-select {% if form.non_field_errors %}is-invalid{% endif %}" name="destinatario_id" required>
+                    <option value="" disabled {% if not destinatario_id_seleccionado %}selected{% endif %}>
+                        Selecciona un administrador o Dios
+                    </option>
+
+                    {% for a in admins %}
+                    <option value="{{ a.id }}" {% if destinatario_id_seleccionado == a.id|stringformat:"s" %}selected{% endif %}>
+                        {{ a.username }}{% if a.rol %} - {{ a.rol }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Asunto</label>
-                            <input class="form-control" type="text" name="asunto" placeholder="Ej. Solicitud, Duda, Aviso..." required>
+
+                            <input class="form-control {% if form.asunto.errors %}is-invalid{% endif %}" type="text" name="asunto" value="{% if form.asunto.value %}{{ form.asunto.value }}{% else %}{{ asunto_valor }}{% endif %}" placeholder="Ej. Solicitud, Duda, Aviso..." required>                            {% if form.asunto.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.asunto.errors %} {{ error }} {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Mensaje</label>
-                            <textarea class="form-control" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required></textarea>
+
+                            <textarea class="form-control {% if form.cuerpo.errors %}is-invalid{% endif %}" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{% if form.cuerpo.value %}{{ form.cuerpo.value }}{% endif %} 
+
+                            </textarea> {%if form.cuerpo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.cuerpo.errors %} {{ error }} {% endfor %}
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Adjuntar archivo (opcional)</label>
-                            <input class="form-control" type="file" name="archivo">
-                            <div class="form-text">Formatos comunes: PDF, imagen, Word, Excel.</div>
+
+                            <input class="form-control {% if form.archivo.errors %}is-invalid{% endif %}" type="file" name="archivo"> {% if form.archivo.errors %}
+                            <div class="alert alert-warning mt-2 mb-0">
+                                {% for error in form.archivo.errors %}
+                                <div><i class="fas fa-exclamation-triangle me-1"></i> {{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="form-text">
+                                Formatos comunes: PDF, imagen, Word, Excel.
+                            </div>
+                            {% endif %}
                         </div>
 
                         <div class="col-12">
                             <button id="btnEnviarMiembro" class="btn btn-success btn-lg w-100" type="submit">
-                                <i class="fas fa-paper-plane me-2"></i> Enviar
-                            </button>
+                    <i class="fas fa-paper-plane me-2"></i> Enviar
+                </button>
                         </div>
                     </div>
                 </form>
-
-                <script>
-                    (function() {
-                        const form = document.getElementById("formEnviarMiembro");
-                        const btn = document.getElementById("btnEnviarMiembro");
-                        if (!form || !btn) return;
-
-                        form.addEventListener("submit", function() {
-                            btn.disabled = true;
-                            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
-                        });
-                    })();
-                </script>
             </div>
 
         </div>
     </div>
 </div>
 
-<!-- ✅ JS BUSCADOR SIMPLE -->
+<script>
+    (function() {
+        const form = document.querySelector("#formResponder form");
+        const btn = document.getElementById("btnEnviarMiembro");
+
+        if (!form || !btn) return;
+
+        form.addEventListener("submit", function() {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
+        });
+    })();
+</script>
+
 <script>
     (function() {
         const input = document.getElementById("msgSearch");
+
         if (!input) return;
 
         function filtrarTabla(table) {
             if (!table) return;
+
             const rows = table.querySelectorAll("tbody tr");
             const q = (input.value || "").toLowerCase().trim();
 
-            rows.forEach(r => {
-                const text = (r.innerText || "").toLowerCase();
-                r.style.display = text.includes(q) ? "" : "none";
+            rows.forEach(row => {
+                const text = (row.innerText || "").toLowerCase();
+                row.style.display = text.includes(q) ? "" : "none";
             });
         }
 
-        input.addEventListener("input", () => {
+        input.addEventListener("input", function() {
             filtrarTabla(document.getElementById("tablaRecibidos"));
             filtrarTabla(document.getElementById("tablaEnviados"));
         });
     })();
 </script>
+
 {% endblock %}

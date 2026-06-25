@@ -1,9 +1,10 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Ver Mensaje{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+
 <div class="comunicacion-page">
     <div class="comunicacion-card card">
 
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2">
                 <i class="fas fa-envelope-open-text"></i>
                 <span class="fw-semibold">{{ msg.asunto }}</span>
@@ -22,43 +23,51 @@
 
         <div class="card-body">
 
-            <div class="msg-meta mb-3">
-                <div class="msg-chip">
-                    <span class="msg-chip-label">De</span>
-                    <span class="msg-chip-value">
-                        {% if msg.remitente %}
-                            {{ msg.remitente.username }}
-                        {% else %}
-                            <span class="text-muted">Usuario eliminado</span> {% endif %}
-                    </span>
-                </div>
+            <div class="table-responsive mb-3">
+                <table class="table table-borderless table-sm align-middle mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-nowrap" style="width: 110px;">De:</th>
+                            <td>
+                                {% if msg.remitente %} {{ msg.remitente.username }} {% else %}
+                                <span class="text-muted">Usuario eliminado</span> {% endif %}
+                            </td>
+                        </tr>
 
-                <div class="msg-chip">
-                    <span class="msg-chip-label">Para</span>
-                    <span class="msg-chip-value">
-                        {% if msg.destinatario %}
-                            {{ msg.destinatario.username }}
-                        {% else %}
-                            <span class="text-muted">Usuario eliminado</span> {% endif %}
-                    </span>
-                </div>
+                        <tr>
+                            <th class="text-nowrap">Para:</th>
+                            <td>
+                                {% if msg.destinatario %} {{ msg.destinatario.username }} {% else %}
+                                <span class="text-muted">Usuario eliminado</span> {% endif %}
+                            </td>
+                        </tr>
 
-                <div class="msg-chip">
-                    <span class="msg-chip-label">Fecha</span>
-                    <span class="msg-chip-value">{{ msg.creado_en|date:"d/m/Y H:i" }}</span>
-                </div>
+                        <tr>
+                            <th class="text-nowrap">Fecha:</th>
+                            <td>{{ msg.creado_en|date:"d/m/Y H:i" }}</td>
+                        </tr>
 
-                {% if msg.archivo %}
-                <div class="msg-chip">
-                    <span class="msg-chip-label">Adjunto</span>
-                    <a class="msg-chip-link btn btn-sm btn-outline-info" href="{{ msg.archivo.url }}" target="_blank">
-                        <i class="fas fa-paperclip me-1"></i> Descargar archivo
-                    </a>
-                </div>
-                {% endif %}
+                        {% if msg.archivo %}
+                        <tr>
+                            <th class="text-nowrap">Adjunto:</th>
+                            <td>
+                                <a class="btn btn-sm btn-outline-primary" href="{{ msg.archivo.url }}" target="_blank">
+                                    <i class="fas fa-paperclip me-1"></i> Descargar archivo
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
 
-            <div class="msg-body">
+            <hr class="my-4">
+
+            <h5 class="fw-semibold mb-3">
+                <i class="fas fa-comment-alt me-2"></i>Mensaje
+            </h5>
+
+            <div class="msg-body p-3 rounded border bg-light">
                 {{ msg.cuerpo|linebreaksbr }}
             </div>
 
@@ -66,16 +75,27 @@
     </div>
 
     <div class="mt-4 text-end">
-        {% if user_role == "Administrador" %}
-        <a href="{% url 'comunicacion_admin' %}" class="btn btn-outline-primary">
+
+        {% if msg.remitente and msg.remitente.id == request.user.id %} {% if msg.destinatario %} {% if es_admin %}
+        <a href="{% url 'comunicacion_admin' %}?destinatario_id={{ msg.destinatario.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
             <i class="fas fa-reply me-1"></i> Responder
         </a>
         {% else %}
-        <a href="{% url 'comunicacion_interna' %}" class="btn btn-outline-primary">
+        <a href="{% url 'comunicacion_interna' %}?destinatario_id={{ msg.destinatario.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
             <i class="fas fa-reply me-1"></i> Responder
         </a>
-        {% endif %}
+        {% endif %} {% endif %} {% else %} {% if msg.remitente %} {% if es_admin %}
+        <a href="{% url 'comunicacion_admin' %}?destinatario_id={{ msg.remitente.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
+            <i class="fas fa-reply me-1"></i> Responder
+        </a>
+        {% else %}
+        <a href="{% url 'comunicacion_interna' %}?destinatario_id={{ msg.remitente.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
+            <i class="fas fa-reply me-1"></i> Responder
+        </a>
+        {% endif %} {% endif %} {% endif %}
+
     </div>
 
 </div>
+
 {% endblock %}

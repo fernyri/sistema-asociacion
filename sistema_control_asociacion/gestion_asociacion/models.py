@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db.models.functions import Lower
+from datetime import time
+from django.utils import timezone
 
 
 # =========================
@@ -182,6 +184,14 @@ class Usuario(AbstractUser):
 # =========================
 class Asistencia(models.Model):
 
+    ESTADO_CHOICES = [
+        ("sin_entrada", "Sin entrada"),
+        ("salida_pendiente", "Salida pendiente"),
+        ("asistencia_completa", "Asistencia completa"),
+        ("salida_automatica", "Salida automática"),
+        ("retardo", "Retardo"),
+    ]
+
     usuario = models.ForeignKey(
         Usuario,
         on_delete=models.SET_NULL,
@@ -204,6 +214,124 @@ class Asistencia(models.Model):
         null=True,
         verbose_name="Hora de salida"
     )
+
+    estado = models.CharField(
+        max_length=30,
+        choices=ESTADO_CHOICES,
+        default="sin_entrada",
+        db_index=True,
+        verbose_name="Estado"
+    )
+
+    observacion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observación"
+    )
+
+    @property
+    def tiene_retardo(self):
+        config = ConfiguracionAsistencia.objects.filter(activa=True).first()
+
+        if not config:
+            hora_limite_retardo = time(9, 15)
+            hora_limite_extraordinario = time(18, 0)
+        else:
+            hora_limite_retardo = config.hora_limite_retardo()
+            hora_limite_extraordinario = config.hora_limite_extraordinario
+
+        return bool(
+            self.hora_entrada
+            and self.hora_entrada > hora_limite_retardo
+            and self.hora_entrada < hora_limite_extraordinario
+        )
+    
+    @property
+    def es_extraordinario(self):
+        config = ConfiguracionAsistencia.objects.filter(activa=True).first()
+
+        if not config:
+            hora_limite_extraordinario = time(18, 0)
+        else:
+            hora_limite_extraordinario = config.hora_limite_extraordinario
+
+        return bool(self.hora_entrada and self.hora_entrada >= hora_limite_extraordinario)
+
+    @property
+    def estado_texto(self):
+        if self.estado == "salida_automatica":
+            return "Salida automática"
+
+        if not self.hora_entrada:
+            return "Sin entrada"
+
+        if self.hora_entrada and not self.hora_salida:
+            if self.es_extraordinario:
+                return "Salida pendiente fuera de horario"
+            return "Salida pendiente"
+
+        if self.es_extraordinario:
+            return "Asistencia fuera de horario"
+
+        if self.tiene_retardo:
+            return "Asistencia con retardo"
+
+        return "Asistencia completa"
+    
+    @property
+    def estado_calculado(self):
+        if self.estado == "salida_automatica":
+            return "salida_automatica"
+
+        if not self.hora_entrada:
+            return "sin_entrada"
+
+        if self.hora_entrada and not self.hora_salida:
+            return "salida_pendiente"
+
+        return "asistencia_completa"
+
+    @property
+    def estado_badge(self):
+        if self.estado == "salida_automatica":
+            return "info"
+
+        if not self.hora_entrada:
+            return "secondary"
+
+        if self.hora_entrada and not self.hora_salida:
+            if self.es_extraordinario:
+                return "primary"
+            return "warning"
+
+        if self.es_extraordinario:
+            return "primary"
+
+        if self.tiene_retardo:
+            return "danger"
+
+        return "success"
+
+    @property
+    def observacion_calculada(self):
+        if not self.hora_entrada:
+            return "No se registró entrada."
+
+        if self.hora_entrada and not self.hora_salida:
+            if self.es_extraordinario:
+                return "El usuario registró entrada fuera del horario laboral configurado, pero aún no registra salida."
+            return "El usuario registró entrada, pero aún no registra salida."
+
+        if self.estado == "salida_automatica":
+            return "El usuario no registró salida. El sistema cerró la asistencia automáticamente."
+
+        if self.es_extraordinario:
+            return "Asistencia registrada fuera del horario laboral configurado."
+
+        if self.tiene_retardo:
+            return "Asistencia completa con retardo."
+
+        return "Asistencia completa."
 
     def __str__(self):
         return (
@@ -285,6 +413,56 @@ class AttendanceSummary(models.Model):
 
     class Meta:
         ordering = ["-date"]
+
+# =========================
+# Configuración de Asistencia
+# =========================
+class ConfiguracionAsistencia(models.Model):
+
+    nombre = models.CharField(
+        max_length=100,
+        default="Configuración general",
+        verbose_name="Nombre"
+    )
+
+    hora_entrada = models.TimeField(
+        default=time(9, 0),
+        verbose_name="Hora de entrada"
+    )
+
+    tolerancia_minutos = models.PositiveIntegerField(
+        default=15,
+        verbose_name="Tolerancia en minutos"
+    )
+
+    hora_salida_automatica = models.TimeField(
+        default=time(23, 59),
+        verbose_name="Hora de salida automática"
+    )
+
+    hora_limite_extraordinario = models.TimeField(
+    default=time(18, 0),
+    verbose_name="Hora límite para asistencia fuera de horario"
+    )
+
+    activa = models.BooleanField(
+        default=True,
+        verbose_name="Activa"
+    )
+
+    def hora_limite_retardo(self):
+        from datetime import datetime, timedelta
+
+        base = datetime.combine(datetime.today(), self.hora_entrada)
+        limite = base + timedelta(minutes=self.tolerancia_minutos)
+        return limite.time()
+
+    def __str__(self):
+        return f"{self.nombre} - Entrada {self.hora_entrada}"
+
+    class Meta:
+        verbose_name = "Configuración de asistencia"
+        verbose_name_plural = "Configuraciones de asistencia"
 
 
 # =========================
@@ -410,5 +588,25 @@ class BitacoraAcceso(models.Model):
     hora_salida = models.DateTimeField(null=True, blank=True)
     ip = models.GenericIPAddressField(null=True, blank=True)
 
+    @property
+    def duracion_sesion(self):
+        if not self.hora_entrada:
+            return None
+
+        if self.hora_salida:
+            return self.hora_salida - self.hora_entrada
+
+        return timezone.now() - self.hora_entrada
+    
+    @property
+    def duracion_segundos(self):
+        duracion = self.duracion_sesion
+
+        if not duracion:
+            return 0
+        
+        return int(duracion.total_seconds())
+
     def __str__(self):
         return f"{self.usuario} - {self.fecha}"
+    

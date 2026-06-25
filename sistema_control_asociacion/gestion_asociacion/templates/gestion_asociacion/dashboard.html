@@ -1,50 +1,70 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Dashboard{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"> {% endblock %} {% block content %}
-<div class="container-fluid px-4">
-    <h1 class="mt-4 text-center">📊 Dashboard</h1>
 
-    <!-- Resumen general -->
+<div class="container-fluid px-0">
+
+    <h1 class="mt-2 text-center">📊 Dashboard</h1>
+
+    <p class="text-center text-muted mb-4">
+        Resumen de asistencias del día: <b>{{ fecha_resumen|date:"d/m/Y" }}</b>
+    </p>
+
     <div class="row mt-4 g-3">
-        <div class="col-md-3">
-            <div class="card bg-success text-white shadow-sm p-3 h-100">
-                <h5 class="card-title text-center"><i class="fas fa-user-check"></i> Presentes</h5>
-                <p class="card-text text-center fs-4 mb-0">
-                    {% if attendance_summary %}{{ attendance_summary.present }}{% else %}0{% endif %}
-                </p>
+
+        <div class="col-md-3 col-lg">
+            <div class="card bg-success text-white shadow-sm p-3 h-100 border-0">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-user-check"></i> Presentes
+                </h5>
+                <p class="card-text text-center fs-4 mb-0">{{ presentes }}</p>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card bg-danger text-white shadow-sm p-3 h-100">
-                <h5 class="card-title text-center"><i class="fas fa-user-times"></i> Ausentes</h5>
-                <p class="card-text text-center fs-4 mb-0">
-                    {% if attendance_summary %}{{ attendance_summary.absent }}{% else %}0{% endif %}
-                </p>
+        <div class="col-md-3 col-lg">
+            <div class="card bg-danger text-white shadow-sm p-3 h-100 border-0">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-user-times"></i> Ausentes
+                </h5>
+                <p class="card-text text-center fs-4 mb-0">{{ ausentes }}</p>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card bg-warning text-dark shadow-sm p-3 h-100">
-                <h5 class="card-title text-center"><i class="fas fa-clock"></i> Retardos</h5>
-                <p class="card-text text-center fs-4 mb-0">
-                    {% if attendance_summary %}{{ attendance_summary.late }}{% else %}0{% endif %}
-                </p>
+        <div class="col-md-3 col-lg">
+            <div class="card bg-warning text-dark shadow-sm p-3 h-100 border-0">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-clock"></i> Retardos
+                </h5>
+                <p class="card-text text-center fs-4 mb-0">{{ retardos }}</p>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card bg-primary text-white shadow-sm p-3 h-100">
-                <h5 class="card-title text-center"><i class="fas fa-signal"></i> Usuarios conectados</h5>
+        <div class="col-md-3 col-lg">
+            <div class="card bg-secondary text-white shadow-sm p-3 h-100 border-0">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-exclamation-circle"></i> Incompletas
+                </h5>
+                <p class="card-text text-center fs-4 mb-0">{{ incompletas }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-lg">
+            <div class="card bg-primary text-white shadow-sm p-3 h-100 border-0">
+                <h5 class="card-title text-center">
+                    <i class="fas fa-signal"></i> Usuarios conectados
+                </h5>
                 <p class="card-text text-center fs-4 mb-0">{{ total_usuarios_conectados }}</p>
             </div>
         </div>
+
     </div>
 
-    <!-- Usuarios conectados -->
-    <div class="card mt-4 shadow-sm">
+    <div class="card mt-4 shadow-sm border-0">
         <div class="card-header bg-primary text-white">
-            <h5 class="mb-0"><i class="fas fa-circle text-success"></i> Sesiones activas</h5>
+            <h5 class="mb-0">
+                <i class="fas fa-circle text-success"></i> Sesiones activas
+            </h5>
         </div>
+
         <div class="card-body">
             {% if usuarios_conectados %}
             <ul class="list-group">
@@ -64,22 +84,27 @@
         </div>
     </div>
 
-    <!-- Tabla de registros de asistencia -->
-    <div class="card mt-4 shadow-sm">
+    <div class="card mt-4 shadow-sm border-0">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0"><i class="fas fa-calendar-check"></i> Registros de Asistencia</h5>
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-check"></i> Registros de Asistencia
+            </h5>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle">
+                <table class="table table-hover table-bordered align-middle text-center">
                     <thead class="table-light">
                         <tr>
                             <th>Nombre</th>
                             <th>Fecha</th>
                             <th>Hora de Entrada</th>
                             <th>Hora de Salida</th>
+                            <th>Estado</th>
+                            <th>Observación</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {% if attendance_records %} {% for asistencia in attendance_records %}
                         <tr>
@@ -87,19 +112,36 @@
                                 {% if asistencia.usuario %} {{ asistencia.usuario.username }} {% else %}
                                 <span class="text-muted">Sin usuario</span> {% endif %}
                             </td>
+
                             <td>{{ asistencia.fecha|date:"d/m/Y" }}</td>
+
                             <td>
                                 {% if asistencia.hora_entrada %} {{ asistencia.hora_entrada|time:"h:i A" }} {% else %}
                                 <span class="text-muted">Sin entrada</span> {% endif %}
                             </td>
+
                             <td>
                                 {% if asistencia.hora_salida %} {{ asistencia.hora_salida|time:"h:i A" }} {% else %}
-                                <span class="text-muted">Pendiente</span> {% endif %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-clock"></i> Salida pendiente
+                                </span> {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-{{ asistencia.estado_badge }} {% if asistencia.estado_badge == 'warning' %}text-dark{% endif %}">
+                                    {{ asistencia.estado_texto }}
+                                </span>
+                            </td>
+
+                            <td class="text-start">
+                                {{ asistencia.observacion_calculada }}
                             </td>
                         </tr>
                         {% endfor %} {% else %}
                         <tr>
-                            <td colspan="4" class="text-center text-muted">No hay registros de asistencia.</td>
+                            <td colspan="6" class="text-center text-muted">
+                                No hay registros de asistencia.
+                            </td>
                         </tr>
                         {% endif %}
                     </tbody>
@@ -108,14 +150,16 @@
         </div>
     </div>
 
-    <!-- Bitácora de accesos -->
-    <div class="card mt-4 shadow-sm">
+    <div class="card mt-4 shadow-sm border-0">
         <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0"><i class="fas fa-history"></i> Últimos accesos</h5>
+            <h5 class="mb-0">
+                <i class="fas fa-history"></i> Últimos accesos
+            </h5>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle">
+                <table class="table table-hover table-bordered align-middle text-center">
                     <thead class="table-light">
                         <tr>
                             <th>Usuario</th>
@@ -123,40 +167,57 @@
                             <th>Salida</th>
                             <th>Estado</th>
                             <th>IP</th>
+                            <th>Duración</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {% if ultimos_accesos %} {% for acceso in ultimos_accesos %}
                         <tr>
                             <td>{{ acceso.usuario.username }}</td>
+
                             <td>{{ acceso.hora_entrada|date:"d/m/Y h:i A" }}</td>
+
                             <td>
                                 {% if acceso.hora_salida %} {{ acceso.hora_salida|date:"d/m/Y h:i A" }} {% else %}
                                 <span class="text-muted">Sesión abierta</span> {% endif %}
                             </td>
+
                             <td>
                                 {% if acceso.hora_salida %}
                                 <span class="badge bg-danger">Cerrada</span> {% else %}
                                 <span class="badge bg-success">Activa</span> {% endif %}
                             </td>
+
                             <td>{{ acceso.ip|default:"-" }}</td>
+
+                            <td>
+                                <span class="duracion-sesion" data-segundos="{{ acceso.duracion_segundos }}" data-activa="{% if acceso.hora_salida %}false{% else %}true{% endif %}">
+        --
+    </span>
+                            </td>
                         </tr>
                         {% endfor %} {% else %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted">No hay registros en la bitácora.</td>
+                            <td colspan="6" class="text-center text-muted">
+                                No hay registros en la bitácora.
+                            </td>
                         </tr>
                         {% endif %}
                     </tbody>
+
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Últimas notificaciones -->
-    <div class="card mt-4 shadow-sm">
+    <div class="card mt-4 shadow-sm border-0">
         <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="fas fa-bell"></i> Últimas Notificaciones</h5>
+            <h5 class="mb-0">
+                <i class="fas fa-bell"></i> Últimas Notificaciones
+            </h5>
         </div>
+
         <div class="card-body">
             {% if notifications %}
             <ul class="list-group">
@@ -167,9 +228,54 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <p class="text-muted text-center mb-0">No hay notificaciones disponibles.</p>
+            <p class="text-muted text-center mb-0">
+                No hay notificaciones disponibles.
+            </p>
             {% endif %}
         </div>
     </div>
+
 </div>
+
+<script>
+    function formatearDuracion(segundos) {
+        segundos = parseInt(segundos || 0);
+
+        const dias = Math.floor(segundos / 86400);
+        segundos %= 86400;
+
+        const horas = Math.floor(segundos / 3600);
+        segundos %= 3600;
+
+        const minutos = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+
+        const partes = [];
+
+        if (dias > 0) partes.push(`${dias} día${dias !== 1 ? 's' : ''}`);
+        if (horas > 0) partes.push(`${horas} h`);
+        if (minutos > 0) partes.push(`${minutos} min`);
+
+        partes.push(`${seg} s`);
+
+        return partes.join(" ");
+    }
+
+    function actualizarDuraciones() {
+        document.querySelectorAll(".duracion-sesion").forEach(function(el) {
+            let segundos = parseInt(el.dataset.segundos || 0);
+            const activa = el.dataset.activa === "true";
+
+            el.textContent = formatearDuracion(segundos);
+
+            if (activa) {
+                el.dataset.segundos = segundos + 1;
+            }
+        });
+    }
+
+    actualizarDuraciones();
+    setInterval(actualizarDuraciones, 1000);
+</script>
+
 {% endblock %}

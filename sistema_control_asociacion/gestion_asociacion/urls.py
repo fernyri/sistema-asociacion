@@ -15,6 +15,8 @@ urlpatterns = [
     path("registro/exito/", views.registro_exito, name="registro_exito"),
     path("activar/<uidb64>/<token>/", views.activar_cuenta, name="activar_cuenta"),
     path("reenviar-verificacion/", views.reenviar_verificacion, name="reenviar_verificacion"),
+    path("asistencia/entrada/", views.registrar_entrada, name="registrar_entrada"),
+    path("asistencia/salida/", views.registrar_salida, name="registrar_salida"),
     path("verificar_usuario/", views.verificar_usuario, name="verificar_usuario"),
     path("logout/", views.logout_view, name="logout"),
 

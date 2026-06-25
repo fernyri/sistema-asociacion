@@ -1,104 +1,189 @@
-/* =========================================================
-   comunicacion.css
-   - Estilos SOLO para Comunicación (Interna/Admin/Ver mensaje)
-   - No afecta otras pantallas (scope: .comunicacion-page)
-   ========================================================= */
-
-
 /* =========================
-   Wrapper del módulo
+   Comunicación - Estilo moderno claro
    ========================= */
 
 .comunicacion-page {
     width: 100%;
-    padding: 18px 12px;
-    display: flex;
-    justify-content: center;
+    padding: 10px 0 20px;
+    background: transparent;
 }
 
 
 /* =========================
-   Tarjeta principal (glass)
+   Card principal
    ========================= */
 
 .comunicacion-card {
-    width: min(1200px, 100%);
-    margin: 0 auto;
-    border-radius: 14px;
+    border: none;
+    border-radius: 18px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(20, 20, 20, 0.72);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    background: #ffffff;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
 }
 
 
-/* =========================
-   Header del módulo
-   - Se ve bien con bg-primary / bg-dark que ya usas
-   ========================= */
+/* Header principal */
 
-.comunicacion-page .card-header {
-    padding: 16px 22px;
-    margin: 0;
-    text-align: left;
+.comunicacion-card>.card-header {
+    border: none;
+    padding: 1rem 1.3rem;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    color: #ffffff !important;
+}
+
+.comunicacion-card>.card-header h5 {
     font-weight: 700;
     letter-spacing: 0.2px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-.comunicacion-page .card-header h5 {
-    font-weight: 800;
-    letter-spacing: 0.2px;
-}
-
-
-/* Botón volver en ver_mensaje (outline-light) que no se pierda */
-
-.comunicacion-page .card-header .btn-outline-light {
-    border-color: rgba(255, 255, 255, 0.35);
-}
-
-.comunicacion-page .card-header .btn-outline-light:hover {
-    background: rgba(255, 255, 255, 0.12);
+.comunicacion-card>.card-body {
+    padding: 1.5rem;
+    background: #f8fafc;
 }
 
 
 /* =========================
-   Body del módulo
-   ========================= */
-
-.comunicacion-page .card-body {
-    padding: 20px 22px;
-    color: rgba(255, 255, 255, 0.92);
-}
-
-
-/* =========================
-   Tipografía interna
+   Títulos de secciones
    ========================= */
 
 .comunicacion-page h5 {
-    margin-bottom: 10px;
-    font-weight: 800;
+    color: #1f2937;
+    font-weight: 700;
 }
 
-.comunicacion-page p.text-muted {
-    margin-bottom: 16px;
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.70) !important;
+.comunicacion-page .text-muted {
+    color: #64748b !important;
 }
 
 
 /* =========================
-   Alerts (messages)
+   Buscador
    ========================= */
 
-.comunicacion-page .alert {
+.comunicacion-page .input-group {
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.92);
+    overflow: hidden;
+}
+
+.comunicacion-page .input-group-text {
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
+    color: #2563eb;
+}
+
+.comunicacion-page .form-control,
+.comunicacion-page .form-select {
+    background: #ffffff;
+    border: 1px solid #dbe3ef;
+    color: #111827;
+    border-radius: 12px;
+    min-height: 44px;
+}
+
+.comunicacion-page .input-group .form-control {
+    border-left: 0;
+    border-radius: 0;
+}
+
+.comunicacion-page .form-control:focus,
+.comunicacion-page .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.18);
+}
+
+.comunicacion-page textarea.form-control {
+    min-height: 130px;
+    resize: vertical;
+}
+
+
+/* =========================
+   Tablas
+   ========================= */
+
+.comunicacion-page .table-responsive {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+
+.comunicacion-page table {
+    margin-bottom: 0;
+    background: #ffffff;
+}
+
+.comunicacion-page .table {
+    color: #111827;
+}
+
+.comunicacion-page .table thead {
+    background: #1f2937;
+}
+
+.comunicacion-page .table-dark th,
+.comunicacion-page .table thead th {
+    background: #1f2937 !important;
+    color: #ffffff !important;
+    border-color: #374151 !important;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
+.comunicacion-page .table td {
+    background: #ffffff;
+    color: #111827;
+    border-color: #e5e7eb;
+    vertical-align: middle;
+}
+
+.comunicacion-page .table tbody tr {
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.comunicacion-page .table tbody tr:hover td {
+    background: #eff6ff;
+}
+
+
+/* Mensajes no leídos */
+
+.comunicacion-page .msg-unread td {
+    background: #fff7ed;
+}
+
+.comunicacion-page .msg-unread:hover td {
+    background: #ffedd5;
+}
+
+.comunicacion-page .msg-unread .fw-semibold {
+    color: #9a3412;
+}
+
+
+/* =========================
+   Avatares
+   ========================= */
+
+.msg-avatar-sm {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 7px rgba(37, 99, 235, 0.25);
+}
+
+.msg-avatar-out {
+    background: #64748b;
+    box-shadow: 0 2px 7px rgba(100, 116, 139, 0.25);
 }
 
 
@@ -108,291 +193,292 @@
 
 .comunicacion-page .badge {
     border-radius: 999px;
-    padding: 6px 10px;
-    font-weight: 800;
-    letter-spacing: 0.2px;
+    padding: 0.45em 0.75em;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.comunicacion-page .badge.bg-warning {
+    background: #facc15 !important;
+    color: #1f2937 !important;
+}
+
+.comunicacion-page .badge.bg-success {
+    background: #16a34a !important;
+}
+
+.comunicacion-page .badge.bg-danger {
+    background: #dc2626 !important;
 }
 
 
 /* =========================
-   AVATAR (inicial)
-   - usado en tablas (msg-avatar-sm, msg-avatar-out)
-   ========================= */
-
-.comunicacion-page .msg-avatar-sm {
-    width: 34px;
-    height: 34px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    font-weight: 900;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.95);
-    background: rgba(13, 110, 253, 0.35);
-    border: 1px solid rgba(13, 110, 253, 0.55);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-    flex: 0 0 auto;
-}
-
-
-/* enviados (gris/neutral) */
-
-.comunicacion-page .msg-avatar-out {
-    background: rgba(108, 117, 125, 0.35);
-    border: 1px solid rgba(108, 117, 125, 0.55);
-}
-
-
-/* =========================
-   TABLAS
-   ========================= */
-
-.comunicacion-page .table-responsive {
-    overflow-x: auto;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-
-/* tabla */
-
-.comunicacion-page .table {
-    margin-bottom: 0;
-    font-size: 14px;
-    table-layout: auto;
-}
-
-
-/* encabezado tabla */
-
-.comunicacion-page .table thead th {
-    white-space: nowrap;
-    border-color: rgba(255, 255, 255, 0.10);
-}
-
-
-/* celdas */
-
-.comunicacion-page .table tbody td {
-    vertical-align: middle;
-    border-color: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.90);
-}
-
-.comunicacion-page .table td,
-.comunicacion-page .table th {
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-
-/* truncado bonito para textos largos dentro de celdas */
-
-.comunicacion-page .text-truncate {
-    max-width: 100%;
-}
-
-
-/* zebra suave */
-
-.comunicacion-page .table tbody tr:nth-child(odd) td {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-
-/* hover suave */
-
-.comunicacion-page .table-hover tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-
-/* =========================
-   Fila NO LEÍDA (msg-unread)
-   - Resaltado pro + barrita lateral
-   ========================= */
-
-.comunicacion-page tr.msg-unread td {
-    background: rgba(255, 193, 7, 0.10) !important;
-}
-
-.comunicacion-page tr.msg-unread td:first-child {
-    position: relative;
-}
-
-.comunicacion-page tr.msg-unread td:first-child::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 4px;
-    border-radius: 10px;
-    background: rgba(255, 193, 7, 0.85);
-}
-
-
-/* =========================
-   BOTONES
+   Botones
    ========================= */
 
 .comunicacion-page .btn {
     border-radius: 10px;
-    font-weight: 800;
+    font-weight: 600;
+    transition: all 0.18s ease;
 }
 
-.comunicacion-page .btn.btn-success.btn-lg {
-    padding: 12px 16px;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 0.2px;
+.comunicacion-page .btn:hover {
+    transform: translateY(-1px);
 }
 
+.comunicacion-page .btn-primary {
+    background: #2563eb;
+    border-color: #2563eb;
+}
 
-/* Botones "Ver" se vean más finos en dark */
+.comunicacion-page .btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+}
 
-.comunicacion-page .btn-primary,
 .comunicacion-page .btn-secondary {
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #64748b;
+    border-color: #64748b;
+}
+
+.comunicacion-page .btn-secondary:hover {
+    background: #475569;
+    border-color: #475569;
+}
+
+.comunicacion-page .btn-success {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    border: none;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.comunicacion-page .btn-success:hover {
+    background: linear-gradient(135deg, #15803d, #166534);
+}
+
+.comunicacion-page .btn-outline-danger {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #ffffff;
+}
+
+.comunicacion-page .btn-outline-danger:hover {
+    background: #dc2626;
+    color: #ffffff;
 }
 
 
 /* =========================
-   FORMULARIO
+   Formulario enviar mensaje
    ========================= */
 
+.comunicacion-page form label,
 .comunicacion-page .form-label {
-    font-size: 14px;
-    margin-bottom: 6px;
+    color: #334155;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.80);
 }
-
-.comunicacion-page .form-control,
-.comunicacion-page .form-select {
-    border-radius: 10px;
-    padding: 10px 12px;
-    height: 44px;
-    font-size: 14px;
-    background: rgba(0, 0, 0, 0.28);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    color: rgba(255, 255, 255, 0.92);
-}
-
-.comunicacion-page .form-control:focus,
-.comunicacion-page .form-select:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-    border-color: rgba(13, 110, 253, 0.55);
-}
-
-.comunicacion-page textarea.form-control {
-    height: auto;
-    min-height: 130px;
-    resize: vertical;
-}
-
-
-/* placeholder */
-
-.comunicacion-page .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.55);
-}
-
-
-/* helper text */
 
 .comunicacion-page .form-text {
-    color: rgba(255, 255, 255, 0.60) !important;
+    color: #64748b;
+}
+
+.comunicacion-page input[type="file"].form-control {
+    padding: 0.55rem 0.75rem;
 }
 
 
 /* =========================
-   Vista ver_mensaje.html
-   (msg-meta/msg-body)
+   Alertas
    ========================= */
 
-.comunicacion-page .msg-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.comunicacion-page .msg-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-}
-
-.comunicacion-page .msg-chip-label {
-    font-size: 0.85rem;
-    opacity: 0.75;
-    font-weight: 700;
-}
-
-.comunicacion-page .msg-chip-value {
-    font-weight: 900;
-}
-
-.comunicacion-page .msg-chip-link {
-    color: #9ec5fe;
-    text-decoration: none;
-    font-weight: 900;
-}
-
-.comunicacion-page .msg-chip-link:hover {
-    text-decoration: underline;
-}
-
-.comunicacion-page .msg-body {
-    margin-top: 10px;
-    padding: 16px;
+.comunicacion-page .alert {
     border-radius: 14px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    line-height: 1.65;
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.92);
+    border: none;
+}
+
+.comunicacion-page .alert-info {
+    background: #dbeafe;
+    color: #1e3a8a;
 }
 
 
 /* =========================
-   RESPONSIVE
+   Separación visual entre secciones
    ========================= */
 
-@media (max-width: 992px) {
-    .comunicacion-card {
-        width: 100%;
-        max-width: 100%;
-    }
-    .comunicacion-page .card-body {
-        padding: 18px;
-    }
+.comunicacion-page .mb-4 {
+    padding-bottom: 0.5rem;
 }
+
+.comunicacion-page .mt-4 {
+    margin-top: 2rem !important;
+}
+
+
+/* =========================
+   Responsive
+   ========================= */
 
 @media (max-width: 768px) {
-    .comunicacion-page {
-        padding: 12px 10px;
+    .comunicacion-card>.card-body {
+        padding: 1rem;
     }
-    .comunicacion-page .card-body {
-        padding: 14px;
+    .comunicacion-card>.card-header {
+        padding: 0.9rem 1rem;
     }
-    .comunicacion-page .table,
+    .comunicacion-page h5 {
+        font-size: 1rem;
+    }
+    .comunicacion-page .btn {
+        font-size: 0.85rem;
+    }
+    .msg-avatar-sm {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+    }
+    .comunicacion-page .table {
+        font-size: 0.88rem;
+    }
+    /* =========================================================
+   ✨ EFECTOS PREMIUM / UI MODERNA
+   ========================================================= */
+    /* =========================
+   Hover tarjetas
+   ========================= */
+    .comunicacion-card {
+        transition: all 0.25s ease;
+    }
+    .comunicacion-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.10);
+    }
+    /* =========================
+   Hover filas mensajes
+   ========================= */
+    .comunicacion-page .table tbody tr {
+        transition: all 0.18s ease;
+    }
+    .comunicacion-page .table-hover tbody tr:hover td {
+        background: rgba(13, 110, 253, 0.08) !important;
+    }
+    /* =========================
+   Mensajes nuevos
+   ========================= */
+    .comunicacion-page tr.msg-unread td {
+        background: rgba(13, 110, 253, 0.08) !important;
+    }
+    .comunicacion-page tr.msg-unread td:first-child::before {
+        background: #0d6efd;
+    }
+    /* =========================
+   Botones modernos
+   ========================= */
+    .comunicacion-page .btn {
+        transition: all 0.18s ease;
+    }
+    .comunicacion-page .btn:hover {
+        transform: translateY(-1px);
+    }
+    .comunicacion-page .btn-primary:hover {
+        box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
+    }
+    .comunicacion-page .btn-success:hover {
+        box-shadow: 0 6px 14px rgba(25, 135, 84, 0.25);
+    }
+    .comunicacion-page .btn-danger:hover {
+        box-shadow: 0 6px 14px rgba(220, 53, 69, 0.25);
+    }
+    /* =========================
+   Inputs modernos
+   ========================= */
     .comunicacion-page .form-control,
-    .comunicacion-page .form-select,
-    .comunicacion-page textarea {
-        font-size: 13px;
+    .comunicacion-page .form-select {
+        transition: all 0.2s ease;
     }
-    .comunicacion-page .btn.btn-success.btn-lg {
+    .comunicacion-page .form-control:hover,
+    .comunicacion-page .form-select:hover {
+        border-color: rgba(13, 110, 253, 0.35);
+    }
+    /* =========================
+   Header elegante
+   ========================= */
+    .comunicacion-page .card-header {
+        background: linear-gradient(135deg, #0d6efd, #274bdb);
+        color: white;
+    }
+    /* =========================
+   Separación entre bloques
+   ========================= */
+    .comunicacion-page .section-spacing {
+        margin-top: 32px;
+    }
+    /* =========================
+   Avatar mejorado
+   ========================= */
+    .comunicacion-page .msg-avatar-sm {
         font-size: 15px;
+        font-weight: 900;
+        background: linear-gradient(135deg, #0d6efd, #4c8dff);
+        border: none;
     }
-    .comunicacion-page .msg-body {
-        font-size: 0.95rem;
-        padding: 14px;
+    /* =========================
+   Estado NUEVO
+   ========================= */
+    .comunicacion-page .badge.bg-warning {
+        color: #212529;
+        font-weight: 800;
+        box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
+    }
+    /* =========================
+   Tablas más suaves
+   ========================= */
+    .comunicacion-page .table {
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    /* =========================
+   Caja de búsqueda premium
+   ========================= */
+    .comunicacion-page .search-wrapper {
+        position: relative;
+    }
+    .comunicacion-page .search-wrapper .form-control {
+        padding-left: 45px;
+        height: 48px;
+        border-radius: 14px;
+    }
+    .comunicacion-page .search-wrapper i {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+    /* =========================
+   Textarea elegante
+   ========================= */
+    .comunicacion-page textarea.form-control {
+        min-height: 160px;
+        line-height: 1.6;
+    }
+    /* =========================
+   Responsive refinado
+   ========================= */
+    @media (max-width: 768px) {
+        .comunicacion-page .card-header h5 {
+            font-size: 1.1rem;
+        }
+        .comunicacion-page .table td,
+        .comunicacion-page .table th {
+            font-size: 13px;
+        }
+        .comunicacion-page .btn {
+            font-size: 13px;
+        }
+    }
+    .msg-body {
+        font-size: 1.05rem;
+        line-height: 1.7;
     }
 }

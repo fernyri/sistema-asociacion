@@ -222,28 +222,94 @@ class RegistroForm(UserCreationForm):
 
 
 class MensajeForm(forms.ModelForm):
+    EXTENSIONES_PERMITIDAS = {
+        ".pdf",
+        ".jpg", ".jpeg", ".png", ".gif", ".webp",
+        ".doc", ".docx",
+        ".xls", ".xlsx",
+        ".txt",
+    }
+
+    EXTENSIONES_BLOQUEADAS = {
+        ".exe", ".bat", ".cmd", ".com", ".scr", ".msi",
+        ".js", ".vbs", ".ps1", ".sh",
+        ".php", ".py", ".jar",
+        ".html", ".htm",
+        ".zip", ".rar", ".7z",
+    }
+
+    TAMANO_MAXIMO_MB = 5
+    TAMANO_MAXIMO_BYTES = TAMANO_MAXIMO_MB * 1024 * 1024
+
     class Meta:
         model = Mensaje
         fields = ["asunto", "cuerpo", "archivo"]
         widgets = {
-            "asunto": forms.TextInput(attrs={"placeholder": "Asunto", "class": "form-control"}),
-            "cuerpo": forms.Textarea(attrs={"placeholder": "Escribe tu mensaje...", "class": "form-control", "rows": 5}),
+            "asunto": forms.TextInput(attrs={
+                "placeholder": "Asunto",
+                "class": "form-control"
+            }),
+            "cuerpo": forms.Textarea(attrs={
+                "placeholder": "Escribe tu mensaje...",
+                "class": "form-control",
+                "rows": 5
+            }),
         }
 
     def clean_asunto(self):
         asunto = (self.cleaned_data.get("asunto") or "").strip()
+
         if not asunto:
             raise forms.ValidationError("El asunto es obligatorio.")
+
+        if len(asunto) > 160:
+            raise forms.ValidationError("El asunto no debe superar 160 caracteres.")
+
         return asunto
 
     def clean_cuerpo(self):
         cuerpo = (self.cleaned_data.get("cuerpo") or "").strip()
+
         if not cuerpo:
             raise forms.ValidationError("El mensaje no puede ir vacío.")
+
         return cuerpo
-    
+
     def clean_archivo(self):
         archivo = self.cleaned_data.get("archivo")
-        if archivo and archivo.size > 5 * 1024 * 1024:
-            raise forms.ValidationError("El archivo no debe superar 5MB.")
+
+        if not archivo:
+            return archivo
+
+        import os
+
+        nombre_archivo = archivo.name or ""
+        nombre_base, extension = os.path.splitext(nombre_archivo)
+        extension = extension.lower()
+
+        if archivo.size > self.TAMANO_MAXIMO_BYTES:
+            raise forms.ValidationError(
+                f"El archivo no debe superar {self.TAMANO_MAXIMO_MB} MB."
+            )
+
+        if not extension:
+            raise forms.ValidationError(
+                "Debe ser un formato valido."
+            )
+
+        if extension in self.EXTENSIONES_BLOQUEADAS:
+            raise forms.ValidationError(
+                "tipo de archivo no permitido."
+            )
+
+        if extension not in self.EXTENSIONES_PERMITIDAS:
+            raise forms.ValidationError(
+                "Formato valido. Solo se acepta PDF, imágenes, Word, Excel o TXT."
+            )
+
+        if len(nombre_archivo) > 120:
+            raise forms.ValidationError(
+                "El nombre del archivo es demasiado largo."
+            )
+
         return archivo
