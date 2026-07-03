@@ -26,6 +26,10 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("control/", views.control, name="control"),
     path("gestion_cap/", views.gestion_cap, name="gestion_cap"),
+    path("gestion_cap/<int:capacitacion_id>/editar/", views.editar_capacitacion, name="editar_capacitacion"),
+    path("gestion_cap/<int:capacitacion_id>/eliminar/", views.eliminar_capacitacion, name="eliminar_capacitacion"),
+    path("gestion_cap/asignacion/<int:asignacion_id>/editar/", views.editar_asignacion_capacitacion, name="editar_asignacion_capacitacion"),
+    path("gestion_cap/asignacion/<int:asignacion_id>/eliminar/", views.eliminar_asignacion_capacitacion, name="eliminar_asignacion_capacitacion"),
     path("gestion/", views.gestion, name="gestion"),
 
     path("gestion/usuarios/<int:user_id>/", views.usuario_detalle, name="usuario_detalle"),

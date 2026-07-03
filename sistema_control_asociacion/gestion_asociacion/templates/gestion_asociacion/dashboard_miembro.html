@@ -57,6 +57,260 @@
 
     </div>
 
+    <!-- Mis capacitaciones -->
+    <div class="card mt-4 shadow-sm border-0">
+
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0 text-center">
+                <i class="fas fa-chalkboard-teacher"></i> Mis capacitaciones
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3 mb-4">
+
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark shadow-sm p-3 h-100 border-0">
+                        <h6 class="text-center mb-2">
+                            <i class="fas fa-clock"></i> Pendientes
+                        </h6>
+                        <p class="text-center fs-4 mb-0">{{ cap_pendientes }}</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card bg-info text-white shadow-sm p-3 h-100 border-0">
+                        <h6 class="text-center mb-2">
+                            <i class="fas fa-spinner"></i> En proceso
+                        </h6>
+                        <p class="text-center fs-4 mb-0">{{ cap_en_proceso }}</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card bg-success text-white shadow-sm p-3 h-100 border-0">
+                        <h6 class="text-center mb-2">
+                            <i class="fas fa-check-circle"></i> Aprobadas
+                        </h6>
+                        <p class="text-center fs-4 mb-0">{{ cap_aprobadas }}</p>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white shadow-sm p-3 h-100 border-0">
+                        <h6 class="text-center mb-2">
+                            <i class="fas fa-exclamation-triangle"></i> Vencidas
+                        </h6>
+                        <p class="text-center fs-4 mb-0">{{ cap_vencidas }}</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered align-middle text-center mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Capacitación</th>
+                            <th>Estado</th>
+                            <th>Fecha asignación</th>
+                            <th>Fecha límite</th>
+                            <th>Vencimiento</th>
+                            <th>Observaciones</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for cap in capacitaciones_miembro %}
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ cap.capacitacion.nombre }}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-{{ cap.estado_badge }}">
+                                    {{ cap.estado_visual }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {{ cap.fecha_asignacion|date:"d/m/Y" }}
+                            </td>
+
+                            <td>
+                                {% if cap.fecha_limite %} {{ cap.fecha_limite|date:"d/m/Y" }} {% else %}
+                                <span class="text-muted">Sin fecha</span> {% endif %}
+                            </td>
+
+                            <td>
+                                {% if cap.fecha_vencimiento %} {{ cap.fecha_vencimiento|date:"d/m/Y" }} {% if cap.esta_vencida %}
+                                <br>
+                                <span class="badge bg-danger mt-1">
+                                        Vencida
+                                    </span> {% elif cap.proxima_a_vencer and cap.estado != "vencida" %}
+                                <br>
+                                <span class="badge bg-warning text-dark mt-1">
+                                        Próxima a vencer
+                                    </span> {% endif %} {% else %}
+                                <span class="text-muted">Sin vencimiento</span> {% endif %}
+                            </td>
+
+                            <td class="text-start">
+                                {% if cap.observaciones %} {{ cap.observaciones }} {% else %}
+                                <span class="text-muted">Sin observaciones</span> {% endif %}
+                            </td>
+
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#detalleCap{{ cap.id }}">
+                                    <i class="fas fa-eye"></i> Ver
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Modal detalle capacitación -->
+                        <div class="modal fade" id="detalleCap{{ cap.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">
+                                            <i class="fas fa-chalkboard-teacher me-2"></i> Detalle de capacitación
+                                        </h5>
+
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar">
+                                        </button>
+                                    </div>
+
+                                    <div class="modal-body">
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-6">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Capacitación</strong>
+                                                    <p class="mb-0 fw-semibold">
+                                                        {{ cap.capacitacion.nombre }}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Modalidad</strong>
+                                                    <p class="mb-0">
+                                                        {{ cap.capacitacion.modalidad }}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Duración</strong>
+                                                    <p class="mb-0">
+                                                        {{ cap.capacitacion.duracion_horas }} horas
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12">
+                                                <div class="border rounded p-3">
+                                                    <strong class="text-muted">Descripción</strong>
+                                                    <p class="mb-0">
+                                                        {% if cap.capacitacion.descripcion %} {{ cap.capacitacion.descripcion }} {% else %}
+                                                        <span class="text-muted">Sin descripción.</span> {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Estado</strong>
+                                                    <p class="mb-0">
+                                                        <span class="badge bg-{{ cap.estado_badge }}">
+                                                            {{ cap.estado_visual }}
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Fecha de asignación</strong>
+                                                    <p class="mb-0">
+                                                        {{ cap.fecha_asignacion|date:"d/m/Y" }}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Fecha límite</strong>
+                                                    <p class="mb-0">
+                                                        {% if cap.fecha_limite %} {{ cap.fecha_limite|date:"d/m/Y" }} {% else %}
+                                                        <span class="text-muted">Sin fecha</span> {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Vencimiento</strong>
+                                                    <p class="mb-0">
+                                                        {% if cap.fecha_vencimiento %} {{ cap.fecha_vencimiento|date:"d/m/Y" }} {% if cap.esta_vencida %}
+                                                        <br>
+                                                        <span class="badge bg-danger mt-1">
+                                                                Vencida
+                                                            </span> {% elif cap.proxima_a_vencer and cap.estado != "vencida" %}
+                                                        <br>
+                                                        <span class="badge bg-warning text-dark mt-1">
+                                                                Próxima a vencer
+                                                            </span> {% endif %} {% else %}
+                                                        <span class="text-muted">Sin vencimiento</span> {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-8">
+                                                <div class="border rounded p-3 h-100">
+                                                    <strong class="text-muted">Observaciones</strong>
+                                                    <p class="mb-0">
+                                                        {% if cap.observaciones %} {{ cap.observaciones }} {% else %}
+                                                        <span class="text-muted">Sin observaciones.</span> {% endif %}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            Cerrar
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-muted text-center">
+                                No tienes capacitaciones asignadas por el momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+
     <!-- Registro de asistencia -->
     <div class="card mt-4 shadow-sm border-0">
 

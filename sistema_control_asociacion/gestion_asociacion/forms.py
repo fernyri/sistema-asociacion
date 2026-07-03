@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
-from .models import Usuario, Mensaje
+from .models import Usuario, Mensaje, Capacitacion, CapacitacionAsignada, MaterialCapacitacion
 
 
 def nombre_bonito(valor: str) -> str:
@@ -219,6 +219,50 @@ class RegistroForm(UserCreationForm):
         if commit:
             user.save()
         return user
+    
+class MaterialCapacitacionForm(forms.ModelForm):
+
+    class Meta:
+        model = MaterialCapacitacion
+        fields = [
+            "capacitacion",
+            "titulo",
+            "archivo",
+            "enlace",
+        ]
+
+        widgets = {
+            "capacitacion": forms.Select(attrs={
+                "class": "form-select"
+            }),
+
+            "titulo": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ej. Manual del curso"
+            }),
+
+            "archivo": forms.ClearableFileInput(attrs={
+                "class": "form-control"
+            }),
+
+            "enlace": forms.URLInput(attrs={
+                "class": "form-control",
+                "placeholder": "https://..."
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        archivo = cleaned_data.get("archivo")
+        enlace = cleaned_data.get("enlace")
+
+        if not archivo and not enlace:
+            raise forms.ValidationError(
+                "Debe subir un archivo o indicar un enlace."
+            )
+
+        return cleaned_data
 
 
 class MensajeForm(forms.ModelForm):
@@ -313,3 +357,39 @@ class MensajeForm(forms.ModelForm):
             )
 
         return archivo
+    
+class CapacitacionForm(forms.ModelForm):
+        class Meta:
+            model = Capacitacion
+            fields = ["nombre", "descripcion", "duracion_horas", "modalidad", "estado"]
+            widgets = {
+                "nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej. Seguridad e higiene"}),
+                "descripcion": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Describe la capacitación..."}),
+                "duracion_horas": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
+                "modalidad": forms.Select(attrs={"class": "form-select"}),
+                "estado": forms.Select(attrs={"class": "form-select"}),
+            }
+
+        def clean_nombre(self):
+            nombre = (self.cleaned_data.get("nombre") or "").strip()
+            if not nombre:
+                raise forms.ValidationError("El nombre de la capacitación es obligatorio.")
+            return nombre
+
+class CapacitacionAsignadaForm(forms.ModelForm):
+            usuarios = forms.ModelMultipleChoiceField(
+                queryset=Usuario.objects.filter(rol="Miembro", is_active=True).order_by("username"),
+                widget=forms.CheckboxSelectMultiple,
+                required=True,
+                label="Usuarios"
+            )
+
+            class Meta:
+                model = CapacitacionAsignada
+                fields = ["capacitacion", "usuarios", "fecha_limite", "fecha_vencimiento", "observaciones"]
+                widgets = {
+                    "capacitacion": forms.Select(attrs={"class": "form-select"}),
+                    "fecha_limite": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+                    "fecha_vencimiento": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+                    "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+                }

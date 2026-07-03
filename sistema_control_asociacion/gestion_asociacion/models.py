@@ -610,3 +610,265 @@ class BitacoraAcceso(models.Model):
     def __str__(self):
         return f"{self.usuario} - {self.fecha}"
     
+# =========================
+# Capacitaciones
+# =========================
+class Capacitacion(models.Model):
+
+    MODALIDAD_CHOICES = [
+        ("Presencial", "Presencial"),
+        ("En línea", "En línea"),
+        ("Mixta", "Mixta"),
+    ]
+
+    ESTADO_CHOICES = [
+        ("activa", "Activa"),
+        ("inactiva", "Inactiva"),
+    ]
+
+    nombre = models.CharField(
+        max_length=150,
+        verbose_name="Nombre de la capacitación"
+    )
+
+    descripcion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descripción"
+    )
+
+    duracion_horas = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Duración en horas"
+    )
+
+    modalidad = models.CharField(
+        max_length=20,
+        choices=MODALIDAD_CHOICES,
+        default="Presencial",
+        verbose_name="Modalidad"
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default="activa",
+        db_index=True,
+        verbose_name="Estado"
+    )
+
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación"
+    )
+
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="capacitaciones_creadas",
+        verbose_name="Creado por"
+    )
+
+    def __str__(self):
+        return self.nombre
+
+    class Meta:
+        ordering = ["nombre"]
+        verbose_name = "Capacitación"
+        verbose_name_plural = "Capacitaciones"
+
+class MaterialCapacitacion(models.Model):
+    capacitacion = models.ForeignKey(
+        Capacitacion,
+        on_delete=models.CASCADE,
+        related_name="materiales",
+        verbose_name="Capacitación"
+    )
+
+    titulo = models.CharField(
+        max_length=150,
+        verbose_name="Título del material"
+    )
+
+    archivo = models.FileField(
+        upload_to="capacitaciones_materiales/%Y/%m/",
+        blank=True,
+        null=True,
+        verbose_name="Archivo"
+    )
+
+    enlace = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name="Enlace externo"
+    )
+
+    fecha_subida = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de subida"
+    )
+
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="materiales_capacitacion_subidos",
+        verbose_name="Subido por"
+    )
+
+    def __str__(self):
+        return f"{self.capacitacion.nombre} - {self.titulo}"
+
+    class Meta:
+        ordering = ["-fecha_subida"]
+        verbose_name = "Material de capacitación"
+        verbose_name_plural = "Materiales de capacitación"
+
+
+class CapacitacionAsignada(models.Model):
+
+    ESTADO_CHOICES = [
+        ("pendiente", "Pendiente"),
+        ("en_proceso", "En proceso"),
+        ("aprobada", "Aprobada"),
+        ("vencida", "Vencida"),
+        ("cancelada", "Cancelada"),
+    ]
+
+    capacitacion = models.ForeignKey(
+        Capacitacion,
+        on_delete=models.CASCADE,
+        related_name="asignaciones",
+        verbose_name="Capacitación"
+    )
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="capacitaciones_asignadas",
+        verbose_name="Usuario asignado"
+    )
+
+    fecha_asignacion = models.DateField(
+        auto_now_add=True,
+        verbose_name="Fecha de asignación"
+    )
+
+    fecha_limite = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha límite"
+    )
+
+    fecha_realizacion = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de realización"
+    )
+
+    fecha_vencimiento = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de vencimiento"
+    )
+
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default="pendiente",
+        db_index=True,
+        verbose_name="Estado"
+    )
+
+    constancia = models.FileField(
+        upload_to="capacitaciones_constancias/%Y/%m/",
+        blank=True,
+        null=True,
+        verbose_name="Constancia"
+    )
+
+    observaciones = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observaciones"
+    )
+
+    @property
+    def dias_para_vencer(self):
+        if not self.fecha_vencimiento:
+            return None
+
+        return (self.fecha_vencimiento - timezone.localdate()).days
+
+    @property
+    def esta_vencida(self):
+        dias = self.dias_para_vencer
+
+        if dias is None:
+            return False
+
+        return dias < 0
+
+    @property
+    def proxima_a_vencer(self):
+        dias = self.dias_para_vencer
+
+        if dias is None:
+            return False
+
+        return 0 <= dias <= 30
+
+    @property
+    def estado_visual(self):
+        if self.estado == "pendiente":
+            return "Pendiente"
+
+        if self.estado == "en_proceso":
+            return "En proceso"
+
+        if self.estado == "aprobada":
+            return "Aprobada"
+
+        if self.estado == "vencida":
+            return "Vencida"
+
+        if self.estado == "cancelada":
+            return "Cancelada"
+
+        return "Pendiente"
+
+    @property
+    def estado_badge(self):
+        if self.estado == "pendiente":
+            return "warning"
+
+        if self.estado == "en_proceso":
+            return "info"
+
+        if self.estado == "aprobada":
+            return "success"
+
+        if self.estado == "vencida":
+            return "danger"
+
+        if self.estado == "cancelada":
+            return "secondary"
+
+        return "warning"
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.capacitacion.nombre}"
+
+    class Meta:
+        ordering = ["-fecha_asignacion"]
+        verbose_name = "Capacitación asignada"
+        verbose_name_plural = "Capacitaciones asignadas"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["capacitacion", "usuario"],
+                name="uniq_capacitacion_usuario"
+            )
+        ]

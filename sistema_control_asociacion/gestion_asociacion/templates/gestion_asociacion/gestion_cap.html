@@ -1,72 +1,820 @@
 {% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Capacitaciones{% endblock %} {% block content %}
 <div class="container mt-4">
-    <div class="row">
-        <!-- Título principal -->
-        <div class="col-12 text-center mb-4">
-            <h1 class="fw-bold text-primary"><i class="fas fa-chalkboard-teacher"></i> Gestión de Capacitaciones</h1>
-        </div>
 
-        <!-- Sección de Capacitaciones Próximas -->
-        <div class="col-12">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-calendar-alt"></i> Calendario de Capacitaciones Próximas</h4>
-                <p class="text-muted">Aquí se mostrarán las capacitaciones programadas.</p>
-                <button class="btn btn-primary w-100"><i class="fas fa-plus-circle"></i> Nueva Capacitación</button>
+    <div class="text-center mb-4">
+        <h1 class="fw-bold text-primary">
+            <i class="fas fa-chalkboard-teacher"></i> Gestión de Capacitaciones
+        </h1>
+        <p class="text-muted">Administra cursos, asignaciones, avances y vencimientos.</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3 border-0 bg-primary text-white">
+                <h5>Total capacitaciones</h5>
+                <h2>{{ total_capacitaciones }}</h2>
             </div>
         </div>
 
-        <!-- Lista de Capacitaciones -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-list"></i> Lista de Capacitaciones</h4>
-                <table class="table table-striped mt-3">
-                    <thead class="table-dark text-center">
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3 border-0 bg-success text-white">
+                <h5>Activas</h5>
+                <h2>{{ capacitaciones_activas }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3 border-0 bg-warning text-dark">
+                <h5>Pendientes</h5>
+                <h2>{{ pendientes }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3 border-0 bg-danger text-white">
+                <h5>Vencidas</h5>
+                <h2>{{ vencidas }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nueva Capacitación -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-plus-circle me-2"></i> Nueva Capacitación
+            </h5>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="crear_capacitacion">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre</label> {{ form_capacitacion.nombre }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Duración en horas</label> {{ form_capacitacion.duracion_horas }}
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Modalidad</label> {{ form_capacitacion.modalidad }}
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Descripción</label> {{ form_capacitacion.descripcion }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Estado</label> {{ form_capacitacion.estado }}
+                    </div>
+
+                    <div class="col-md-8 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-save me-1"></i> Guardar capacitación
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Capacitaciones -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i> Lista de Capacitaciones
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-8">
+                    <input id="buscarCapacitaciones" type="text" class="form-control" placeholder="Buscar capacitación por nombre, modalidad o estado...">
+                </div>
+
+                <div class="col-md-4">
+                    <select id="filtroEstadoCapacitacion" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="activa">Activas</option>
+                        <option value="inactiva">Inactivas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaCapacitaciones" class="table table-hover table-bordered align-middle text-center">
+                    <thead class="table-dark">
                         <tr>
-                            <th>Nombre del Curso</th>
-                            <th>Fecha</th>
-                            <th>Empleados Asignados</th>
+                            <th>Nombre</th>
+                            <th>Modalidad</th>
+                            <th>Duración</th>
                             <th>Estado</th>
+                            <th>Creada por</th>
+                            <th style="width:170px;">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="text-center">
-                        <tr>
-                            <td>Curso de Liderazgo</td>
-                            <td>01/11/2023</td>
-                            <td>Juan Pérez, María López</td>
-                            <td class="text-warning fw-bold">Pendiente</td>
+
+                    <tbody>
+                        {% for cap in capacitaciones %}
+                        <tr id="filaCapacitacion{{ cap.id }}" data-filtrado="visible">
+                            <td class="fw-semibold">{{ cap.nombre }}</td>
+                            <td>{{ cap.modalidad }}</td>
+                            <td>{{ cap.duracion_horas }} h</td>
+                            <td>
+                                {% if cap.estado == "activa" %}
+                                <span class="badge bg-success">Activa</span> {% else %}
+                                <span class="badge bg-secondary">Inactiva</span> {% endif %}
+                            </td>
+                            <td>
+                                {% if cap.creado_por %} {{ cap.creado_por.username }} {% else %}
+                                <span class="text-muted">Sin registro</span> {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditarCap{{ cap.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                <form method="post" action="{% url 'eliminar_capacitacion' cap.id %}" class="d-inline js-confirm-eliminar" data-swal-title="¿Eliminar capacitación?" data-swal-text="Se eliminará la capacitación y sus asignaciones relacionadas." data-swal-confirm="Sí, eliminar"
+                                    data-swal-cancel="Cancelar" data-swal-confirm-color="#d33">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
+
+                        <!-- Modal Editar Capacitación -->
+                        <div class="modal fade" id="modalEditarCap{{ cap.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+                                    <form method="post" action="{% url 'editar_capacitacion' cap.id %}" class="js-form-editar-capacitacion" data-capacitacion-id="{{ cap.id }}">
+                                        {% csrf_token %}
+
+                                        <div class="modal-header bg-warning">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-edit me-2"></i> Editar capacitación
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nombre</label>
+                                                    <input type="text" name="nombre" class="form-control" value="{{ cap.nombre }}" required>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Duración en horas</label>
+                                                    <input type="number" name="duracion_horas" class="form-control" value="{{ cap.duracion_horas }}" min="1" required>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Modalidad</label>
+                                                    <select name="modalidad" class="form-select" required>
+                                                        <option value="Presencial" {% if cap.modalidad == "Presencial" %}selected{% endif %}>Presencial</option>
+                                                        <option value="En línea" {% if cap.modalidad == "En línea" %}selected{% endif %}>En línea</option>
+                                                        <option value="Mixta" {% if cap.modalidad == "Mixta" %}selected{% endif %}>Mixta</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Descripción</label>
+                                                    <textarea name="descripcion" class="form-control" rows="4">{% if cap.descripcion %}{{ cap.descripcion }}{% endif %}</textarea>
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Estado</label>
+                                                    <select name="estado" class="form-select" required>
+                                                        <option value="activa" {% if cap.estado == "activa" %}selected{% endif %}>Activa</option>
+                                                        <option value="inactiva" {% if cap.estado == "inactiva" %}selected{% endif %}>Inactiva</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Cancelar
+                                            </button>
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-save me-1"></i> Guardar cambios
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% empty %}
                         <tr>
-                            <td>Taller de Comunicación</td>
-                            <td>15/11/2023</td>
-                            <td>Carlos Díaz, Ana García</td>
-                            <td class="text-success fw-bold">En Proceso</td>
+                            <td colspan="6" class="text-muted">
+                                No hay capacitaciones registradas.
+                            </td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
 
-        <!-- Detalles de la Capacitación -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-info-circle"></i> Detalles de la Capacitación</h4>
-                <p class="text-muted">Aquí se mostrarán los participantes, progreso y resultados.</p>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <small id="infoPaginacionCapacitaciones" class="text-muted"></small>
+
+                <div>
+                    <button id="prevCapacitaciones" class="btn btn-sm btn-outline-secondary" type="button">
+                        Anterior
+                    </button>
+                    <button id="nextCapacitaciones" class="btn btn-sm btn-outline-secondary" type="button">
+                        Siguiente
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <!-- Materiales de Capacitación -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-folder-open"></i> Materiales de Capacitación</h4>
-                <p class="text-muted">Aquí podrás agregar materiales.</p>
-                <button class="btn btn-info w-100"><i class="fas fa-upload"></i> Subir Material</button>
-            </div>
-        </div>
-
-        <!-- Botón de Informe de Participación -->
-        <div class="col-12 mt-4">
-            <button class="btn btn-success w-100 p-3"><i class="fas fa-file-alt"></i> Generar Informe de Participación</button>
         </div>
     </div>
+
+    <!-- Asignar Capacitación -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-user-plus me-2"></i> Asignar Capacitación
+            </h5>
+        </div>
+
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="asignar_capacitacion">
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Capacitación</label> {{ form_asignacion.capacitacion }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha límite</label> {{ form_asignacion.fecha_limite }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de vencimiento</label> {{ form_asignacion.fecha_vencimiento }}
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Observaciones</label> {{ form_asignacion.observaciones }}
+                    </div>
+
+                    <div class="col-md-12">
+                        <label class="form-label">Usuarios</label>
+                        <div class="border rounded p-3" style="max-height: 230px; overflow-y: auto;">
+                            {{ form_asignacion.usuarios }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-check me-1"></i> Asignar capacitación
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Últimas Asignaciones -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-history me-2"></i> Últimas Asignaciones
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-8">
+                    <input id="buscarAsignaciones" type="text" class="form-control" placeholder="Buscar por usuario, capacitación o estado...">
+                </div>
+
+                <div class="col-md-4">
+                    <select id="filtroEstadoAsignacion" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="en proceso">En proceso</option>
+                        <option value="aprobada">Aprobadas</option>
+                        <option value="vencida">Vencidas</option>
+                        <option value="cancelada">Canceladas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table id="tablaAsignaciones" class="table table-hover table-bordered align-middle text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Capacitación</th>
+                            <th>Asignación</th>
+                            <th>Límite</th>
+                            <th>Vencimiento</th>
+                            <th>Estado</th>
+                            <th style="width:170px;">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for asignacion in asignaciones %}
+                        <tr id="filaAsignacion{{ asignacion.id }}" data-filtrado="visible">
+                            <td>{{ asignacion.usuario.username }}</td>
+                            <td>{{ asignacion.capacitacion.nombre }}</td>
+                            <td>{{ asignacion.fecha_asignacion|date:"d/m/Y" }}</td>
+
+                            <td id="limiteAsignacion{{ asignacion.id }}">
+                                {% if asignacion.fecha_limite %} {{ asignacion.fecha_limite|date:"d/m/Y" }} {% else %}
+                                <span class="text-muted">Sin fecha</span> {% endif %}
+                            </td>
+
+                            <td id="vencimientoAsignacion{{ asignacion.id }}">
+                                {% if asignacion.fecha_vencimiento %} {{ asignacion.fecha_vencimiento|date:"d/m/Y" }} {% else %}
+                                <span class="text-muted">Sin vencimiento</span> {% endif %}
+                            </td>
+
+                            <td>
+                                <span id="estadoAsignacion{{ asignacion.id }}" class="badge bg-{{ asignacion.estado_badge }}">
+                                    {{ asignacion.estado_visual }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditarAsignacion{{ asignacion.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+
+                                <form method="post" action="{% url 'eliminar_asignacion_capacitacion' asignacion.id %}" class="d-inline js-confirm-eliminar" data-swal-title="¿Eliminar asignación?" data-swal-text="Se eliminará esta asignación del usuario." data-swal-confirm="Sí, eliminar"
+                                    data-swal-cancel="Cancelar" data-swal-confirm-color="#d33">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Modal Editar Asignación -->
+                        <div class="modal fade" id="modalEditarAsignacion{{ asignacion.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-lg modal-dialog-centered">
+                                <div class="modal-content">
+
+                                    <form method="post" action="{% url 'editar_asignacion_capacitacion' asignacion.id %}" class="js-form-editar-asignacion" data-asignacion-id="{{ asignacion.id }}">
+                                        {% csrf_token %}
+
+                                        <div class="modal-header bg-warning">
+                                            <h5 class="modal-title">
+                                                <i class="fas fa-edit me-2"></i> Editar asignación
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <strong>Usuario:</strong> {{ asignacion.usuario.username }}<br>
+                                                <strong>Capacitación:</strong> {{ asignacion.capacitacion.nombre }}
+                                            </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Estado</label>
+                                                    <select name="estado" class="form-select" required>
+                                                        <option value="pendiente" {% if asignacion.estado == "pendiente" %}selected{% endif %}>Pendiente</option>
+                                                        <option value="en_proceso" {% if asignacion.estado == "en_proceso" %}selected{% endif %}>En proceso</option>
+                                                        <option value="aprobada" {% if asignacion.estado == "aprobada" %}selected{% endif %}>Aprobada</option>
+                                                        <option value="vencida" {% if asignacion.estado == "vencida" %}selected{% endif %}>Vencida</option>
+                                                        <option value="cancelada" {% if asignacion.estado == "cancelada" %}selected{% endif %}>Cancelada</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Fecha límite</label>
+                                                    <input type="date" name="fecha_limite" class="form-control" value="{% if asignacion.fecha_limite %}{{ asignacion.fecha_limite|date:'Y-m-d' }}{% endif %}">
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Fecha de vencimiento</label>
+                                                    <input type="date" name="fecha_vencimiento" class="form-control" value="{% if asignacion.fecha_vencimiento %}{{ asignacion.fecha_vencimiento|date:'Y-m-d' }}{% endif %}">
+                                                </div>
+
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Observaciones</label>
+                                                    <textarea name="observaciones" class="form-control" rows="4">{% if asignacion.observaciones %}{{ asignacion.observaciones }}{% endif %}</textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Cancelar
+                                            </button>
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-save me-1"></i> Guardar cambios
+                                            </button>
+                                        </div>
+
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-muted">
+                                No hay asignaciones registradas.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <small id="infoPaginacionAsignaciones" class="text-muted"></small>
+
+                <div>
+                    <button id="prevAsignaciones" class="btn btn-sm btn-outline-secondary" type="button">
+                        Anterior
+                    </button>
+                    <button id="nextAsignaciones" class="btn btn-sm btn-outline-secondary" type="button">
+                        Siguiente
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </div>
+
+<script>
+    let paginacionCapacitaciones = null;
+    let paginacionAsignaciones = null;
+
+    (function() {
+        const forms = document.querySelectorAll(".js-form-editar-asignacion");
+
+        function estadoInfo(estado) {
+            const mapa = {
+                "pendiente": {
+                    texto: "Pendiente",
+                    clase: "warning"
+                },
+                "en_proceso": {
+                    texto: "En proceso",
+                    clase: "info"
+                },
+                "aprobada": {
+                    texto: "Aprobada",
+                    clase: "success"
+                },
+                "vencida": {
+                    texto: "Vencida",
+                    clase: "danger"
+                },
+                "cancelada": {
+                    texto: "Cancelada",
+                    clase: "secondary"
+                },
+            };
+
+            return mapa[estado] || mapa["pendiente"];
+        }
+
+        function formatearFecha(fechaISO) {
+            if (!fechaISO) {
+                return '<span class="text-muted">Sin fecha</span>';
+            }
+
+            const partes = fechaISO.split("-");
+            if (partes.length !== 3) {
+                return fechaISO;
+            }
+
+            return partes[2] + "/" + partes[1] + "/" + partes[0];
+        }
+
+        forms.forEach((form) => {
+            form.addEventListener("submit", function(e) {
+                e.preventDefault();
+
+                const asignacionId = form.dataset.asignacionId;
+                const formData = new FormData(form);
+                const estado = formData.get("estado");
+                const fechaLimite = formData.get("fecha_limite");
+                const fechaVencimiento = formData.get("fecha_vencimiento");
+
+                fetch(form.action, {
+                        method: "POST",
+                        body: formData,
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest"
+                        }
+                    })
+                    .then(response => {
+                        return response.json().then(data => {
+                            if (!response.ok) {
+                                throw new Error(data.mensaje || "No se pudo actualizar la asignación.");
+                            }
+
+                            return data;
+                        });
+                    })
+                    .then(() => {
+                        const info = estadoInfo(estado);
+                        const badge = document.getElementById("estadoAsignacion" + asignacionId);
+                        const limiteTd = document.getElementById("limiteAsignacion" + asignacionId);
+                        const vencimientoTd = document.getElementById("vencimientoAsignacion" + asignacionId);
+
+                        if (badge) {
+                            badge.className = "badge bg-" + info.clase;
+                            badge.textContent = info.texto;
+                        }
+
+                        if (limiteTd) {
+                            limiteTd.innerHTML = formatearFecha(fechaLimite);
+                        }
+
+                        if (vencimientoTd) {
+                            vencimientoTd.innerHTML = fechaVencimiento ?
+                                formatearFecha(fechaVencimiento) :
+                                '<span class="text-muted">Sin vencimiento</span>';
+                        }
+
+                        const modalEl = form.closest(".modal");
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+
+                        if (modal) {
+                            modal.hide();
+                        }
+
+                        if (paginacionAsignaciones) {
+                            paginacionAsignaciones.aplicar();
+                        }
+
+                        if (typeof Swal !== "undefined") {
+                            Swal.fire({
+                                toast: true,
+                                position: "top-end",
+                                icon: "success",
+                                title: "Asignación actualizada correctamente.",
+                                showConfirmButton: false,
+                                timer: 2500,
+                                timerProgressBar: true
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        if (typeof Swal !== "undefined") {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: error.message || "No se pudo actualizar la asignación."
+                            });
+                        }
+                    });
+            });
+        });
+    })();
+
+    function normalizarTexto(texto) {
+        return (texto || "")
+            .toString()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+    }
+
+    function crearPaginacion(tablaId, prevId, nextId, infoId, filasPorPagina = 5) {
+        const tabla = document.getElementById(tablaId);
+        const btnPrev = document.getElementById(prevId);
+        const btnNext = document.getElementById(nextId);
+        const info = document.getElementById(infoId);
+
+        if (!tabla || !btnPrev || !btnNext || !info) return null;
+
+        let paginaActual = 1;
+
+        function filasVisiblesBase() {
+            return Array.from(tabla.querySelectorAll("tbody tr"))
+                .filter(fila => fila.dataset.filtrado !== "oculto");
+        }
+
+        function aplicar() {
+            const filas = Array.from(tabla.querySelectorAll("tbody tr"));
+            const visibles = filasVisiblesBase();
+            const totalPaginas = Math.max(Math.ceil(visibles.length / filasPorPagina), 1);
+
+            if (paginaActual > totalPaginas) {
+                paginaActual = totalPaginas;
+            }
+
+            const inicio = (paginaActual - 1) * filasPorPagina;
+            const fin = inicio + filasPorPagina;
+
+            filas.forEach(fila => {
+                if (fila.dataset.filtrado === "oculto") {
+                    fila.style.display = "none";
+                    return;
+                }
+
+                const indexVisible = visibles.indexOf(fila);
+                fila.style.display = indexVisible >= inicio && indexVisible < fin ? "" : "none";
+            });
+
+            info.textContent = `Página ${paginaActual} de ${totalPaginas} · ${visibles.length} registro(s)`;
+
+            btnPrev.disabled = paginaActual <= 1;
+            btnNext.disabled = paginaActual >= totalPaginas;
+        }
+
+        btnPrev.addEventListener("click", function() {
+            paginaActual--;
+            aplicar();
+        });
+
+        btnNext.addEventListener("click", function() {
+            paginaActual++;
+            aplicar();
+        });
+
+        return {
+            reiniciar: function() {
+                paginaActual = 1;
+                aplicar();
+            },
+            aplicar: aplicar
+        };
+    }
+
+    function filtrarTablaCapacitaciones() {
+        const input = document.getElementById("buscarCapacitaciones");
+        const filtroEstado = document.getElementById("filtroEstadoCapacitacion");
+        const tabla = document.getElementById("tablaCapacitaciones");
+
+        if (!input || !filtroEstado || !tabla) return;
+
+        const busqueda = normalizarTexto(input.value);
+        const estado = normalizarTexto(filtroEstado.value);
+        const filas = tabla.querySelectorAll("tbody tr");
+
+        filas.forEach((fila) => {
+            const textoFila = normalizarTexto(fila.innerText);
+            const badge = fila.querySelector(".badge");
+            const estadoFila = normalizarTexto(badge ? badge.innerText : "");
+
+            const coincideBusqueda = textoFila.includes(busqueda);
+            const coincideEstado = !estado || estadoFila.includes(estado);
+
+            fila.dataset.filtrado = coincideBusqueda && coincideEstado ? "visible" : "oculto";
+        });
+
+        if (paginacionCapacitaciones) {
+            paginacionCapacitaciones.reiniciar();
+        }
+    }
+
+    function filtrarTablaAsignaciones() {
+        const input = document.getElementById("buscarAsignaciones");
+        const filtroEstado = document.getElementById("filtroEstadoAsignacion");
+        const tabla = document.getElementById("tablaAsignaciones");
+
+        if (!input || !filtroEstado || !tabla) return;
+
+        const busqueda = normalizarTexto(input.value);
+        const estado = normalizarTexto(filtroEstado.value);
+        const filas = tabla.querySelectorAll("tbody tr");
+
+        filas.forEach((fila) => {
+            const textoFila = normalizarTexto(fila.innerText);
+            const badge = fila.querySelector(".badge");
+            const estadoFila = normalizarTexto(badge ? badge.innerText : "");
+
+            const coincideBusqueda = textoFila.includes(busqueda);
+            const coincideEstado = !estado || estadoFila.includes(estado);
+
+            fila.dataset.filtrado = coincideBusqueda && coincideEstado ? "visible" : "oculto";
+        });
+
+        if (paginacionAsignaciones) {
+            paginacionAsignaciones.reiniciar();
+        }
+    }
+
+    const buscarCapacitaciones = document.getElementById("buscarCapacitaciones");
+    const filtroEstadoCapacitacion = document.getElementById("filtroEstadoCapacitacion");
+    const buscarAsignaciones = document.getElementById("buscarAsignaciones");
+    const filtroEstadoAsignacion = document.getElementById("filtroEstadoAsignacion");
+
+    paginacionCapacitaciones = crearPaginacion(
+        "tablaCapacitaciones",
+        "prevCapacitaciones",
+        "nextCapacitaciones",
+        "infoPaginacionCapacitaciones",
+        5
+    );
+
+    paginacionAsignaciones = crearPaginacion(
+        "tablaAsignaciones",
+        "prevAsignaciones",
+        "nextAsignaciones",
+        "infoPaginacionAsignaciones",
+        5
+    );
+
+    if (buscarCapacitaciones) {
+        buscarCapacitaciones.addEventListener("input", filtrarTablaCapacitaciones);
+    }
+
+    if (filtroEstadoCapacitacion) {
+        filtroEstadoCapacitacion.addEventListener("change", filtrarTablaCapacitaciones);
+    }
+
+    if (buscarAsignaciones) {
+        buscarAsignaciones.addEventListener("input", filtrarTablaAsignaciones);
+    }
+
+    if (filtroEstadoAsignacion) {
+        filtroEstadoAsignacion.addEventListener("change", filtrarTablaAsignaciones);
+    }
+
+    if (paginacionCapacitaciones) {
+        paginacionCapacitaciones.aplicar();
+    }
+
+    if (paginacionAsignaciones) {
+        paginacionAsignaciones.aplicar();
+    }
+
+    document.querySelectorAll(".js-form-editar-capacitacion").forEach(function(form) {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            fetch(form.action, {
+                    method: "POST",
+                    body: new FormData(form),
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                .then(async response => {
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.mensaje || "No se pudo actualizar la capacitación.");
+                    }
+
+                    return data;
+                })
+                .then(data => {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Correcto",
+                        text: data.mensaje,
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+
+                    bootstrap.Modal.getInstance(form.closest(".modal")).hide();
+
+                    const fila = document.querySelector("#filaCapacitacion" + data.capacitacion.id);
+
+                    if (fila) {
+                        fila.cells[0].innerHTML = "<strong>" + data.capacitacion.nombre + "</strong>";
+                        fila.cells[1].textContent = data.capacitacion.modalidad;
+                        fila.cells[2].textContent = data.capacitacion.duracion_horas + " h";
+                        fila.cells[3].innerHTML = `
+                        <span class="badge bg-${data.capacitacion.estado_badge}">
+                            ${data.capacitacion.estado_visual}
+                        </span>
+                    `;
+                    }
+
+                    filtrarTablaCapacitaciones();
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: error.message
+                    });
+                });
+        });
+    });
+</script>
+
 {% endblock %}

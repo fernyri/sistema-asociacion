@@ -29,10 +29,9 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 
 from .decorators import admin_only
-from .forms import MensajeForm, RegistroForm
+from .forms import MensajeForm, RegistroForm, CapacitacionForm, CapacitacionAsignadaForm
 from .models import (
     Asistencia,
-    AttendanceSummary,
     ConfiguracionAsistencia,
     BitacoraAcceso,
     Evento,
@@ -40,6 +39,8 @@ from .models import (
     Notification,
     Personal,
     Usuario,
+    Capacitacion,
+    CapacitacionAsignada,
 )
 
 User = get_user_model()
@@ -549,6 +550,21 @@ def dashboard(request):
             en_papelera=False
         ).count()
 
+        capacitaciones_miembro = (
+            CapacitacionAsignada.objects
+            .select_related("capacitacion", "usuario")
+            .filter(usuario=request.user)
+            .order_by("-fecha_asignacion")
+        )
+
+        cap_pendientes = capacitaciones_miembro.filter(estado="pendiente").count()
+        cap_en_proceso = capacitaciones_miembro.filter(estado="en_proceso").count()
+        cap_aprobadas = capacitaciones_miembro.filter(estado="aprobada").count()
+        cap_vencidas = sum(
+            1 for cap in capacitaciones_miembro
+            if cap.estado == "vencida" or cap.esta_vencida
+        )
+
         context = {
             "user": request.user,
             "user_role": rol_usuario,
@@ -558,6 +574,11 @@ def dashboard(request):
             "ultimas_asistencias": ultimas_asistencias,
             "asistencia_hoy": asistencia_hoy,
             "mensajes_no_leidos": mensajes_no_leidos,
+            "capacitaciones_miembro": capacitaciones_miembro,
+            "cap_pendientes": cap_pendientes,
+            "cap_en_proceso": cap_en_proceso,
+            "cap_aprobadas": cap_aprobadas,
+            "cap_vencidas": cap_vencidas,
         }
 
         return render(request, "gestion_asociacion/dashboard_miembro.html", context)
@@ -1275,11 +1296,264 @@ def control(request):
 
     return render(request, "gestion_asociacion/control.html", context)
 
-
 @login_required
 @admin_only
 def gestion_cap(request):
-    return render(request, "gestion_asociacion/gestion_cap.html")
+    form_capacitacion = CapacitacionForm()
+    form_asignacion = CapacitacionAsignadaForm()
+
+    if request.method == "POST":
+        accion = request.POST.get("accion")
+
+        if accion == "crear_capacitacion":
+            form_capacitacion = CapacitacionForm(request.POST)
+
+            if form_capacitacion.is_valid():
+                capacitacion = form_capacitacion.save(commit=False)
+                capacitacion.creado_por = request.user
+                capacitacion.save()
+
+                messages.success(request, "Capacitación creada correctamente.")
+                return redirect("gestion_cap")
+
+            messages.error(request, "Revisa los datos de la capacitación.")
+
+        elif accion == "asignar_capacitacion":
+            form_asignacion = CapacitacionAsignadaForm(request.POST)
+
+            if form_asignacion.is_valid():
+                capacitacion = form_asignacion.cleaned_data["capacitacion"]
+                usuarios = form_asignacion.cleaned_data["usuarios"]
+                fecha_limite = form_asignacion.cleaned_data.get("fecha_limite")
+                fecha_vencimiento = form_asignacion.cleaned_data.get("fecha_vencimiento")
+                observaciones = form_asignacion.cleaned_data.get("observaciones")
+
+                creadas = 0
+                existentes = 0
+            
+                if fecha_limite and fecha_vencimiento and fecha_limite > fecha_vencimiento:
+                    messages.error(request, "La fecha límite no puede ser mayor que la fecha de vencimiento.")
+                    return redirect("gestion_cap")
+
+                with transaction.atomic():
+                    for usuario in usuarios:
+                        obj, created = CapacitacionAsignada.objects.get_or_create(
+                            capacitacion=capacitacion,
+                            usuario=usuario,
+                            defaults={
+                                "fecha_limite": fecha_limite,
+                                "fecha_vencimiento": fecha_vencimiento,
+                                "observaciones": observaciones,
+                                "estado": "pendiente",
+                            }
+                        )
+
+                        if created:
+                            creadas += 1
+                        else:
+                            existentes += 1
+
+                if creadas:
+                    messages.success(request, f"Capacitación asignada correctamente a {creadas} usuario(s).")
+
+                if existentes:
+                    messages.warning(request, f"{existentes} usuario(s) ya tenían asignada esta capacitación.")
+
+                return redirect("gestion_cap")
+
+            messages.error(request, "Revisa los datos de la asignación.")
+
+    capacitaciones = (
+        Capacitacion.objects
+        .all()
+        .order_by("nombre")
+    )
+
+    asignaciones = (
+        CapacitacionAsignada.objects
+        .select_related("capacitacion", "usuario")
+        .order_by("-fecha_asignacion")[:20]
+    )
+
+    total_capacitaciones = capacitaciones.count()
+    capacitaciones_activas = capacitaciones.filter(estado="activa").count()
+    total_asignaciones = CapacitacionAsignada.objects.count()
+    pendientes = CapacitacionAsignada.objects.filter(estado="pendiente").count()
+    aprobadas = CapacitacionAsignada.objects.filter(estado="aprobada").count()
+    vencidas = sum(1 for a in CapacitacionAsignada.objects.all() if a.esta_vencida)
+
+    context = {
+        "capacitaciones": capacitaciones,
+        "asignaciones": asignaciones,
+        "form_capacitacion": form_capacitacion,
+        "form_asignacion": form_asignacion,
+        "total_capacitaciones": total_capacitaciones,
+        "capacitaciones_activas": capacitaciones_activas,
+        "total_asignaciones": total_asignaciones,
+        "pendientes": pendientes,
+        "aprobadas": aprobadas,
+        "vencidas": vencidas,
+    }
+
+    return render(request, "gestion_asociacion/gestion_cap.html", context)
+
+@login_required
+@admin_only
+def editar_capacitacion(request, capacitacion_id):
+    capacitacion = Capacitacion.objects.filter(id=capacitacion_id).first()
+
+    if not capacitacion:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": False,
+                "mensaje": "Capacitación no encontrada."
+            }, status=404)
+
+        messages.error(request, "Capacitación no encontrada.")
+        return redirect("gestion_cap")
+
+    if request.method != "POST":
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": False,
+                "mensaje": "Método no permitido."
+            }, status=405)
+
+        messages.error(request, "Método no permitido.")
+        return redirect("gestion_cap")
+
+    form = CapacitacionForm(request.POST, instance=capacitacion)
+
+    if form.is_valid():
+        capacitacion = form.save()
+
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": True,
+                "mensaje": "Capacitación actualizada correctamente.",
+                "capacitacion": {
+                    "id": capacitacion.id,
+                    "nombre": capacitacion.nombre,
+                    "modalidad": capacitacion.modalidad,
+                    "duracion_horas": capacitacion.duracion_horas,
+                    "estado": capacitacion.estado,
+                    "estado_visual": "Activa" if capacitacion.estado == "activa" else "Inactiva",
+                    "estado_badge": "success" if capacitacion.estado == "activa" else "secondary",
+                }
+            })
+
+        messages.success(request, "Capacitación actualizada correctamente.")
+        return redirect("gestion_cap")
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "ok": False,
+            "mensaje": "Revisa los datos de la capacitación."
+        }, status=400)
+
+    messages.error(request, "Revisa los datos de la capacitación.")
+    return redirect("gestion_cap")
+
+
+@login_required
+@admin_only
+def eliminar_capacitacion(request, capacitacion_id):
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("gestion_cap")
+
+    capacitacion = Capacitacion.objects.filter(id=capacitacion_id).first()
+
+    if not capacitacion:
+        messages.error(request, "Capacitación no encontrada.")
+        return redirect("gestion_cap")
+
+    capacitacion.delete()
+    messages.success(request, "Capacitación eliminada correctamente.")
+    return redirect("gestion_cap")
+
+@login_required
+@admin_only
+def editar_asignacion_capacitacion(request, asignacion_id):
+    asignacion = (
+        CapacitacionAsignada.objects
+        .select_related("capacitacion", "usuario")
+        .filter(id=asignacion_id)
+        .first()
+    )
+
+    if not asignacion:
+        messages.error(request, "Asignación no encontrada.")
+        return redirect("gestion_cap")
+
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("gestion_cap")
+
+    estado = request.POST.get("estado")
+    fecha_limite = request.POST.get("fecha_limite") or None
+    fecha_vencimiento = request.POST.get("fecha_vencimiento") or None
+    observaciones = request.POST.get("observaciones") or ""
+
+    estados_validos = ["pendiente", "en_proceso", "aprobada", "vencida", "cancelada"]
+
+    if estado not in estados_validos:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": False,
+                "mensaje": "Estado no válido."
+            }, status=400)
+
+        messages.error(request, "Estado no válido.")
+        return redirect("gestion_cap")
+
+    if fecha_limite and fecha_vencimiento and fecha_limite > fecha_vencimiento:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({
+                "ok": False,
+                "mensaje": "La fecha límite no puede ser mayor que la fecha de vencimiento."
+            }, status=400)
+
+        messages.error(request, "La fecha límite no puede ser mayor que la fecha de vencimiento.")
+        return redirect("gestion_cap")
+
+    asignacion.estado = estado
+    asignacion.fecha_limite = fecha_limite
+    asignacion.fecha_vencimiento = fecha_vencimiento
+    asignacion.observaciones = observaciones
+    asignacion.save(update_fields=[
+        "estado",
+        "fecha_limite",
+        "fecha_vencimiento",
+        "observaciones",
+    ])
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "ok": True,
+            "mensaje": "Asignación actualizada correctamente."
+        })
+
+    messages.success(request, "Asignación actualizada correctamente.")
+    return redirect("gestion_cap")
+
+
+@login_required
+@admin_only
+def eliminar_asignacion_capacitacion(request, asignacion_id):
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("gestion_cap")
+
+    asignacion = CapacitacionAsignada.objects.filter(id=asignacion_id).first()
+
+    if not asignacion:
+        messages.error(request, "Asignación no encontrada.")
+        return redirect("gestion_cap")
+
+    asignacion.delete()
+    messages.success(request, "Asignación eliminada correctamente.")
+    return redirect("gestion_cap")
 
 
 @login_required
