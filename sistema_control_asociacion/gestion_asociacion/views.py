@@ -693,6 +693,47 @@ def dashboard(request):
 
     return render(request, "gestion_asociacion/dashboard.html", context)
 
+@login_required
+def capacitaciones_miembro_ajax(request):
+    if getattr(request.user, "rol", "") != "Miembro":
+        return JsonResponse({
+            "ok": False,
+            "mensaje": "No tienes permiso para consultar esta información."
+        }, status=403)
+
+    capacitaciones_miembro = (
+        CapacitacionAsignada.objects
+        .select_related("capacitacion", "usuario")
+        .filter(usuario=request.user)
+        .order_by("-fecha_asignacion")
+    )
+
+    cap_pendientes = capacitaciones_miembro.filter(estado="pendiente").count()
+    cap_en_proceso = capacitaciones_miembro.filter(estado="en_proceso").count()
+    cap_aprobadas = capacitaciones_miembro.filter(estado="aprobada").count()
+    cap_vencidas = sum(
+        1 for cap in capacitaciones_miembro
+        if cap.estado == "vencida" or cap.esta_vencida
+    )
+
+    html = render_to_string(
+        "gestion_asociacion/partials/mis_capacitaciones_miembro.html",
+        {
+            "capacitaciones_miembro": capacitaciones_miembro,
+            "cap_pendientes": cap_pendientes,
+            "cap_en_proceso": cap_en_proceso,
+            "cap_aprobadas": cap_aprobadas,
+            "cap_vencidas": cap_vencidas,
+        },
+        request=request
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "html": html
+    })
+
+
 # ============================================================
 # Gestión (Admin) - Lista y Perfil
 # ============================================================
@@ -1554,6 +1595,81 @@ def eliminar_asignacion_capacitacion(request, asignacion_id):
     asignacion.delete()
     messages.success(request, "Asignación eliminada correctamente.")
     return redirect("gestion_cap")
+
+@login_required
+def marcar_capacitacion_en_proceso(request, asignacion_id):
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("dashboard")
+
+    if getattr(request.user, "rol", "") != "Miembro":
+        messages.error(request, "Solo los miembros pueden iniciar capacitaciones.")
+        return redirect("dashboard")
+
+    asignacion = (
+        CapacitacionAsignada.objects
+        .select_related("capacitacion", "usuario")
+        .filter(id=asignacion_id, usuario=request.user)
+        .first()
+    )
+
+    if not asignacion:
+        messages.error(request, "Capacitación no encontrada o no tienes permiso para modificarla.")
+        return redirect("dashboard")
+
+    if asignacion.estado != "pendiente":
+        messages.warning(request, "Esta capacitación no se puede iniciar en su estado actual.")
+        return redirect("dashboard")
+
+    if asignacion.esta_vencida:
+        asignacion.estado = "vencida"
+        asignacion.save(update_fields=["estado"])
+        messages.error(request, "Esta capacitación ya está vencida y no puede iniciarse.")
+        return redirect("dashboard")
+
+    asignacion.estado = "en_proceso"
+    asignacion.save(update_fields=["estado"])
+
+    messages.success(request, "Capacitación marcada como en proceso.")
+    return redirect("dashboard")
+
+
+@login_required
+def marcar_capacitacion_completada(request, asignacion_id):
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("dashboard")
+
+    if getattr(request.user, "rol", "") != "Miembro":
+        messages.error(request, "Solo los miembros pueden completar capacitaciones.")
+        return redirect("dashboard")
+
+    asignacion = (
+        CapacitacionAsignada.objects
+        .select_related("capacitacion", "usuario")
+        .filter(id=asignacion_id, usuario=request.user)
+        .first()
+    )
+
+    if not asignacion:
+        messages.error(request, "Capacitación no encontrada o no tienes permiso para modificarla.")
+        return redirect("dashboard")
+
+    if asignacion.estado != "en_proceso":
+        messages.warning(request, "Esta capacitación no se puede completar en su estado actual.")
+        return redirect("dashboard")
+
+    if asignacion.esta_vencida:
+        asignacion.estado = "vencida"
+        asignacion.save(update_fields=["estado"])
+        messages.error(request, "Esta capacitación ya está vencida y no puede completarse.")
+        return redirect("dashboard")
+
+    asignacion.estado = "aprobada"
+    asignacion.save(update_fields=["estado"])
+
+    messages.success(request, "Capacitación marcada como completada.")
+    return redirect("dashboard")
 
 
 @login_required

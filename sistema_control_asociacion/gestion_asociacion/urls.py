@@ -25,13 +25,38 @@ urlpatterns = [
     # =========================
     path("dashboard/", views.dashboard, name="dashboard"),
     path("control/", views.control, name="control"),
+
+    # =========================
+    # Capacitaciones
+    # =========================
     path("gestion_cap/", views.gestion_cap, name="gestion_cap"),
     path("gestion_cap/<int:capacitacion_id>/editar/", views.editar_capacitacion, name="editar_capacitacion"),
     path("gestion_cap/<int:capacitacion_id>/eliminar/", views.eliminar_capacitacion, name="eliminar_capacitacion"),
     path("gestion_cap/asignacion/<int:asignacion_id>/editar/", views.editar_asignacion_capacitacion, name="editar_asignacion_capacitacion"),
     path("gestion_cap/asignacion/<int:asignacion_id>/eliminar/", views.eliminar_asignacion_capacitacion, name="eliminar_asignacion_capacitacion"),
-    path("gestion/", views.gestion, name="gestion"),
 
+    # Acciones del miembro sobre sus capacitaciones
+    path(
+        "capacitaciones/miembro/<int:asignacion_id>/en-proceso/",
+        views.marcar_capacitacion_en_proceso,
+        name="marcar_capacitacion_en_proceso"
+    ),
+    path(
+        "capacitaciones/miembro/<int:asignacion_id>/completada/",
+        views.marcar_capacitacion_completada,
+        name="marcar_capacitacion_completada"
+    ),
+
+    path(
+    "capacitaciones/miembro/ajax/",
+    views.capacitaciones_miembro_ajax,
+    name="capacitaciones_miembro_ajax"
+    ),
+
+    # =========================
+    # Gestión de usuarios
+    # =========================
+    path("gestion/", views.gestion, name="gestion"),
     path("gestion/usuarios/<int:user_id>/", views.usuario_detalle, name="usuario_detalle"),
     path("gestion/usuarios/<int:user_id>/editar/", views.editar_usuario, name="editar_usuario"),
     path("gestion/usuarios/<int:user_id>/cambiar-rol/", views.cambiar_rol_usuario, name="cambiar_rol_usuario"),
