@@ -87,7 +87,9 @@
                     </td>
 
                     <td>
-                        {% if cap.fecha_vencimiento %} {{ cap.fecha_vencimiento|date:"d/m/Y" }} {% if cap.esta_vencida %}
+                        {% if cap.fecha_vencimiento %} {{ cap.fecha_vencimiento|date:"d/m/Y" }} {% if cap.estado == "vencida" %}
+                        <br>
+                        <span class="badge bg-danger mt-1">Vencida</span> {% elif cap.esta_vencida and cap.estado != "aprobada" and cap.estado != "cancelada" %}
                         <br>
                         <span class="badge bg-danger mt-1">Vencida</span> {% elif cap.proxima_a_vencer and cap.estado != "vencida" and cap.estado != "aprobada" and cap.estado != "cancelada" %}
                         <br>

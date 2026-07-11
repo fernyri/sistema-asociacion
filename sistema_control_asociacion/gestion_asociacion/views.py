@@ -561,9 +561,11 @@ def dashboard(request):
         cap_en_proceso = capacitaciones_miembro.filter(estado="en_proceso").count()
         cap_aprobadas = capacitaciones_miembro.filter(estado="aprobada").count()
         cap_vencidas = sum(
-            1 for cap in capacitaciones_miembro
-            if cap.estado == "vencida" or cap.esta_vencida
-        )
+    1 for cap in capacitaciones_miembro
+    if cap.estado == "vencida" or (
+        cap.esta_vencida and cap.estado not in ["aprobada", "cancelada"]
+    )
+)
 
         context = {
             "user": request.user,
@@ -712,9 +714,11 @@ def capacitaciones_miembro_ajax(request):
     cap_en_proceso = capacitaciones_miembro.filter(estado="en_proceso").count()
     cap_aprobadas = capacitaciones_miembro.filter(estado="aprobada").count()
     cap_vencidas = sum(
-        1 for cap in capacitaciones_miembro
-        if cap.estado == "vencida" or cap.esta_vencida
+    1 for cap in capacitaciones_miembro
+    if cap.estado == "vencida" or (
+        cap.esta_vencida and cap.estado not in ["aprobada", "cancelada"]
     )
+)
 
     html = render_to_string(
         "gestion_asociacion/partials/mis_capacitaciones_miembro.html",
