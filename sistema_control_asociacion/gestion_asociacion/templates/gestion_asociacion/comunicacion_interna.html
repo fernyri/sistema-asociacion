@@ -1,5 +1,6 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Comunicación Interna{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+
 <div class="comunicacion-page">
     <div class="comunicacion-card card">
 
@@ -8,13 +9,11 @@
                 <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
 
-            <div class="d-flex align-items-center gap-3 flex-wrap">
-                {% if no_leidos|default:0 > 0 %}
-                <div class="d-flex align-items-center gap-2">
-                    <span class="small text-white-50">No leídos:</span>
-                    <span class="badge bg-danger">{{ no_leidos }}</span>
-                </div>
-                {% endif %}
+            <div class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}" id="contador-no-leidos-header">
+                <span class="small text-white-50">No leídos:</span>
+                <span class="badge bg-danger" id="contador-no-leidos-numero">
+                    {{ no_leidos }}
+                </span>
             </div>
         </div>
 
@@ -32,170 +31,15 @@
                 </div>
             </div>
 
-            <!-- RECIBIDOS -->
-            <div class="mb-4">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <h5 class="d-flex align-items-center gap-2 mb-0">
-                        <span>
-                            <i class="fas fa-inbox me-1"></i> Recibidos
-                        </span> {% if no_leidos|default:0 > 0 %}
-                        <span class="badge bg-danger">{{ no_leidos }}</span> {% endif %}
-                    </h5>
-
-                    <span class="text-muted small">Tip: Los mensajes nuevos se ven resaltados.</span>
-                </div>
-
-                <div class="table-responsive">
-                    <table id="tablaRecibidos" class="table table-hover table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th style="width: 210px;">De</th>
-                                <th>Asunto</th>
-                                <th style="width: 170px;">Fecha</th>
-                                <th style="width: 120px;">Estado</th>
-                                <th style="width: 180px;">Acciones</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {% for m in recibidos %}
-                            <tr class="{% if not m.leido %}msg-unread{% endif %}">
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="msg-avatar-sm">
-                                            {% if m.remitente %} {{ m.remitente.username|first|upper }} {% else %} ? {% endif %}
-                                        </div>
-
-                                        <div class="text-truncate">
-                                            <div class="fw-semibold">
-                                                {% if m.remitente %} {{ m.remitente.username }} {% else %} Usuario eliminado {% endif %}
-                                            </div>
-                                            <div class="small text-muted">Remitente</div>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
-                                    <div class="small text-muted text-truncate">
-                                        {{ m.cuerpo|striptags|truncatechars:80 }}
-                                    </div>
-                                </td>
-
-                                <td class="small text-muted">
-                                    {{ m.creado_en|date:"d/m/Y H:i" }}
-                                </td>
-
-                                <td>
-                                    {% if m.leido %}
-                                    <span class="badge bg-success">Leído</span> {% else %}
-                                    <span class="badge bg-warning text-dark">Nuevo</span> {% endif %}
-                                </td>
-
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-sm btn-primary flex-fill" href="{% url 'ver_mensaje' m.id %}">
-                                            <i class="fas fa-eye me-1"></i> Ver
-                                        </a>
-
-                                        <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
-                                            {% csrf_token %}
-                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center text-muted">No tienes mensajes recibidos.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ENVIADOS -->
-            <div class="mb-4">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                    <h5 class="mb-0">
-                        <i class="fas fa-paper-plane me-1"></i> Enviados
-                    </h5>
-
-                    <span class="text-muted small">Historial de tus mensajes enviados.</span>
-                </div>
-
-                <div class="table-responsive">
-                    <table id="tablaEnviados" class="table table-hover table-bordered align-middle">
-                        <thead class="table-dark">
-                            <tr>
-                                <th style="width: 210px;">Para</th>
-                                <th>Asunto</th>
-                                <th style="width: 170px;">Fecha</th>
-                                <th style="width: 180px;">Acciones</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {% for m in enviados %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="msg-avatar-sm msg-avatar-out">
-                                            {% if m.destinatario %} {{ m.destinatario.username|first|upper }} {% else %} ? {% endif %}
-                                        </div>
-
-                                        <div class="text-truncate">
-                                            <div class="fw-semibold">
-                                                {% if m.destinatario %} {{ m.destinatario.username }} {% else %} Usuario eliminado {% endif %}
-                                            </div>
-                                            <div class="small text-muted">Destinatario</div>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <td>
-                                    <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
-                                    <div class="small text-muted text-truncate">
-                                        {{ m.cuerpo|striptags|truncatechars:80 }}
-                                    </div>
-                                </td>
-
-                                <td class="small text-muted">
-                                    {{ m.creado_en|date:"d/m/Y H:i" }}
-                                </td>
-
-                                <td>
-                                    <div class="d-flex gap-2">
-                                        <a class="btn btn-sm btn-secondary flex-fill" href="{% url 'ver_mensaje' m.id %}">
-                                            <i class="fas fa-eye me-1"></i> Ver
-                                        </a>
-
-                                        <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
-                                            {% csrf_token %}
-                                            <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">No has enviado mensajes.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <!-- LISTAS RECIBIDOS / ENVIADOS CON AJAX -->
+            <div id="comunicacion-listas-wrapper">
+                {% include "gestion_asociacion/partials/comunicacion_listas_miembro.html" %}
             </div>
 
             <!-- ENVIAR A ADMIN / DIOS -->
             <div class="mt-4" id="formResponder">
                 <h5 class="mb-2">
-                    <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador / Dios
+                    <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador
                 </h5>
 
                 <p class="text-muted small mb-3">
@@ -213,7 +57,9 @@
                 {% endif %} {% if form.non_field_errors %}
                 <div class="alert alert-warning mb-3">
                     {% for error in form.non_field_errors %}
-                    <div><i class="fas fa-exclamation-triangle me-1"></i> {{ error }}</div>
+                    <div>
+                        <i class="fas fa-exclamation-triangle me-1"></i> {{ error }}
+                    </div>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -222,20 +68,21 @@
                     {% csrf_token %}
 
                     <div class="row g-3">
+
                         <div class="col-md-6">
                             <label class="form-label">Destinatario</label>
 
                             <select class="form-select {% if form.non_field_errors %}is-invalid{% endif %}" name="destinatario_id" required>
-                    <option value="" disabled {% if not destinatario_id_seleccionado %}selected{% endif %}>
-                        Selecciona un administrador o Dios
-                    </option>
+                                <option value="" disabled {% if not destinatario_id_seleccionado %}selected{% endif %}>
+                                    Selecciona un administrador o Dios
+                                </option>
 
-                    {% for a in admins %}
-                    <option value="{{ a.id }}" {% if destinatario_id_seleccionado == a.id|stringformat:"s" %}selected{% endif %}>
-                        {{ a.username }}{% if a.rol %} - {{ a.rol }}{% endif %}
-                    </option>
-                    {% endfor %}
-                </select>
+                                {% for a in admins %}
+                                <option value="{{ a.id }}" {% if destinatario_id_seleccionado == a.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ a.username }}{% if a.rol %} - {{ a.rol }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
 
                         <div class="col-md-6">
@@ -249,15 +96,14 @@
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label">Mensaje</label>
+                            <label class="form-label">Mensaje</label> {% if form.cuerpo.errors %}
+                            <textarea class="form-control is-invalid" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{{ form.cuerpo.value|default_if_none:"" }}</textarea>
 
-                            <textarea class="form-control {% if form.cuerpo.errors %}is-invalid{% endif %}" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{% if form.cuerpo.value %}{{ form.cuerpo.value }}{% endif %} 
-
-                            </textarea> {%if form.cuerpo.errors %}
                             <div class="invalid-feedback d-block">
                                 {% for error in form.cuerpo.errors %} {{ error }} {% endfor %}
                             </div>
-                            {% endif %}
+                            {% else %}
+                            <textarea class="form-control" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{{ form.cuerpo.value|default_if_none:"" }}</textarea> {% endif %}
                         </div>
 
                         <div class="col-12">
@@ -266,7 +112,9 @@
                             <input class="form-control {% if form.archivo.errors %}is-invalid{% endif %}" type="file" name="archivo"> {% if form.archivo.errors %}
                             <div class="alert alert-warning mt-2 mb-0">
                                 {% for error in form.archivo.errors %}
-                                <div><i class="fas fa-exclamation-triangle me-1"></i> {{ error }}</div>
+                                <div>
+                                    <i class="fas fa-exclamation-triangle me-1"></i> {{ error }}
+                                </div>
                                 {% endfor %}
                             </div>
                             {% else %}
@@ -278,9 +126,10 @@
 
                         <div class="col-12">
                             <button id="btnEnviarMiembro" class="btn btn-success btn-lg w-100" type="submit">
-                    <i class="fas fa-paper-plane me-2"></i> Enviar
-                </button>
+                                <i class="fas fa-paper-plane me-2"></i> Enviar
+                            </button>
                         </div>
+
                     </div>
                 </form>
             </div>
@@ -304,7 +153,7 @@
 </script>
 
 <script>
-    (function() {
+    function aplicarFiltroMensajes() {
         const input = document.getElementById("msgSearch");
 
         if (!input) return;
@@ -321,10 +170,80 @@
             });
         }
 
-        input.addEventListener("input", function() {
-            filtrarTabla(document.getElementById("tablaRecibidos"));
-            filtrarTabla(document.getElementById("tablaEnviados"));
-        });
+        filtrarTabla(document.getElementById("tablaRecibidos"));
+        filtrarTabla(document.getElementById("tablaEnviados"));
+    }
+
+    (function() {
+        const input = document.getElementById("msgSearch");
+
+        if (!input) return;
+
+        input.addEventListener("input", aplicarFiltroMensajes);
+    })();
+</script>
+
+<script>
+    (function() {
+        const wrapper = document.getElementById("comunicacion-listas-wrapper");
+
+        if (!wrapper) return;
+
+        const url = "{% url 'comunicacion_miembro_ajax' %}";
+        const intervalo = 5000;
+
+        function actualizarContadorNoLeidos(noLeidos) {
+            const contenedor = document.getElementById("contador-no-leidos-header");
+            const numero = document.getElementById("contador-no-leidos-numero");
+
+            if (!contenedor || !numero) return;
+
+            numero.textContent = noLeidos;
+
+            if (noLeidos > 0) {
+                contenedor.classList.remove("d-none");
+            } else {
+                contenedor.classList.add("d-none");
+            }
+        }
+
+        async function actualizarComunicacion() {
+            try {
+                const response = await fetch(url, {
+                    method: "GET",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                });
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                if (!data.ok || !data.html) return;
+
+                wrapper.innerHTML = data.html;
+
+                actualizarContadorNoLeidos(data.no_leidos || 0);
+                aplicarFiltroMensajes();
+
+                if (window.bindConfirmSwal) {
+                    window.bindConfirmSwal("form.js-confirm-papelera", {
+                        icon: "warning",
+                        title: "¿Mover a papelera?",
+                        text: "Podrás restaurarlo desde la papelera.",
+                        confirmButtonText: "Sí, mover",
+                        cancelButtonText: "Cancelar",
+                        confirmButtonColor: "#d33",
+                    });
+                }
+
+            } catch (error) {
+                console.warn("No se pudo actualizar comunicación:", error);
+            }
+        }
+
+        setInterval(actualizarComunicacion, intervalo);
     })();
 </script>
 

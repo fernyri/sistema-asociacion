@@ -1,0 +1,159 @@
+<!-- RECIBIDOS -->
+<div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="d-flex align-items-center gap-2 mb-0">
+            <span>
+                <i class="fas fa-inbox me-1"></i> Recibidos
+            </span> {% if no_leidos|default:0 > 0 %}
+            <span class="badge bg-danger">{{ no_leidos }}</span> {% endif %}
+        </h5>
+
+        <span class="text-muted small">Tip: Los mensajes nuevos se ven resaltados.</span>
+    </div>
+
+    <div class="table-responsive">
+        <table id="tablaRecibidos" class="table table-hover table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 210px;">De</th>
+                    <th>Asunto</th>
+                    <th style="width: 170px;">Fecha</th>
+                    <th style="width: 120px;">Estado</th>
+                    <th style="width: 180px;">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for m in recibidos %}
+                <tr class="{% if not m.leido %}msg-unread{% endif %}">
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="msg-avatar-sm">
+                                {% if m.remitente %} {{ m.remitente.username|first|upper }} {% else %} ? {% endif %}
+                            </div>
+
+                            <div class="text-truncate">
+                                <div class="fw-semibold">
+                                    {% if m.remitente %} {{ m.remitente.username }} {% else %} Usuario eliminado {% endif %}
+                                </div>
+                                <div class="small text-muted">Remitente</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                        <div class="small text-muted text-truncate">
+                            {{ m.cuerpo|striptags|truncatechars:80 }}
+                        </div>
+                    </td>
+
+                    <td class="small text-muted">
+                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                    </td>
+
+                    <td>
+                        {% if m.leido %}
+                        <span class="badge bg-success">Leído</span> {% else %}
+                        <span class="badge bg-warning text-dark">Nuevo</span> {% endif %}
+                    </td>
+
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-primary flex-fill" href="{% url 'ver_mensaje' m.id %}">
+                                <i class="fas fa-eye me-1"></i> Ver
+                            </a>
+
+                            <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">No tienes mensajes recibidos.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ENVIADOS -->
+<div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="mb-0">
+            <i class="fas fa-paper-plane me-1"></i> Enviados
+        </h5>
+
+        <span class="text-muted small">Historial de tus mensajes enviados.</span>
+    </div>
+
+    <div class="table-responsive">
+        <table id="tablaEnviados" class="table table-hover table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 210px;">Para</th>
+                    <th>Asunto</th>
+                    <th style="width: 170px;">Fecha</th>
+                    <th style="width: 180px;">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for m in enviados %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="msg-avatar-sm msg-avatar-out">
+                                {% if m.destinatario %} {{ m.destinatario.username|first|upper }} {% else %} ? {% endif %}
+                            </div>
+
+                            <div class="text-truncate">
+                                <div class="fw-semibold">
+                                    {% if m.destinatario %} {{ m.destinatario.username }} {% else %} Usuario eliminado {% endif %}
+                                </div>
+                                <div class="small text-muted">Destinatario</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+                        <div class="small text-muted text-truncate">
+                            {{ m.cuerpo|striptags|truncatechars:80 }}
+                        </div>
+                    </td>
+
+                    <td class="small text-muted">
+                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                    </td>
+
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-secondary flex-fill" href="{% url 'ver_mensaje' m.id %}">
+                                <i class="fas fa-eye me-1"></i> Ver
+                            </a>
+
+                            <form method="post" action="{% url 'mover_a_papelera' m.id %}" class="js-confirm-papelera">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover a papelera">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted">No has enviado mensajes.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

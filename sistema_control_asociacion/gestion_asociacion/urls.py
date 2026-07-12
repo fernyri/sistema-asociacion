@@ -74,6 +74,8 @@ urlpatterns = [
     path("comunicacion/ver/<int:mensaje_id>/", views.ver_mensaje, name="ver_mensaje"),
     path("comunicacion/enviar/miembro/", views.enviar_mensaje_miembro, name="enviar_mensaje_miembro"),
     path("comunicacion/enviar/admin/", views.enviar_mensaje_admin, name="enviar_mensaje_admin"),
+    path("comunicacion/ajax/miembro/", views.comunicacion_miembro_ajax, name="comunicacion_miembro_ajax"),
+    path("comunicacion/ajax/admin/", views.comunicacion_admin_ajax, name="comunicacion_admin_ajax"),
 
     # =========================
     # Papelera (Comunicación)

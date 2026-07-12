@@ -959,6 +959,47 @@ def comunicacion_interna(request):
 
     return render(request, "gestion_asociacion/comunicacion_interna.html", context)
 
+@login_required
+def comunicacion_miembro_ajax(request):
+    if _es_admin(request.user):
+        return JsonResponse({
+            "ok": False,
+            "mensaje": "Esta consulta es solo para miembros."
+        }, status=403)
+
+    recibidos = _mensajes_recibidos(request.user)
+    enviados = _mensajes_enviados(request.user)
+
+    no_leidos = Mensaje.objects.filter(
+        destinatario=request.user,
+        leido=False,
+        en_papelera=False
+    ).count()
+
+    papelera_count = Mensaje.objects.filter(
+        en_papelera=True
+    ).filter(
+        Q(remitente=request.user) | Q(destinatario=request.user)
+    ).count()
+
+    html = render_to_string(
+        "gestion_asociacion/partials/comunicacion_listas_miembro.html",
+        {
+            "recibidos": recibidos,
+            "enviados": enviados,
+            "no_leidos": no_leidos,
+            "papelera_count": papelera_count,
+        },
+        request=request
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "html": html,
+        "no_leidos": no_leidos,
+        "papelera_count": papelera_count,
+    })
+
 
 @login_required
 @admin_only
@@ -994,6 +1035,41 @@ def comunicacion_admin(request):
 
     return render(request, "gestion_asociacion/comunicacion_admin.html", context)
 
+@login_required
+@admin_only
+def comunicacion_admin_ajax(request):
+    recibidos = _mensajes_recibidos(request.user)
+    enviados = _mensajes_enviados(request.user)
+
+    no_leidos = Mensaje.objects.filter(
+        destinatario=request.user,
+        leido=False,
+        en_papelera=False
+    ).count()
+
+    papelera_count = Mensaje.objects.filter(
+        en_papelera=True
+    ).filter(
+        Q(remitente=request.user) | Q(destinatario=request.user)
+    ).count()
+
+    html = render_to_string(
+        "gestion_asociacion/partials/comunicacion_listas_admin.html",
+        {
+            "recibidos": recibidos,
+            "enviados": enviados,
+            "no_leidos": no_leidos,
+            "papelera_count": papelera_count,
+        },
+        request=request
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "html": html,
+        "no_leidos": no_leidos,
+        "papelera_count": papelera_count,
+    })
 
 @login_required
 def ver_mensaje(request, mensaje_id: int):
