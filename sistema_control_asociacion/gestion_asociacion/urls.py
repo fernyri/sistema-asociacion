@@ -65,6 +65,16 @@ urlpatterns = [
 
     path("nomina/", views.nomina, name="nomina"),
     path("evaluacion_desem/", views.evaluacion_desem, name="evaluacion_desem"),
+    path(
+    "evaluacion_desem/<int:evaluacion_id>/editar/",
+    views.editar_evaluacion_desem,
+    name="editar_evaluacion_desem"
+    ),
+    path(
+        "evaluacion_desem/<int:evaluacion_id>/eliminar/",
+        views.eliminar_evaluacion_desem,
+        name="eliminar_evaluacion_desem"
+    ),
 
     # =========================
     # Comunicación

@@ -1,5 +1,6 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Control de Asistencia{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/control.css' %}?v={{ STATIC_VERSION|default:'1.1' }}"> {% endblock %} {% block content %}
+
 <div class="control-page container mt-4">
 
     <!-- Encabezado -->
@@ -23,6 +24,16 @@
         </div>
     </div>
 
+    {% if messages %}
+    <div class="mb-4" id="mensajeControl">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} text-center mb-2 mensaje-auto">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Acciones rápidas -->
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
@@ -31,6 +42,7 @@
                     <h5 class="fw-bold text-secondary mb-3">
                         <i class="fas fa-calendar-alt me-2"></i>Consulta rápida
                     </h5>
+
                     <form method="get">
                         <input type="hidden" name="fecha_inicio" value="{{ fecha_inicio_valor }}">
                         <input type="date" class="form-control form-control-lg" name="fecha_fin" value="{{ fecha_fin_valor }}">
@@ -38,6 +50,7 @@
                             <i class="fas fa-search me-2"></i>Consultar día
                         </button>
                     </form>
+
                     <small class="text-muted d-block mt-2">
                         Revisa asistencias de una fecha específica.
                     </small>
@@ -51,6 +64,7 @@
                     <h5 class="fw-bold text-secondary mb-3">
                         <i class="fas fa-info-circle me-2"></i>Estado del módulo
                     </h5>
+
                     <div class="alert alert-light border mb-0">
                         <div><b>Total de miembros activos:</b> {{ total_miembros_activos }}</div>
                         <div><b>Límite de retardo:</b> {{ hora_limite_retraso_texto }}</div>
@@ -70,6 +84,7 @@
                 <h4 class="fw-bold text-secondary mb-0">
                     <i class="fas fa-filter me-2"></i>Filtros
                 </h4>
+
                 <a href="{% url 'control' %}" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-eraser me-1"></i>Limpiar filtros
                 </a>
@@ -114,7 +129,9 @@
             <div class="card summary-card summary-success h-100">
                 <div class="card-body text-center">
                     <div class="small summary-label mb-2">Periodo seleccionado</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-user-check me-2"></i>Registros con Entrada</h5>
+                    <h5 class="fw-bold mb-2">
+                        <i class="fas fa-user-check me-2"></i>Registros con Entrada
+                    </h5>
                     <h2 class="fw-bold mb-1">{{ dias_trabajados }}</h2>
                     <div class="small">Asistencias registradas</div>
                 </div>
@@ -125,7 +142,9 @@
             <div class="card summary-card summary-danger h-100">
                 <div class="card-body text-center">
                     <div class="small summary-label mb-2">Periodo seleccionado</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-user-times me-2"></i>Sin Registro</h5>
+                    <h5 class="fw-bold mb-2">
+                        <i class="fas fa-user-times me-2"></i>Sin Registro
+                    </h5>
                     <h2 class="fw-bold mb-1">{{ usuarios_sin_registro }}</h2>
                     <div class="small">Miembros activos sin asistencia</div>
                 </div>
@@ -136,7 +155,9 @@
             <div class="card summary-card summary-warning h-100">
                 <div class="card-body text-center">
                     <div class="small summary-label mb-2">Periodo seleccionado</div>
-                    <h5 class="fw-bold mb-2"><i class="fas fa-clock me-2"></i>Registros con Retraso</h5>
+                    <h5 class="fw-bold mb-2">
+                        <i class="fas fa-clock me-2"></i>Registros con Retraso
+                    </h5>
                     <h2 class="fw-bold mb-1">{{ dias_con_retrasos }}</h2>
                     <div class="small">Después de {{ hora_limite_retraso_texto }}</div>
                 </div>
@@ -151,6 +172,7 @@
                 <h4 class="fw-bold text-secondary mb-0">
                     <i class="fas fa-list me-2"></i>Registro de Asistencias
                 </h4>
+
                 <span class="badge bg-secondary">{{ total_registros }} registro(s)</span>
             </div>
 
@@ -165,6 +187,7 @@
                             <th>Estado</th>
                         </tr>
                     </thead>
+
                     <tbody class="text-center">
                         {% for item in registros %}
                         <tr>
@@ -172,9 +195,11 @@
                                 {% if item.obj.usuario %} {{ item.obj.usuario.username }} {% else %}
                                 <span class="text-muted">Usuario eliminado</span> {% endif %}
                             </td>
+
                             <td>{{ item.obj.fecha|date:"d/m/Y" }}</td>
                             <td>{{ item.obj.hora_entrada|time:"h:i A"|default:"-" }}</td>
                             <td>{{ item.obj.hora_salida|time:"h:i A"|default:"-" }}</td>
+
                             <td>
                                 {% if item.badge == "warning" %}
                                 <span class="badge bg-warning text-dark">{{ item.estado }}</span> {% elif item.badge == "success" %}
@@ -203,6 +228,7 @@
                 <h4 class="fw-bold text-secondary mb-1">
                     <i class="fas fa-file-export me-2"></i>Exportar Informes
                 </h4>
+
                 <p class="text-muted mb-0">
                     La exportación se conectará después de terminar el módulo de consulta real.
                 </p>
@@ -214,6 +240,7 @@
                         <i class="fas fa-file-excel me-2"></i>Exportar a Excel
                     </button>
                 </div>
+
                 <div class="col-md-6">
                     <button class="btn btn-outline-danger w-100" disabled>
                         <i class="fas fa-file-pdf me-2"></i>Exportar a PDF
@@ -224,4 +251,22 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeControl");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
+
 {% endblock %}

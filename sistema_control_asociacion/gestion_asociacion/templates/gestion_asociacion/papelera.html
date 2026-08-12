@@ -21,9 +21,11 @@
         <div class="card-body">
 
             {% if messages %}
-            <div class="alert alert-info mb-4">
+            <div class="alert alert-info mb-4" id="mensajePapelera">
                 {% for message in messages %}
-                <div>{{ message }}</div>
+                <div>
+                    {{ message }}
+                </div>
                 {% endfor %}
             </div>
             {% endif %}
@@ -59,6 +61,7 @@
 
                 <!-- RECIBIDOS -->
                 <div class="tab-pane fade show active" id="pane-recibidos" role="tabpanel" aria-labelledby="tab-recibidos">
+
                     <div class="table-responsive">
                         <table class="table table-hover table-bordered align-middle">
                             <thead class="table-dark">
@@ -140,6 +143,7 @@
 
                 <!-- ENVIADOS -->
                 <div class="tab-pane fade" id="pane-enviados" role="tabpanel" aria-labelledby="tab-enviados">
+
                     <div class="table-responsive">
                         <table class="table table-hover table-bordered align-middle">
                             <thead class="table-dark">
@@ -225,12 +229,31 @@
 </div>
 
 <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajePapelera");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
+
+<script>
     (function() {
         const params = new URLSearchParams(window.location.search);
         const tab = params.get("tab");
+
         if (!tab) return;
 
         const btn = document.getElementById(tab === "enviados" ? "tab-enviados" : "tab-recibidos");
+
         if (!btn) return;
 
         const bsTab = new bootstrap.Tab(btn);

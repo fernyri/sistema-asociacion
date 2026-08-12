@@ -9,6 +9,16 @@
         Resumen de asistencias del día: <b>{{ fecha_resumen|date:"d/m/Y" }}</b>
     </p>
 
+    {% if messages %}
+    <div class="mb-4" id="mensajeDashboardAdmin">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} text-center mb-2 mensaje-auto">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="row mt-4 g-3">
 
         <div class="col-md-3 col-lg">
@@ -79,7 +89,9 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <p class="text-muted text-center mb-0">No hay usuarios conectados en este momento.</p>
+            <p class="text-muted text-center mb-0">
+                No hay usuarios conectados en este momento.
+            </p>
             {% endif %}
         </div>
     </div>
@@ -123,14 +135,14 @@
                             <td>
                                 {% if asistencia.hora_salida %} {{ asistencia.hora_salida|time:"h:i A" }} {% else %}
                                 <span class="badge bg-warning text-dark">
-                                    <i class="fas fa-clock"></i> Salida pendiente
-                                </span> {% endif %}
+                                            <i class="fas fa-clock"></i> Salida pendiente
+                                        </span> {% endif %}
                             </td>
 
                             <td>
                                 <span class="badge bg-{{ asistencia.estado_badge }} {% if asistencia.estado_badge == 'warning' %}text-dark{% endif %}">
-                                    {{ asistencia.estado_texto }}
-                                </span>
+                                        {{ asistencia.estado_texto }}
+                                    </span>
                             </td>
 
                             <td class="text-start">
@@ -193,8 +205,8 @@
 
                             <td>
                                 <span class="duracion-sesion" data-segundos="{{ acceso.duracion_segundos }}" data-activa="{% if acceso.hora_salida %}false{% else %}true{% endif %}">
-        --
-    </span>
+                                        --
+                                    </span>
                             </td>
                         </tr>
                         {% endfor %} {% else %}
@@ -236,6 +248,23 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeDashboardAdmin");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
 
 <script>
     function formatearDuracion(segundos) {

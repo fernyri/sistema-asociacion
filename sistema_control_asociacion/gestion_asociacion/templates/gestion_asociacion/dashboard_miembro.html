@@ -8,9 +8,9 @@
     </h1>
 
     {% if messages %}
-    <div class="mb-3">
+    <div class="mb-3" id="mensajeDashboard">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} text-center">
+        <div class="alert alert-{{ message.tags }} text-center mensaje-auto">
             {{ message }}
         </div>
         {% endfor %}
@@ -273,6 +273,24 @@
 </div>
 
 {% endblock %} {% block extra_js %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeDashboard");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
+
 <script>
     (function() {
         const wrapper = document.getElementById("mis-capacitaciones-wrapper");
@@ -355,4 +373,5 @@
         setInterval(actualizarCapacitaciones, intervalo);
     })();
 </script>
+
 {% endblock %}

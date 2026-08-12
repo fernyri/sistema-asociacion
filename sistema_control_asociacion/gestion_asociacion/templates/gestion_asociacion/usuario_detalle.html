@@ -16,6 +16,16 @@
                     </a>
                 </div>
 
+                {% if messages %}
+                <div class="mb-3" id="mensajeUsuarioDetalle">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} text-center mb-2 mensaje-auto">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="border rounded p-3 h-100">
@@ -171,6 +181,23 @@
         </main>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeUsuarioDetalle");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
 
 <script>
     (function() {

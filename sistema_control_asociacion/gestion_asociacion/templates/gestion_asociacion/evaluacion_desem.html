@@ -1,85 +1,484 @@
 {% extends 'gestion_asociacion/base.html' %} {% block title %}Evaluaciones de Desempeño{% endblock %} {% block content %}
+
 <div class="container mt-4">
+
     <div class="row">
+
         <!-- Título principal -->
         <div class="col-12 text-center mb-4">
-            <h1 class="fw-bold text-primary"><i class="fas fa-chart-line"></i> Evaluaciones de Desempeño</h1>
+            <h1 class="fw-bold text-primary">
+                <i class="fas fa-chart-line"></i> Evaluaciones de Desempeño
+            </h1>
+            <p class="text-muted mb-0">
+                Registra y consulta evaluaciones de desempeño de los miembros activos.
+            </p>
         </div>
 
-        <!-- Lista de empleados -->
-        <div class="col-12">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-users"></i> Lista de Empleados</h4>
-                <table class="table table-striped mt-3">
-                    <thead class="table-dark text-center">
-                        <tr>
-                            <th>Nombre del Empleado</th>
-                            <th>Fecha de Última Evaluación</th>
-                            <th>Resultado</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-center">
-                        <tr>
-                            <td>Juan Pérez</td>
-                            <td>10/10/2023</td>
-                            <td class="text-success fw-bold">Excelente</td>
-                        </tr>
-                        <tr>
-                            <td>María López</td>
-                            <td>12/09/2023</td>
-                            <td class="text-warning fw-bold">Bueno</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <button class="btn btn-primary mt-3 w-100"><i class="fas fa-plus-circle"></i> Nueva Evaluación</button>
+        <!-- Estadísticas -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-4 text-white bg-info text-center border-0 h-100">
+                <h4 class="fw-bold">
+                    <i class="fas fa-chart-bar"></i> Evaluaciones Realizadas
+                </h4>
+                <h2 class="mb-0">
+                    {{ total_evaluaciones }}
+                </h2>
             </div>
         </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm p-4 text-white bg-success text-center border-0 h-100">
+                <h4 class="fw-bold">
+                    <i class="fas fa-thumbs-up"></i> Promedio de Evaluaciones
+                </h4>
+                <h2 class="mb-0">
+                    {{ promedio_evaluaciones }}
+                </h2>
+            </div>
+        </div>
+
+        <!-- Lista de evaluaciones -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4 border-0">
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h4 class="fw-bold text-secondary mb-0">
+                        <i class="fas fa-users"></i> Evaluaciones registradas
+                    </h4>
+
+                    <a href="#formEvaluacion" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Nueva Evaluación
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle text-center mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nombre del Miembro</th>
+                                <th>Evaluador</th>
+                                <th>Fecha de Evaluación</th>
+                                <th>Calificación</th>
+                                <th>Resultado</th>
+                                <th>Comentarios</th>
+                                <th style="width: 260px;">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for evaluacion in evaluaciones %}
+                            <tr>
+                                <td class="fw-semibold">
+                                    {{ evaluacion.evaluado.username }}
+                                </td>
+
+                                <td>
+                                    {% if evaluacion.evaluador %} {{ evaluacion.evaluador.username }} {% else %}
+                                    <span class="text-muted">Usuario eliminado</span> {% endif %}
+                                </td>
+
+                                <td>
+                                    {{ evaluacion.fecha_evaluacion|date:"d/m/Y H:i" }}
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-dark">
+                                        {{ evaluacion.calificacion }}/5
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-{{ evaluacion.resultado_badge }}">
+                                        {{ evaluacion.resultado_texto }}
+                                    </span>
+                                </td>
+
+                                <td class="text-start">
+                                    {% if evaluacion.comentarios %} {{ evaluacion.comentarios|truncatechars:90 }} {% else %}
+                                    <span class="text-muted">Sin comentarios</span> {% endif %}
+                                </td>
+
+                                <td>
+                                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleEvaluacion{{ evaluacion.id }}">
+                                            <i class="fas fa-eye"></i> Ver
+                                        </button>
+
+                                        <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editarEvaluacion{{ evaluacion.id }}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </button>
+
+                                        <form method="POST" action="{% url 'eliminar_evaluacion_desem' evaluacion.id %}" class="m-0 js-eliminar-evaluacion">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i> Eliminar
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted">
+                                    Aún no hay evaluaciones registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MODALES DE EVALUACIONES -->
+        {% for evaluacion in evaluaciones %}
+
+        <!-- Modal Ver detalle -->
+        <div class="modal fade" id="detalleEvaluacion{{ evaluacion.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-eye me-2"></i> Detalle de evaluación
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+
+                        <div class="row g-3 mb-3">
+
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <small class="text-muted d-block">Miembro evaluado</small>
+                                    <strong>{{ evaluacion.evaluado.username }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <small class="text-muted d-block">Evaluador</small>
+                                    <strong>
+                                        {% if evaluacion.evaluador %}
+                                            {{ evaluacion.evaluador.username }}
+                                        {% else %}
+                                            Usuario eliminado
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 h-100 text-center">
+                                    <small class="text-muted d-block">Fecha</small>
+                                    <strong>{{ evaluacion.fecha_evaluacion|date:"d/m/Y H:i" }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 h-100 text-center">
+                                    <small class="text-muted d-block">Calificación</small>
+                                    <span class="badge bg-dark">
+                                        {{ evaluacion.calificacion }}/5
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="border rounded p-3 h-100 text-center">
+                                    <small class="text-muted d-block">Resultado</small>
+                                    <span class="badge bg-{{ evaluacion.resultado_badge }}">
+                                        {{ evaluacion.resultado_texto }}
+                                    </span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary">
+                                <i class="fas fa-tasks me-1"></i> Competencias evaluadas
+                            </h6>
+                            <div class="bg-light border rounded p-3">
+                                {{ evaluacion.competencias|linebreaksbr }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold text-primary">
+                                <i class="fas fa-comment-dots me-1"></i> Comentarios
+                            </h6>
+                            <div class="bg-light border rounded p-3">
+                                {% if evaluacion.comentarios %} {{ evaluacion.comentarios|linebreaksbr }} {% else %}
+                                <span class="text-muted">Sin comentarios.</span> {% endif %}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Cerrar
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Editar -->
+        <div class="modal fade" id="editarEvaluacion{{ evaluacion.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">
+                            <i class="fas fa-edit me-2"></i> Editar evaluación
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <form method="POST" action="{% url 'editar_evaluacion_desem' evaluacion.id %}">
+                        {% csrf_token %}
+
+                        <div class="modal-body">
+
+                            <div class="mb-3">
+                                <label class="fw-bold form-label">
+                                    <i class="fas fa-user"></i> Miembro evaluado:
+                                </label>
+
+                                <select name="usuario_id" class="form-select" required>
+                                    {% for miembro in miembros %}
+                                        {% if miembro.id == evaluacion.evaluado.id %}
+                                        <option value="{{ miembro.id }}" selected>
+                                            {{ miembro.username }}
+                                        </option>
+                                        {% else %}
+                                        <option value="{{ miembro.id }}">
+                                            {{ miembro.username }}
+                                        </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold form-label">
+                                    <i class="fas fa-tasks"></i> Competencias Evaluadas:
+                                </label>
+
+                                <textarea name="competencias" rows="4" class="form-control" required>{{ evaluacion.competencias }}</textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold form-label">
+                                    <i class="fas fa-star"></i> Calificación:
+                                </label>
+
+                                <select name="calificacion" class="form-select" required>
+                                    {% if evaluacion.calificacion == 1 %}
+                                    <option value="1" selected>1 - Deficiente</option>
+                                    {% else %}
+                                    <option value="1">1 - Deficiente</option>
+                                    {% endif %}
+
+                                    {% if evaluacion.calificacion == 2 %}
+                                    <option value="2" selected>2 - Deficiente</option>
+                                    {% else %}
+                                    <option value="2">2 - Deficiente</option>
+                                    {% endif %}
+
+                                    {% if evaluacion.calificacion == 3 %}
+                                    <option value="3" selected>3 - Regular</option>
+                                    {% else %}
+                                    <option value="3">3 - Regular</option>
+                                    {% endif %}
+
+                                    {% if evaluacion.calificacion == 4 %}
+                                    <option value="4" selected>4 - Bueno</option>
+                                    {% else %}
+                                    <option value="4">4 - Bueno</option>
+                                    {% endif %}
+
+                                    {% if evaluacion.calificacion == 5 %}
+                                    <option value="5" selected>5 - Excelente</option>
+                                    {% else %}
+                                    <option value="5">5 - Excelente</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold form-label">
+                                    <i class="fas fa-comment-dots"></i> Comentarios:
+                                </label>
+
+                                <textarea name="comentarios" rows="4" class="form-control">{% if evaluacion.comentarios %}{{ evaluacion.comentarios }}{% endif %}</textarea>
+                            </div>
+
+                        </div>
+
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                Cancelar
+                            </button>
+
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-1"></i> Guardar cambios
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        {% endfor %}
+
+        <!-- Mensajes -->
+        {% if messages %}
+        <div class="col-12 mt-4" id="mensajeEvaluacion">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} text-center mb-0 mensaje-auto">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Formulario de Evaluación -->
-        <div class="col-12 mt-4">
-            <div class="card shadow-sm p-4">
-                <h4 class="fw-bold text-secondary"><i class="fas fa-edit"></i> Formulario de Evaluación</h4>
+        <div class="col-12 mt-4" id="formEvaluacion">
+            <div class="card shadow-sm p-4 border-0">
+
+                <h4 class="fw-bold text-secondary mb-3">
+                    <i class="fas fa-edit"></i> Formulario de Evaluación
+                </h4>
+
                 <form method="POST">
                     {% csrf_token %}
+
                     <div class="mb-3">
-                        <label class="fw-bold"><i class="fas fa-user"></i> Nombre del Empleado:</label>
-                        <input type="text" name="nombre" class="form-control" required>
+                        <label class="fw-bold form-label">
+                            <i class="fas fa-user"></i> Miembro evaluado:
+                        </label>
+
+                        <select name="usuario_id" class="form-select" required>
+                            <option value="" selected disabled>
+                                Selecciona un miembro
+                            </option>
+
+                            {% for miembro in miembros %}
+                            <option value="{{ miembro.id }}">
+                                {{ miembro.username }}
+                            </option>
+                            {% empty %}
+                            <option value="" disabled>
+                                No hay miembros activos disponibles
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="fw-bold"><i class="fas fa-tasks"></i> Competencias Evaluadas:</label>
-                        <textarea name="competencias" rows="4" class="form-control" required></textarea>
+                        <label class="fw-bold form-label">
+                            <i class="fas fa-tasks"></i> Competencias Evaluadas:
+                        </label>
+
+                        <textarea name="competencias" rows="4" class="form-control" placeholder="Ej. Puntualidad, trabajo en equipo, comunicación, responsabilidad..." required></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="fw-bold"><i class="fas fa-star"></i> Calificación (1-5):</label>
-                        <input type="number" name="calificacion" min="1" max="5" class="form-control" required>
+                        <label class="fw-bold form-label">
+                            <i class="fas fa-star"></i> Calificación:
+                        </label>
+
+                        <select name="calificacion" class="form-select" required>
+                            <option value="" selected disabled>
+                                Selecciona una calificación
+                            </option>
+                            <option value="1">1 - Deficiente</option>
+                            <option value="2">2 - Deficiente</option>
+                            <option value="3">3 - Regular</option>
+                            <option value="4">4 - Bueno</option>
+                            <option value="5">5 - Excelente</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="fw-bold"><i class="fas fa-comment-dots"></i> Comentarios del Evaluador:</label>
-                        <textarea name="comentarios" rows="4" class="form-control"></textarea>
+                        <label class="fw-bold form-label">
+                            <i class="fas fa-comment-dots"></i> Comentarios del Evaluador:
+                        </label>
+
+                        <textarea name="comentarios" rows="4" class="form-control" placeholder="Escribe comentarios adicionales sobre el desempeño del miembro..."></textarea>
                     </div>
 
-                    <button class="btn btn-success w-100"><i class="fas fa-paper-plane"></i> Enviar Evaluación</button>
+                    <button class="btn btn-success w-100" type="submit">
+                        <i class="fas fa-paper-plane"></i> Enviar Evaluación
+                    </button>
                 </form>
+
             </div>
         </div>
 
-        <!-- Sección de estadísticas -->
-        <div class="col-md-6 mt-4">
-            <div class="card shadow-sm p-4 text-white bg-info text-center">
-                <h4 class="fw-bold"><i class="fas fa-chart-bar"></i> Evaluaciones Realizadas</h4>
-                <h2>50</h2>
-            </div>
-        </div>
-
-        <div class="col-md-6 mt-4">
-            <div class="card shadow-sm p-4 text-white bg-success text-center">
-                <h4 class="fw-bold"><i class="fas fa-thumbs-up"></i> Promedio de Evaluaciones</h4>
-                <h2>4.5</h2>
-            </div>
-        </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeEvaluacion");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
+
+<script>
+    document.addEventListener("submit", function(e) {
+        const form = e.target.closest(".js-eliminar-evaluacion");
+
+        if (!form) return;
+
+        if (typeof Swal === "undefined") {
+            return;
+        }
+
+        if (form.dataset.confirmado === "1") {
+            return;
+        }
+
+        e.preventDefault();
+
+        Swal.fire({
+            icon: "warning",
+            title: "¿Eliminar evaluación?",
+            text: "La evaluación ya no se mostrará en la lista.",
+            showCancelButton: true,
+            confirmButtonText: "Sí, eliminar",
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#d33",
+            reverseButtons: true,
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.dataset.confirmado = "1";
+                form.submit();
+            }
+        });
+    });
+</script>
+
 {% endblock %}

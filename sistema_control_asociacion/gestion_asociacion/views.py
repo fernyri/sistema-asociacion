@@ -16,7 +16,7 @@ from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetVie
 from django.contrib.sessions.models import Session
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.http import JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
@@ -41,6 +41,7 @@ from .models import (
     Usuario,
     Capacitacion,
     CapacitacionAsignada,
+    EvaluacionDesempeno,
 )
 
 User = get_user_model()
@@ -1761,8 +1762,161 @@ def nomina(request):
 @login_required
 @admin_only
 def evaluacion_desem(request):
-    return render(request, "gestion_asociacion/evaluacion_desem.html")
+    miembros = (
+        Usuario.objects
+        .filter(rol="Miembro", is_active=True)
+        .order_by("username")
+    )
 
+    if request.method == "POST":
+        usuario_id = request.POST.get("usuario_id")
+        competencias = (request.POST.get("competencias") or "").strip()
+        calificacion = request.POST.get("calificacion")
+        comentarios = (request.POST.get("comentarios") or "").strip()
+
+        miembro = Usuario.objects.filter(
+            id=usuario_id,
+            rol="Miembro",
+            is_active=True
+        ).first()
+
+        if not miembro:
+            messages.error(request, "Selecciona un miembro válido.")
+            return redirect("evaluacion_desem")
+
+        if not competencias:
+            messages.error(request, "Debes escribir las competencias evaluadas.")
+            return redirect("evaluacion_desem")
+
+        try:
+            calificacion = int(calificacion)
+        except (TypeError, ValueError):
+            messages.error(request, "La calificación debe ser un número del 1 al 5.")
+            return redirect("evaluacion_desem")
+
+        if calificacion < 1 or calificacion > 5:
+            messages.error(request, "La calificación debe estar entre 1 y 5.")
+            return redirect("evaluacion_desem")
+
+        EvaluacionDesempeno.objects.create(
+            evaluado=miembro,
+            evaluador=request.user,
+            competencias=competencias,
+            calificacion=calificacion,
+            comentarios=comentarios or None,
+        )
+
+        messages.success(request, "Evaluación registrada correctamente.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    evaluaciones = (
+        EvaluacionDesempeno.objects
+        .select_related("evaluado", "evaluador")
+        .filter(activo=True)
+        .order_by("-fecha_evaluacion")
+    )
+
+    total_evaluaciones = evaluaciones.count()
+
+    promedio = evaluaciones.aggregate(
+        promedio=Avg("calificacion")
+    )["promedio"]
+
+    promedio_evaluaciones = round(promedio, 2) if promedio else 0
+
+    context = {
+        "miembros": miembros,
+        "evaluaciones": evaluaciones,
+        "total_evaluaciones": total_evaluaciones,
+        "promedio_evaluaciones": promedio_evaluaciones,
+    }
+
+    return render(request, "gestion_asociacion/evaluacion_desem.html", context)
+
+@login_required
+@admin_only
+def editar_evaluacion_desem(request, evaluacion_id):
+    evaluacion = (
+        EvaluacionDesempeno.objects
+        .select_related("evaluado", "evaluador")
+        .filter(id=evaluacion_id, activo=True)
+        .first()
+    )
+
+    if not evaluacion:
+        messages.error(request, "Evaluación no encontrada.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    usuario_id = request.POST.get("usuario_id")
+    competencias = (request.POST.get("competencias") or "").strip()
+    calificacion = request.POST.get("calificacion")
+    comentarios = (request.POST.get("comentarios") or "").strip()
+
+    miembro = Usuario.objects.filter(
+        id=usuario_id,
+        rol="Miembro",
+        is_active=True
+    ).first()
+
+    if not miembro:
+        messages.error(request, "Selecciona un miembro válido.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    if not competencias:
+        messages.error(request, "Debes escribir las competencias evaluadas.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    try:
+        calificacion = int(calificacion)
+    except (TypeError, ValueError):
+        messages.error(request, "La calificación debe ser un número del 1 al 5.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    if calificacion < 1 or calificacion > 5:
+        messages.error(request, "La calificación debe estar entre 1 y 5.")
+        return redirect(reverse("evaluacion_desem") + "#mensajeEvaluacion")
+
+    evaluacion.evaluado = miembro
+    evaluacion.competencias = competencias
+    evaluacion.calificacion = calificacion
+    evaluacion.comentarios = comentarios or None
+    evaluacion.save(update_fields=[
+        "evaluado",
+        "competencias",
+        "calificacion",
+        "comentarios",
+        "actualizado_en",
+    ])
+
+    messages.success(request, "Evaluación actualizada correctamente.")
+    return redirect("evaluacion_desem")
+
+
+@login_required
+@admin_only
+def eliminar_evaluacion_desem(request, evaluacion_id):
+    if request.method != "POST":
+        messages.error(request, "Método no permitido.")
+        return redirect("evaluacion_desem")
+
+    evaluacion = EvaluacionDesempeno.objects.filter(
+        id=evaluacion_id,
+        activo=True
+    ).first()
+
+    if not evaluacion:
+        messages.error(request, "Evaluación no encontrada.")
+        return redirect("evaluacion_desem")
+
+    evaluacion.activo = False
+    evaluacion.save(update_fields=["activo", "actualizado_en"])
+
+    messages.success(request, "Evaluación eliminada correctamente.")
+    return redirect("evaluacion_desem")
 
 @login_required
 @admin_only

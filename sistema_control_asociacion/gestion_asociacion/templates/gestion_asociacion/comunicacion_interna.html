@@ -47,9 +47,9 @@
                 </p>
 
                 {% if messages %}
-                <div class="mb-3">
+                <div class="mb-3" id="mensajeComunicacionMiembro">
                     {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} mb-2">
+                    <div class="alert alert-{{ message.tags }} mb-2 mensaje-auto">
                         {{ message }}
                     </div>
                     {% endfor %}
@@ -137,6 +137,23 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeComunicacionMiembro");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
 
 <script>
     (function() {

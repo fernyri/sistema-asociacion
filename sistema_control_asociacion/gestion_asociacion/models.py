@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db.models.functions import Lower
+from django.core.validators import MinValueValidator, MaxValueValidator
 from datetime import time
 from django.utils import timezone
 
@@ -609,6 +610,108 @@ class BitacoraAcceso(models.Model):
 
     def __str__(self):
         return f"{self.usuario} - {self.fecha}"
+    
+
+# =========================
+# Evaluaciones de Desempeño
+# =========================
+class EvaluacionDesempeno(models.Model):
+
+    evaluado = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="evaluaciones_recibidas",
+        limit_choices_to={"rol": "Miembro"},
+        verbose_name="Miembro evaluado"
+    )
+
+    evaluador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="evaluaciones_realizadas",
+        verbose_name="Evaluador"
+    )
+
+    competencias = models.TextField(
+        verbose_name="Competencias evaluadas"
+    )
+
+    calificacion = models.PositiveSmallIntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(5)
+        ],
+        verbose_name="Calificación"
+    )
+
+    comentarios = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Comentarios del evaluador"
+    )
+
+    fecha_evaluacion = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+        verbose_name="Fecha de evaluación"
+    )
+
+    activo = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
+
+    creado_en = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación"
+    )
+
+    actualizado_en = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Última actualización"
+    )
+
+    @property
+    def resultado_texto(self):
+        if self.calificacion <= 2:
+            return "Deficiente"
+
+        if self.calificacion == 3:
+            return "Regular"
+
+        if self.calificacion == 4:
+            return "Bueno"
+
+        if self.calificacion == 5:
+            return "Excelente"
+
+        return "Sin resultado"
+
+    @property
+    def resultado_badge(self):
+        if self.calificacion <= 2:
+            return "danger"
+
+        if self.calificacion == 3:
+            return "warning"
+
+        if self.calificacion == 4:
+            return "info"
+
+        if self.calificacion == 5:
+            return "success"
+
+        return "secondary"
+
+    def __str__(self):
+        return f"{self.evaluado.username} - {self.resultado_texto} - {self.fecha_evaluacion.date()}"
+
+    class Meta:
+        ordering = ["-fecha_evaluacion"]
+        verbose_name = "Evaluación de desempeño"
+        verbose_name_plural = "Evaluaciones de desempeño"
     
 # =========================
 # Capacitaciones

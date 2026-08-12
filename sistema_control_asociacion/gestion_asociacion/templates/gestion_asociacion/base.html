@@ -27,8 +27,8 @@
 
             <!-- Botón responsive para menú de miembro -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#memberNavbar" aria-controls="memberNavbar" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
             <div class="collapse navbar-collapse" id="memberNavbar">
 
@@ -44,9 +44,10 @@
                     <li class="nav-item">
                         <a href="{% url 'comunicacion_interna' %}" class="nav-link text-dark fw-semibold position-relative d-flex align-items-center {% if request.resolver_match.url_name == 'comunicacion_interna' %}active{% endif %}">
                             <span class="position-relative me-2">
-                                    <i class="fas fa-comments {% if no_leidos|default:0 > 0 %}text-danger{% endif %}"></i>
-                                    {% if no_leidos|default:0 > 0 %}
-                                    <span class="notification-dot"></span> {% endif %}
+                                <i class="fas fa-comments {% if no_leidos|default:0 > 0 %}text-danger{% endif %}"></i>
+
+                                {% if no_leidos|default:0 > 0 %}
+                                <span class="notification-dot"></span> {% endif %}
                             </span>
 
                             Comunicación {% if no_leidos|default:0 > 0 %}
@@ -57,9 +58,10 @@
                     <li class="nav-item">
                         <a href="{% url 'papelera' %}" class="nav-link text-dark fw-semibold position-relative d-flex align-items-center {% if request.resolver_match.url_name == 'papelera' %}active{% endif %}">
                             <span class="position-relative me-2">
-                                    <i class="fas fa-trash"></i>
-                                    {% if papelera_count|default:0 > 0 %}
-                                    <span class="notification-dot"></span> {% endif %}
+                                <i class="fas fa-trash"></i>
+
+                                {% if papelera_count|default:0 > 0 %}
+                                <span class="notification-dot"></span> {% endif %}
                             </span>
 
                             Papelera {% if papelera_count|default:0 > 0 %}
@@ -82,8 +84,8 @@
                     <form method="post" action="{% url 'logout' %}" class="m-0">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-danger btn-sm">
-                                <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
-                            </button>
+                            <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+                        </button>
                     </form>
 
                 </div>
@@ -94,8 +96,8 @@
 
             <!-- Botón para abrir sidebar en administradores -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span> Menú
-                </button>
+                <span class="navbar-toggler-icon"></span> Menú
+            </button>
 
             <!-- Usuario y cierre de sesión de administradores -->
             <div class="d-flex align-items-center ms-auto flex-wrap gap-2">
@@ -110,8 +112,8 @@
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger btn-sm">
-                            <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
-                        </button>
+                        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+                    </button>
                 </form>
 
             </div>
@@ -169,7 +171,7 @@
 
                     <li class="nav-item">
                         <a href="{% url 'evaluacion_desem' %}" class="nav-link {% if request.resolver_match.url_name == 'evaluacion_desem' %}active{% endif %}">
-                            <i class="fas fa-chart-line me-2"></i> Evaluación de Desempeño
+                            <i class="fas fa-chart-line me-2"></i> Desempeño
                         </a>
                     </li>
 
@@ -186,6 +188,7 @@
                     </li>
 
                     {% endif %}
+
                 </ul>
             </nav>
             {% endif %}
@@ -206,33 +209,34 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {% if messages %}
-    <script id="django-messages" type="application/json">
-        [{ %
-            for message in messages %
-        } {
-            "text": "{{ message|escapejs }}",
-            "tags": "{{ message.tags|default:'info'|escapejs }}"
-        } { %
-            if not forloop.last %
-        }, { % endif %
-        } { % endfor %
-        }]
-    </script>
+    <div id="django-messages" class="d-none">
+        {% for message in messages %}
+        <div class="django-message-item" data-text="{{ message|escape }}" data-tags="{{ message.tags|default:'info'|escape }}">
+        </div>
+        {% endfor %}
+    </div>
 
     <script>
         (function() {
             if (typeof Swal === "undefined") return;
 
+            /*
+                Evita duplicar avisos:
+                Si la plantilla actual ya pintó mensajes con .mensaje-auto,
+                no mostramos también el Toast global de base.html.
+            */
+            if (document.querySelector(".mensaje-auto")) return;
+
             const dataEl = document.getElementById("django-messages");
             if (!dataEl) return;
 
-            const messages = JSON.parse(dataEl.textContent);
+            const items = dataEl.querySelectorAll(".django-message-item");
 
             const Toast = Swal.mixin({
                 toast: true,
                 position: "top-end",
                 showConfirmButton: false,
-                timer: 3500,
+                timer: 2500,
                 timerProgressBar: true,
             });
 
@@ -246,10 +250,10 @@
                 return "info";
             }
 
-            messages.forEach(msg => {
+            items.forEach(function(item) {
                 Toast.fire({
-                    icon: mapIcon(msg.tags),
-                    title: msg.text
+                    icon: mapIcon(item.dataset.tags),
+                    title: item.dataset.text,
                 });
             });
         })();
@@ -334,6 +338,15 @@
                 text: "¿Deseas continuar?",
                 confirmButtonText: "Sí, continuar",
                 cancelButtonText: "Cancelar",
+            });
+
+            bindConfirm("form.js-confirm-cambiar-rol", {
+                icon: "warning",
+                title: "Cambiar rol",
+                text: "¿Deseas continuar?",
+                confirmButtonText: "Sí, cambiar rol",
+                cancelButtonText: "Cancelar",
+                confirmButtonColor: "#f0ad4e",
             });
 
             window.bindConfirmSwal = bindConfirm;

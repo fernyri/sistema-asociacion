@@ -15,6 +15,16 @@
                     </a>
                 </div>
 
+                {% if messages %}
+                <div class="mb-3" id="mensajeEditarUsuario">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} text-center mb-2 mensaje-auto">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
                 <div class="alert alert-info">
                     Estás editando a <b>{{ usuario_obj.username }}</b>. {% if user_role == "Administrador" %} Solo puedes editar usuarios con rol <b>Miembro</b>. {% elif user_role == "Dios" %} Puedes editar usuarios con rol <b>Miembro</b> y <b>Administrador</b>.
                     {% endif %}
@@ -53,9 +63,18 @@
                             <label class="form-label">Género</label>
                             <select name="genero" class="form-select">
                                 <option value="">Selecciona una opción</option>
-                                <option value="M" {% if usuario_obj.genero == "M" %}selected{% endif %}>Masculino</option>
-                                <option value="F" {% if usuario_obj.genero == "F" %}selected{% endif %}>Femenino</option>
-                                <option value="O" {% if usuario_obj.genero == "O" %}selected{% endif %}>Otro</option>
+
+                                <option value="M" {% if usuario_obj.genero == "M" %}selected{% endif %}>
+                                    Masculino
+                                </option>
+
+                                <option value="F" {% if usuario_obj.genero == "F" %}selected{% endif %}>
+                                    Femenino
+                                </option>
+
+                                <option value="O" {% if usuario_obj.genero == "O" %}selected{% endif %}>
+                                    Otro
+                                </option>
                             </select>
                         </div>
 
@@ -67,6 +86,7 @@
                         <div class="col-md-6 d-flex align-items-end">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if usuario_obj.is_active %}checked{% endif %}>
+
                                 <label class="form-check-label" for="is_active">
                                     Usuario activo
                                 </label>
@@ -94,5 +114,22 @@
         </main>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeEditarUsuario");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
 
 {% endblock %}
