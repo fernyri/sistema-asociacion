@@ -1,5 +1,6 @@
 {% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Personal{% endblock %} {% block content %}
 
+
 <div class="container-fluid mt-4 px-0">
     <div class="row m-0 justify-content-center">
 
@@ -116,7 +117,7 @@
 
                                     {% if miembro.rol == "Dios" %}
 
-                                    <span class="badge bg-dark">
+                                    <span class="badge bg-warning text-dark">
                                         <i class="fas fa-crown me-1"></i>Dios
                                     </span> {% elif miembro.rol == "Administrador" %}
 
@@ -124,8 +125,8 @@
                                         <i class="fas fa-shield-halved me-1"></i>Administrador
                                     </span> {% else %}
 
-                                    <span class="badge bg-secondary">
-                                        Miembro
+                                    <span class="badge bg-info text-dark">
+                                        <i class="fas fa-user me-1"></i>Miembro
                                     </span> {% endif %}
 
                                 </td>
@@ -211,8 +212,7 @@
         const tbody = document.getElementById("employeeTable");
 
         const rows = tbody ?
-            Array.from(tbody.getElementsByTagName("tr")) :
-            [];
+            Array.from(tbody.getElementsByTagName("tr")) : [];
 
         const noResults = document.getElementById("noResults");
 

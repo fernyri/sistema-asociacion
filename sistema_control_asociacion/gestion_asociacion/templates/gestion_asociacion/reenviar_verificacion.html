@@ -21,6 +21,7 @@
     }
 </style>
 {% endblock %} {% block content %}
+
 <div class="main-container d-flex justify-content-center align-items-center">
     <div class="register-container status-container p-4 shadow rounded bg-white">
 
@@ -33,12 +34,20 @@
         </p>
 
         {% if messages %}
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                {% for message in messages %}
-                <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
+        <div class="mb-3" id="mensajeReenviarVerificacion">
+            {% for message in messages %} {% if "success" in message.tags %}
+            <div class="alert alert-success text-center mb-2 mensaje-auto">
+                {{ message }}
+            </div>
+            {% elif "warning" in message.tags %}
+            <div class="alert alert-warning text-center mb-2 mensaje-auto">
+                {{ message }}
+            </div>
+            {% else %}
+            <div class="alert alert-danger text-center mb-2 mensaje-auto">
+                {{ message }}
+            </div>
+            {% endif %} {% endfor %}
         </div>
         {% endif %}
 
@@ -64,4 +73,22 @@
 
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mensaje = document.getElementById("mensajeReenviarVerificacion");
+
+        if (!mensaje) return;
+
+        setTimeout(function() {
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+        }, 2500);
+    });
+</script>
+
 {% endblock %}

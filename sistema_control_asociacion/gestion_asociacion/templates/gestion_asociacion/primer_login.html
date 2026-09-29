@@ -3,52 +3,55 @@
 
 <div class="login-page">
     <div class="login-container">
-        <h2 class="text-center fw-bold">Bienvenido</h2>
 
-        <form method="post" action="{% url 'login' %}">
+        <h2 class="text-center fw-bold">
+            Bienvenido
+        </h2>
+
+        <form method="post" action="{% url 'login' %}" id="loginForm">
+
             {% csrf_token %}
 
-            <!-- Campo de Correo Electrónico -->
+            <!-- Correo electrónico -->
             <div class="form-group">
-                <input type="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ email_value|default:'' }}" required>
+                <input type="email" id="email" name="email" class="form-control" placeholder="Correo electrónico" value="{{ email_value|default:'' }}" autocomplete="email" required>
+
+                <div id="errorReenvioEmail" class="text-danger small mt-1">
+                </div>
             </div>
 
-            <!-- Campo de Contraseña -->
+            <!-- Contraseña -->
             <div class="form-group password-container">
-                <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" autocomplete="current-password" required>
 
-                <span class="toggle-password" id="togglePassword">
+                <span class="toggle-password" id="togglePassword" role="button" tabindex="0" aria-label="Mostrar u ocultar contraseña">
                     <i class="fa fa-eye"></i>
                 </span>
             </div>
 
-            <!-- Error de correo -->
+            <!-- Mensajes del login -->
             {% for message in messages %} {% if "email_not_found" in message.tags %}
-            <div class="error-message">
+            <div class="error-message mensaje-auto">
                 <i class="fas fa-exclamation-circle"></i> {{ message }}
             </div>
             {% endif %} {% if "email_unverified" in message.tags %}
-            <div class="error-message">
+            <div class="error-message mensaje-auto">
                 <i class="fas fa-exclamation-circle"></i> {{ message }}
             </div>
 
-            <a href="{% url 'reenviar_verificacion' %}" class="btn btn-outline-primary mt-2 w-100">
+            <button type="button" id="btnReenviarVerificacion" class="btn btn-info text-white w-100 mb-2">
+                        <i class="fas fa-envelope me-1"></i>
                         Reenviar verificación
-                    </a> {% endif %} {% endfor %}
-
-            <!-- Error de contraseña -->
-            {% for message in messages %} {% if "password_error" in message.tags %}
-            <div class="error-message">
+                    </button> {% endif %} {% if "password_error" in message.tags %}
+            <div class="error-message mensaje-auto">
                 <i class="fas fa-exclamation-circle"></i> {{ message }}
             </div>
             {% endif %} {% endfor %}
 
-            <!-- Botón -->
             <button type="submit" class="btn-login">
                 Iniciar sesión
             </button>
 
-            <!-- Enlaces -->
             <a href="{% url 'registro' %}">
                 ¿No tienes cuenta? Regístrate aquí
             </a>
@@ -57,25 +60,879 @@
                 ¿Olvidaste tu contraseña?
             </a>
 
+            <!-- Respaldo manual -->
             <a href="{% url 'reenviar_verificacion' %}">
                 ¿No te llegó el correo de verificación?
             </a>
+
         </form>
+
     </div>
 </div>
 
-<script>
-    document.getElementById('togglePassword').addEventListener('click', function() {
-        const passwordField = document.getElementById('password');
-        const icon = this.querySelector('i');
 
-        if (passwordField.type === 'password') {
-            passwordField.type = 'text';
-            icon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            passwordField.type = 'password';
-            icon.classList.replace('fa-eye-slash', 'fa-eye');
+<!-- =========================================================
+     TOAST BOOTSTRAP - ESQUINA SUPERIOR DERECHA
+========================================================= -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+
+    <div id="toastReenvio" class="toast border border-2 border-success rounded-4 shadow-lg overflow-hidden" role="alert" aria-live="assertive" aria-atomic="true">
+
+        <div id="toastReenvioHeader" class="toast-header bg-success bg-opacity-10">
+            <span id="toastReenvioIconWrapper" class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success me-2 p-2">
+                <i
+                    id="toastReenvioIcon"
+                    class="fas fa-info"
+                ></i>
+            </span>
+
+            <strong id="toastReenvioTitulo" class="me-auto text-dark">
+                Revisa tu correo
+            </strong>
+
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="toast-body bg-white text-dark">
+
+            <div id="toastReenvioMensaje"></div>
+
+            <!-- Cuenta regresiva -->
+            <div id="toastContadorWrapper" class="d-none mt-3 text-center">
+                <div class="small text-muted mb-2">
+                    Podrás intentarlo nuevamente en
+                </div>
+
+                <span id="toastContador" class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill">
+                    20 s
+                </span>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- =========================================================
+     OCULTAR MENSAJES DEL LOGIN
+========================================================= -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const mensajes =
+            document.querySelectorAll(".mensaje-auto");
+
+        if (!mensajes.length) {
+            return;
         }
+
+        setTimeout(function() {
+
+            mensajes.forEach(function(mensaje) {
+
+                mensaje.style.transition =
+                    "opacity 0.5s ease";
+
+                mensaje.style.opacity = "0";
+
+                setTimeout(function() {
+                    mensaje.remove();
+                }, 500);
+
+            });
+
+        }, 2500);
+
+    });
+</script>
+
+
+<!-- =========================================================
+     MOSTRAR / OCULTAR CONTRASEÑA
+========================================================= -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const togglePassword =
+            document.getElementById("togglePassword");
+
+        const passwordField =
+            document.getElementById("password");
+
+        if (!togglePassword ||
+            !passwordField
+        ) {
+            return;
+        }
+
+
+        function cambiarVisibilidadPassword() {
+
+            const icon =
+                togglePassword.querySelector("i");
+
+            if (passwordField.type === "password") {
+
+                passwordField.type = "text";
+
+                icon.classList.replace(
+                    "fa-eye",
+                    "fa-eye-slash"
+                );
+
+            } else {
+
+                passwordField.type = "password";
+
+                icon.classList.replace(
+                    "fa-eye-slash",
+                    "fa-eye"
+                );
+
+            }
+        }
+
+
+        togglePassword.addEventListener(
+            "click",
+            cambiarVisibilidadPassword
+        );
+
+
+        togglePassword.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter" ||
+                    event.key === " "
+                ) {
+                    event.preventDefault();
+
+                    cambiarVisibilidadPassword();
+                }
+
+            }
+        );
+
+    });
+</script>
+
+
+<!-- =========================================================
+     REENVÍO RÁPIDO POR AJAX
+========================================================= -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const emailInput =
+            document.getElementById("email");
+
+        const btnReenviar =
+            document.getElementById(
+                "btnReenviarVerificacion"
+            );
+
+        const errorReenvio =
+            document.getElementById(
+                "errorReenvioEmail"
+            );
+
+        const csrfToken =
+            document.querySelector(
+                '#loginForm input[name="csrfmiddlewaretoken"]'
+            );
+
+        const reenviarUrl =
+            "{% url 'reenviar_verificacion' %}";
+
+
+        if (!emailInput ||
+            !btnReenviar ||
+            !csrfToken
+        ) {
+            return;
+        }
+
+
+        let intervaloToast = null;
+
+
+        // =========================================================
+        // HELPERS
+        // =========================================================
+
+        function normalizarEmail(valor) {
+
+            return (valor || "")
+                .trim()
+                .toLowerCase();
+        }
+
+
+        function emailValido(valor) {
+
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                valor
+            );
+        }
+
+
+        function limpiarIntervaloToast() {
+
+            if (intervaloToast) {
+
+                clearInterval(intervaloToast);
+
+                intervaloToast = null;
+            }
+        }
+
+
+        // =========================================================
+        // ESTILO DEL TOAST
+        // =========================================================
+
+        function aplicarEstiloToast(icono) {
+
+            const toastElemento =
+                document.getElementById(
+                    "toastReenvio"
+                );
+
+            const toastHeader =
+                document.getElementById(
+                    "toastReenvioHeader"
+                );
+
+            const iconWrapper =
+                document.getElementById(
+                    "toastReenvioIconWrapper"
+                );
+
+            const toastIcon =
+                document.getElementById(
+                    "toastReenvioIcon"
+                );
+
+
+            const colores = [
+                "success",
+                "warning",
+                "danger",
+                "primary"
+            ];
+
+
+            colores.forEach(function(color) {
+
+                toastElemento.classList.remove(
+                    "border-" + color
+                );
+
+                toastHeader.classList.remove(
+                    "bg-" + color
+                );
+
+                iconWrapper.classList.remove(
+                    "bg-" + color,
+                    "text-" + color
+                );
+
+            });
+
+
+            toastIcon.className =
+                "fas";
+
+
+            // Éxito
+            if (icono === "success") {
+
+                toastElemento.classList.add(
+                    "border-success"
+                );
+
+                toastHeader.classList.add(
+                    "bg-success"
+                );
+
+                iconWrapper.classList.add(
+                    "bg-success",
+                    "text-success"
+                );
+
+                toastIcon.classList.add(
+                    "fa-check"
+                );
+
+            }
+
+            // Advertencia
+            else if (icono === "warning") {
+
+                toastElemento.classList.add(
+                    "border-warning"
+                );
+
+                toastHeader.classList.add(
+                    "bg-warning"
+                );
+
+                iconWrapper.classList.add(
+                    "bg-warning",
+                    "text-warning"
+                );
+
+                toastIcon.classList.add(
+                    "fa-exclamation"
+                );
+
+            }
+
+            // Error
+            else if (
+                icono === "error" ||
+                icono === "danger"
+            ) {
+
+                toastElemento.classList.add(
+                    "border-danger"
+                );
+
+                toastHeader.classList.add(
+                    "bg-danger"
+                );
+
+                iconWrapper.classList.add(
+                    "bg-danger",
+                    "text-danger"
+                );
+
+                toastIcon.classList.add(
+                    "fa-times"
+                );
+
+            }
+
+            // Información
+            else {
+
+                toastElemento.classList.add(
+                    "border-primary"
+                );
+
+                toastHeader.classList.add(
+                    "bg-primary"
+                );
+
+                iconWrapper.classList.add(
+                    "bg-primary",
+                    "text-primary"
+                );
+
+                toastIcon.classList.add(
+                    "fa-info"
+                );
+
+            }
+        }
+
+
+        // =========================================================
+        // MOSTRAR TOAST
+        // =========================================================
+
+        function mostrarToastReenvio(
+            icono,
+            titulo,
+            mensaje,
+            segundosRestantes = null
+        ) {
+
+            const toastElemento =
+                document.getElementById(
+                    "toastReenvio"
+                );
+
+            const toastTitulo =
+                document.getElementById(
+                    "toastReenvioTitulo"
+                );
+
+            const toastMensaje =
+                document.getElementById(
+                    "toastReenvioMensaje"
+                );
+
+            const contadorWrapper =
+                document.getElementById(
+                    "toastContadorWrapper"
+                );
+
+            const contador =
+                document.getElementById(
+                    "toastContador"
+                );
+
+
+            if (!toastElemento ||
+                !toastTitulo ||
+                !toastMensaje ||
+                !contadorWrapper ||
+                !contador
+            ) {
+                return;
+            }
+
+
+            limpiarIntervaloToast();
+
+
+            toastTitulo.textContent =
+                titulo || "Revisa tu correo";
+
+
+            toastMensaje.textContent =
+                mensaje || "";
+
+
+            aplicarEstiloToast(
+                icono || "info"
+            );
+
+
+            const numeroSegundos =
+                Number(segundosRestantes);
+
+
+            const tieneContador =
+                Number.isFinite(numeroSegundos) &&
+                numeroSegundos > 0;
+
+
+            let instanciaToast = null;
+
+
+            // =====================================================
+            // CREAR INSTANCIA BOOTSTRAP
+            // =====================================================
+
+            if (
+                typeof bootstrap !== "undefined" &&
+                bootstrap.Toast
+            ) {
+
+                const instanciaAnterior =
+                    bootstrap.Toast.getInstance(
+                        toastElemento
+                    );
+
+
+                if (instanciaAnterior) {
+
+                    instanciaAnterior.dispose();
+
+                }
+
+
+                instanciaToast =
+                    new bootstrap.Toast(
+                        toastElemento, {
+                            autohide: !tieneContador,
+                            delay: 4500
+                        }
+                    );
+            }
+
+
+            // =====================================================
+            // TOAST NORMAL
+            // =====================================================
+
+            if (!tieneContador) {
+
+                contadorWrapper.classList.add(
+                    "d-none"
+                );
+
+
+                if (instanciaToast) {
+
+                    instanciaToast.show();
+
+                } else {
+
+                    toastElemento.classList.add(
+                        "show"
+                    );
+
+
+                    setTimeout(function() {
+
+                        toastElemento.classList.remove(
+                            "show"
+                        );
+
+                    }, 4500);
+                }
+
+
+                return;
+            }
+
+
+            // =====================================================
+            // TOAST CON CONTADOR
+            // =====================================================
+
+            contadorWrapper.classList.remove(
+                "d-none"
+            );
+
+
+            let segundos =
+                Math.ceil(
+                    numeroSegundos
+                );
+
+
+            contador.textContent =
+                `${segundos} s`;
+
+
+            if (instanciaToast) {
+
+                instanciaToast.show();
+
+            } else {
+
+                toastElemento.classList.add(
+                    "show"
+                );
+
+            }
+
+
+            /*
+                Mientras exista cooldown,
+                dejamos deshabilitado el botón.
+            */
+            btnReenviar.disabled =
+                true;
+
+
+            intervaloToast =
+                setInterval(function() {
+
+                    segundos--;
+
+
+                    if (segundos <= 0) {
+
+                        contador.textContent =
+                            "0 s";
+
+
+                        limpiarIntervaloToast();
+
+
+                        setTimeout(function() {
+
+                            if (instanciaToast) {
+
+                                instanciaToast.hide();
+
+                            } else {
+
+                                toastElemento.classList.remove(
+                                    "show"
+                                );
+
+                            }
+
+
+                            btnReenviar.disabled =
+                                false;
+
+                        }, 500);
+
+
+                        return;
+                    }
+
+
+                    contador.textContent =
+                        `${segundos} s`;
+
+                }, 1000);
+
+        }
+
+
+        // =========================================================
+        // CERRAR TOAST MANUALMENTE
+        // =========================================================
+
+        const toastElemento =
+            document.getElementById(
+                "toastReenvio"
+            );
+
+
+        if (toastElemento) {
+
+            toastElemento.addEventListener(
+                "hidden.bs.toast",
+                function() {
+
+                    limpiarIntervaloToast();
+
+                }
+            );
+
+        }
+
+
+        // =========================================================
+        // BOTÓN REENVIAR
+        // =========================================================
+
+        btnReenviar.addEventListener(
+            "click",
+            async function() {
+
+                const email =
+                    normalizarEmail(
+                        emailInput.value
+                    );
+
+
+                if (errorReenvio) {
+
+                    errorReenvio.innerHTML =
+                        "";
+
+                }
+
+
+                // Correo vacío
+                if (!email) {
+
+                    if (errorReenvio) {
+
+                        errorReenvio.innerHTML =
+                            "Escribe tu correo electrónico para reenviar la verificación.";
+
+                    }
+
+
+                    emailInput.focus();
+
+                    return;
+                }
+
+
+                // Correo inválido
+                if (!emailValido(email)) {
+
+                    if (errorReenvio) {
+
+                        errorReenvio.innerHTML =
+                            "Ingresa un correo electrónico válido.";
+
+                    }
+
+
+                    emailInput.focus();
+
+                    return;
+                }
+
+
+                emailInput.value =
+                    email;
+
+
+                // =================================================
+                // FORMDATA
+                // =================================================
+
+                const datos =
+                    new FormData();
+
+
+                datos.append(
+                    "email",
+                    email
+                );
+
+
+                datos.append(
+                    "csrfmiddlewaretoken",
+                    csrfToken.value
+                );
+
+
+                const textoOriginal =
+                    btnReenviar.innerHTML;
+
+
+                btnReenviar.disabled =
+                    true;
+
+
+                btnReenviar.innerHTML =
+                    '<i class="fas fa-spinner fa-spin me-1"></i> Enviando...';
+
+
+                // =================================================
+                // PETICIÓN AJAX
+                // =================================================
+
+                try {
+
+                    const response =
+                        await fetch(
+                            reenviarUrl, {
+                                method: "POST",
+
+                                headers: {
+                                    "X-Requested-With": "XMLHttpRequest"
+                                },
+
+                                body: datos
+                            }
+                        );
+
+
+                    const resultado =
+                        await response.json();
+
+
+                    // =============================================
+                    // SEGUNDOS RESTANTES
+                    // =============================================
+
+                    let segundosRestantes =
+                        Number(
+                            resultado.segundos_restantes
+                        );
+
+
+                    /*
+                        Respaldo por si el backend
+                        todavía devuelve el número
+                        dentro del mensaje.
+                    */
+                    if (!Number.isFinite(
+                            segundosRestantes
+                        ) ||
+                        segundosRestantes <= 0
+                    ) {
+
+                        const coincidencia =
+                            String(
+                                resultado.mensaje || ""
+                            ).match(
+                                /(\d+)\s*segundos?/i
+                            );
+
+
+                        segundosRestantes =
+                            coincidencia ?
+                            parseInt(
+                                coincidencia[1],
+                                10
+                            ) :
+                            null;
+                    }
+
+
+                    // =============================================
+                    // MOSTRAR TOAST
+                    // =============================================
+
+                    mostrarToastReenvio(
+
+                        resultado.icono ||
+                        "info",
+
+                        resultado.titulo ||
+                        "Revisa tu correo",
+
+                        resultado.mensaje ||
+                        "La solicitud fue procesada.",
+
+                        segundosRestantes
+
+                    );
+
+
+                } catch (error) {
+
+                    console.error(
+                        "Error al reenviar verificación:",
+                        error
+                    );
+
+
+                    mostrarToastReenvio(
+
+                        "error",
+
+                        "No se pudo reenviar",
+
+                        "No pudimos procesar el reenvío en este momento. Intenta nuevamente."
+
+                    );
+
+
+                } finally {
+
+                    /*
+                        Si no hay contador,
+                        recuperamos inmediatamente
+                        el botón.
+
+                        Si existe contador,
+                        se desbloquea al llegar a 0.
+                    */
+                    if (!intervaloToast) {
+
+                        btnReenviar.disabled =
+                            false;
+
+                    }
+
+
+                    btnReenviar.innerHTML =
+                        textoOriginal;
+
+                }
+
+            }
+        );
+
+
+        // =========================================================
+        // LIMPIAR ERROR AL MODIFICAR CORREO
+        // =========================================================
+
+        emailInput.addEventListener(
+            "input",
+            function() {
+
+                if (errorReenvio) {
+
+                    errorReenvio.innerHTML =
+                        "";
+
+                }
+
+            }
+        );
+
     });
 </script>
 

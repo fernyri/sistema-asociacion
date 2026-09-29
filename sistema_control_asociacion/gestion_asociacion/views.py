@@ -10,13 +10,12 @@ from django.contrib.auth import (
     logout as auth_logout,
 )
 from django.contrib.auth.decorators import login_required
-from django.core.cache import cache
-from .tokens import email_verification_token
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetView
 from django.contrib.sessions.models import Session
+from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
-from django.db.models import Q, Avg
+from django.db.models import Avg, Q
 from django.http import JsonResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
@@ -24,9 +23,8 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.contrib import messages
-from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
+import math
+
 
 from .decorators import admin_only
 from .forms import MensajeForm, RegistroForm, CapacitacionForm, CapacitacionAsignadaForm
@@ -43,6 +41,8 @@ from .models import (
     CapacitacionAsignada,
     EvaluacionDesempeno,
 )
+from .tokens import email_verification_token
+
 
 User = get_user_model()
 
@@ -243,16 +243,104 @@ def enviar_correo_verificacion(request, user: Usuario):
 # ============================================================
 class CustomPasswordResetView(PasswordResetView):
     template_name = "gestion_asociacion/password_reset.html"
-    html_email_template_name = "gestion_asociacion/password_reset_email.html"
-    subject_template_name = "gestion_asociacion/password_reset_subject.txt"
-    success_url = reverse_lazy("password_reset_done")
+
+    html_email_template_name = (
+        "gestion_asociacion/password_reset_email.html"
+    )
+
+    subject_template_name = (
+        "gestion_asociacion/password_reset_subject.txt"
+    )
+
+    success_url = reverse_lazy(
+        "password_reset_done"
+    )
+
+    # Tiempo de expiración enviado al correo.
+    # PASSWORD_RESET_TIMEOUT está en segundos.
+    extra_email_context = {
+        "timeout_minutes": max(
+            1,
+            (
+                getattr(
+                    settings,
+                    "PASSWORD_RESET_TIMEOUT",
+                    3600
+                ) + 59
+            ) // 60
+        )
+    }
 
     def form_valid(self, form):
+        es_ajax = (
+            self.request.headers.get("x-requested-with")
+            == "XMLHttpRequest"
+        )
+
+        opciones = {
+            "use_https": self.request.is_secure(),
+            "token_generator": self.token_generator,
+            "from_email": self.from_email,
+            "email_template_name": self.email_template_name,
+            "subject_template_name": self.subject_template_name,
+            "request": self.request,
+            "html_email_template_name": self.html_email_template_name,
+            "extra_email_context": self.extra_email_context,
+        }
+
+        form.save(**opciones)
+
+        mensaje = (
+            "Si el correo está registrado, recibirás "
+            "instrucciones para restablecer tu contraseña."
+        )
+
+        if es_ajax:
+            return JsonResponse({
+                "ok": True,
+                "titulo": "Correo enviado",
+                "mensaje": mensaje,
+                "icono": "success",
+            })
+
         messages.success(
             self.request,
-            "✅ Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña."
+            f"✅ {mensaje}"
         )
-        return super().form_valid(form)
+
+        return super(
+            PasswordResetView,
+            self
+        ).form_valid(form)
+
+    def form_invalid(self, form):
+        es_ajax = (
+            self.request.headers.get("x-requested-with")
+            == "XMLHttpRequest"
+        )
+
+        if es_ajax:
+            errores = []
+
+            for field_errors in form.errors.values():
+                for error in field_errors:
+                    errores.append(str(error))
+
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "titulo": "Revisa el correo",
+                    "mensaje": (
+                        errores[0]
+                        if errores
+                        else "Ingresa un correo electrónico válido."
+                    ),
+                    "icono": "warning",
+                },
+                status=400
+            )
+
+        return super().form_invalid(form)
 
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
@@ -304,25 +392,46 @@ def registro(request):
                     user.is_active = False
                     user.save()
 
-                    enviar_correo_verificacion(request, user)
-
-                messages.success(
-                    request,
-                    "✅ Tu cuenta fue creada. Revisa tu correo para verificarla antes de iniciar sesión."
-                )
-                return redirect("registro_exito")
-
             except IntegrityError:
                 messages.error(request, "El usuario o correo ya están registrados.")
+                return render(request, "gestion_asociacion/registro.html", {"form": form})
+
+            try:
+                enviar_correo_verificacion(request, user)
+
             except Exception:
-                messages.error(
-                    request,
-                    "La cuenta se creó, pero hubo un problema al enviar el correo de verificación. Intenta más tarde."
-                )
+                return render(request, "gestion_asociacion/auth_status.html", {
+                    "titulo": "Cuenta creada",
+                    "mensaje": (
+                        "Tu cuenta fue creada correctamente, pero no pudimos enviar "
+                        "el correo de verificación en este momento. Puedes solicitar "
+                        "un nuevo enlace de verificación."
+                    ),
+                    "boton_texto": "Reenviar verificación",
+                    "boton_url": reverse("reenviar_verificacion"),
+                    "tipo": "warning",
+                })
+
+            return redirect("registro_exito")
+
+        password1_vacio = not (request.POST.get("password1") or "").strip()
+        password2_vacio = not (request.POST.get("password2") or "").strip()
 
         for field, errs in form.errors.items():
             for err in errs:
-                messages.error(request, f"{field}: {err}")
+                # Si ambos campos de contraseña están vacíos, mostramos solo
+                # "La contraseña es obligatoria" y ocultamos por ahora
+                # "Debes confirmar la contraseña".
+                if field == "password2" and password1_vacio and password2_vacio:
+                    continue
+
+                if field in ["password1", "password2", "__all__"]:
+                    messages.error(request, str(err))
+                else:
+                    campo = form.fields.get(field)
+                    nombre_campo = campo.label if campo and campo.label else field
+                    messages.error(request, f"{nombre_campo}: {err}")
+
     else:
         form = RegistroForm()
 
@@ -331,10 +440,10 @@ def registro(request):
 
 def registro_exito(request):
     return render(request, "gestion_asociacion/auth_status.html", {
-        "titulo": "Revisa tu correo",
+        "titulo": "Verifica tu cuenta",
         "mensaje": (
-            "Tu cuenta fue creada correctamente. Te enviamos un enlace de verificación "
-            "a tu correo electrónico. Debes activar tu cuenta antes de iniciar sesión."
+            "Te enviamos un enlace de verificacion "
+            "a tu correo electronico. Debes activarla para iniciar sesion."
         ),
         "boton_texto": "Ir al login",
         "boton_url": reverse("login"),
@@ -349,12 +458,19 @@ def activar_cuenta(request, uidb64, token):
     except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
         user = None
 
-    if user is not None and email_verification_token.check_token(user, token):
-        if not user.is_active:
-            user.is_active = True
-            user.save(update_fields=["is_active"])
+    if user is not None and user.is_active:
+        return render(request, "gestion_asociacion/auth_status.html", {
+            "titulo": "Cuenta ya verificada",
+            "mensaje": "Esta cuenta ya está activa. Ya puedes iniciar sesión.",
+            "boton_texto": "Ir al login",
+            "boton_url": reverse("login"),
+            "tipo": "success",
+        })
 
-        messages.success(request, "Tu cuenta ha sido verificada correctamente. Ya puedes iniciar sesión.")
+    if user is not None and email_verification_token.check_token(user, token):
+        user.is_active = True
+        user.save(update_fields=["is_active"])
+
         return render(request, "gestion_asociacion/auth_status.html", {
             "titulo": "Cuenta verificada",
             "mensaje": "Tu cuenta fue activada correctamente. Ya puedes iniciar sesión.",
@@ -363,77 +479,282 @@ def activar_cuenta(request, uidb64, token):
             "tipo": "success",
         })
 
-    messages.error(request, "El enlace de verificación no es válido o ya expiró.")
     return render(request, "gestion_asociacion/auth_status.html", {
         "titulo": "Enlace inválido o expirado",
-        "mensaje": "El enlace de verificación no es válido, ya fue usado o expiró. Puedes solicitar uno nuevo.",
+        "mensaje": "El enlace de verificación ha expirado. Solicita uno nuevo.",
         "boton_texto": "Reenviar verificación",
         "boton_url": reverse("reenviar_verificacion"),
         "tipo": "danger",
     })
 
+
+
 def reenviar_verificacion(request):
+    es_ajax = (
+        request.headers.get("x-requested-with")
+        == "XMLHttpRequest"
+    )
+
+    # ============================================================
+    # POST
+    # ============================================================
     if request.method == "POST":
-        email = (request.POST.get("email") or "").strip().lower()
 
+        email = (
+            request.POST.get("email") or ""
+        ).strip().lower()
+
+        # --------------------------------------------------------
+        # CORREO VACÍO
+        # --------------------------------------------------------
         if not email:
-            messages.error(request, "⚠️ Debes escribir tu correo electrónico.")
-            return redirect("reenviar_verificacion")
 
-        user = Usuario.objects.filter(email__iexact=email).first()
+            if es_ajax:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "titulo": "Correo requerido",
+                        "mensaje": "Debes escribir tu correo electrónico.",
+                        "icono": "warning",
+                    },
+                    status=400
+                )
 
-        # respuesta genérica por seguridad
-        generic_response = {
-            "titulo": "Revisa tu correo",
-            "mensaje": (
-                "Si existe una cuenta pendiente de verificación con ese correo, "
-                "te enviamos un nuevo enlace para activarla."
-            ),
-            "boton_texto": "Volver al login",
-            "boton_url": reverse("login"),
-            "tipo": "primary",
-        }
-
-        if not user:
-            return render(request, "gestion_asociacion/auth_status.html", generic_response)
-
-        if user.is_active:
-            return render(request, "gestion_asociacion/auth_status.html", {
-                "titulo": "Cuenta ya verificada",
-                "mensaje": "Esta cuenta ya está activa. Ya puedes iniciar sesión.",
-                "boton_texto": "Ir al login",
-                "boton_url": reverse("login"),
-                "tipo": "success",
-            })
-
-        cooldown = getattr(settings, "VERIFICATION_RESEND_COOLDOWN", 60)
-        cache_key = f"email_verify_resend:{user.pk}"
-
-        if cache.get(cache_key):
-            return render(request, "gestion_asociacion/auth_status.html", {
-                "titulo": "Espera un momento",
-                "mensaje": (
-                    f"Ya se solicitó un enlace recientemente. "
-                    f"Espera {cooldown} segundos antes de volver a intentarlo."
-                ),
-                "boton_texto": "Volver al login",
-                "boton_url": reverse("login"),
-                "tipo": "danger",
-            })
-
-        try:
-            enviar_correo_verificacion(request, user)
-            cache.set(cache_key, True, timeout=cooldown)
-        except Exception:
             messages.error(
                 request,
-                "⚠️ No se pudo reenviar el correo en este momento. Intenta más tarde."
+                "⚠️ Debes escribir tu correo electrónico."
             )
-            return redirect("reenviar_verificacion")
 
-        return render(request, "gestion_asociacion/auth_status.html", generic_response)
+            return redirect(
+                "reenviar_verificacion"
+            )
 
-    return render(request, "gestion_asociacion/reenviar_verificacion.html")
+        # --------------------------------------------------------
+        # BUSCAR USUARIO
+        # --------------------------------------------------------
+        user = Usuario.objects.filter(
+            email__iexact=email
+        ).first()
+
+        # Respuesta genérica para no revelar
+        # si una cuenta existe o no.
+        mensaje_generico = (
+            "Si existe una cuenta pendiente de verificación "
+            "con ese correo, te enviamos un nuevo enlace "
+            "para activarla."
+        )
+
+        # --------------------------------------------------------
+        # USUARIO NO EXISTE
+        # --------------------------------------------------------
+        if not user:
+
+            if es_ajax:
+                return JsonResponse({
+                    "ok": True,
+                    "titulo": "Revisa tu correo",
+                    "mensaje": mensaje_generico,
+                    "icono": "info",
+                })
+
+            return render(
+                request,
+                "gestion_asociacion/auth_status.html",
+                {
+                    "titulo": "Revisa tu correo",
+                    "mensaje": mensaje_generico,
+                    "boton_texto": "Volver al login",
+                    "boton_url": reverse("login"),
+                    "tipo": "primary",
+                }
+            )
+
+        # --------------------------------------------------------
+        # CUENTA YA VERIFICADA
+        # --------------------------------------------------------
+        if user.is_active:
+
+            mensaje_activa = (
+                "Esta cuenta ya está activa. "
+                "Ya puedes iniciar sesión."
+            )
+
+            if es_ajax:
+                return JsonResponse({
+                    "ok": True,
+                    "titulo": "Cuenta ya verificada",
+                    "mensaje": mensaje_activa,
+                    "icono": "success",
+                })
+
+            return render(
+                request,
+                "gestion_asociacion/auth_status.html",
+                {
+                    "titulo": "Cuenta ya verificada",
+                    "mensaje": mensaje_activa,
+                    "boton_texto": "Ir al login",
+                    "boton_url": reverse("login"),
+                    "tipo": "success",
+                }
+            )
+
+        # ========================================================
+        # COOLDOWN
+        # ========================================================
+
+        cooldown = getattr(
+            settings,
+            "VERIFICATION_RESEND_COOLDOWN",
+            20
+        )
+
+        cache_key = (
+            f"email_verify_resend:{user.pk}"
+        )
+
+        ahora = timezone.now().timestamp()
+
+        proximo_envio = cache.get(
+            cache_key
+        )
+
+        # --------------------------------------------------------
+        # YA EXISTE UN COOLDOWN
+        # --------------------------------------------------------
+        if proximo_envio:
+
+            try:
+                segundos_restantes = math.ceil(
+                    float(proximo_envio) - ahora
+                )
+
+            except (TypeError, ValueError):
+                segundos_restantes = cooldown
+
+            # Todavía debe esperar
+            if segundos_restantes > 0:
+
+                mensaje_cooldown = (
+                    "Ya se solicitó un enlace recientemente."
+                )
+
+                if es_ajax:
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "titulo": "Espera un momento",
+                            "mensaje": mensaje_cooldown,
+                            "icono": "warning",
+                            "segundos_restantes": segundos_restantes,
+                        },
+                        status=429
+                    )
+
+                return render(
+                    request,
+                    "gestion_asociacion/auth_status.html",
+                    {
+                        "titulo": "Espera un momento",
+                        "mensaje": (
+                            "Ya se solicitó un enlace recientemente. "
+                            f"Espera {segundos_restantes} segundos "
+                            "antes de volver a intentarlo."
+                        ),
+                        "boton_texto": "Volver al login",
+                        "boton_url": reverse("login"),
+                        "tipo": "warning",
+                    }
+                )
+
+        # ========================================================
+        # ENVIAR CORREO
+        # ========================================================
+
+        try:
+
+            enviar_correo_verificacion(
+                request,
+                user
+            )
+
+            # Guardamos el momento exacto en el que podrá
+            # volver a solicitar el correo.
+            proximo_envio = (
+                timezone.now().timestamp()
+                + cooldown
+            )
+
+            cache.set(
+                cache_key,
+                proximo_envio,
+                timeout=cooldown
+            )
+
+        except Exception:
+
+            mensaje_error = (
+                "No se pudo reenviar el correo "
+                "en este momento. Intenta más tarde."
+            )
+
+            if es_ajax:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "titulo": "No se pudo enviar",
+                        "mensaje": mensaje_error,
+                        "icono": "error",
+                    },
+                    status=500
+                )
+
+            messages.error(
+                request,
+                f"⚠️ {mensaje_error}"
+            )
+
+            return redirect(
+                "reenviar_verificacion"
+            )
+
+        # ========================================================
+        # ENVÍO EXITOSO
+        # ========================================================
+
+        if es_ajax:
+            return JsonResponse({
+                "ok": True,
+                "titulo": "Revisa tu correo",
+                "mensaje": (
+                    "Te enviamos un nuevo enlace "
+                    "para activar tu cuenta."
+                ),
+                "icono": "success",
+            })
+
+        return render(
+            request,
+            "gestion_asociacion/auth_status.html",
+            {
+                "titulo": "Revisa tu correo",
+                "mensaje": mensaje_generico,
+                "boton_texto": "Volver al login",
+                "boton_url": reverse("login"),
+                "tipo": "primary",
+            }
+        )
+
+    # ============================================================
+    # GET
+    # Página independiente que conservamos como respaldo.
+    # ============================================================
+
+    return render(
+        request,
+        "gestion_asociacion/reenviar_verificacion.html"
+    )
+
 
 def obtener_ip_cliente(request):
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -447,47 +768,113 @@ def obtener_ip_cliente(request):
 
 
 def login_view(request):
+
+    # ============================================================
+    # POST - INTENTO DE INICIO DE SESIÓN
+    # ============================================================
     if request.method == "POST":
-        email = (request.POST.get("email") or "").strip().lower()
+
+        email = (
+            request.POST.get("email") or ""
+        ).strip().lower()
+
         password = request.POST.get("password")
 
-        context = {
-            "email_value": email
-        }
+        # Guardamos el correo para conservarlo
+        # aunque se refresque la página.
+        request.session["login_email_temporal"] = email
 
-        user_obj = Usuario.objects.filter(email__iexact=email).first()
+        # --------------------------------------------------------
+        # BUSCAR USUARIO
+        # --------------------------------------------------------
+        user_obj = Usuario.objects.filter(
+            email__iexact=email
+        ).first()
 
+        # --------------------------------------------------------
+        # CORREO NO REGISTRADO
+        # --------------------------------------------------------
         if user_obj is None:
+
             messages.error(
                 request,
                 "El correo no existe.",
                 extra_tags="email_not_found"
             )
-            return render(request, "gestion_asociacion/primer_login.html", context)
 
+            return redirect("login")
+
+        # --------------------------------------------------------
+        # CUENTA SIN VERIFICAR
+        # --------------------------------------------------------
         if not user_obj.is_active:
+
             messages.error(
                 request,
-                "Tu cuenta no ha sido verificada. Revisa tu correo o solicita un nuevo enlace.",
+                "Tu cuenta no ha sido verificada. "
+                "Revisa tu correo o solicita un nuevo enlace.",
                 extra_tags="email_unverified"
             )
-            return render(request, "gestion_asociacion/primer_login.html", context)
 
-        user = authenticate(request, username=email, password=password)
+            return redirect("login")
+
+        # --------------------------------------------------------
+        # AUTENTICAR
+        # --------------------------------------------------------
+        user = authenticate(
+            request,
+            username=email,
+            password=password
+        )
 
         if user is not None:
-            login(request, user)
 
-            return redirect(settings.LOGIN_REDIRECT_URL)
+            # Como ya inició sesión correctamente,
+            # eliminamos el correo temporal.
+            request.session.pop(
+                "login_email_temporal",
+                None
+            )
 
+            login(
+                request,
+                user
+            )
+
+            return redirect(
+                settings.LOGIN_REDIRECT_URL
+            )
+
+        # --------------------------------------------------------
+        # CONTRASEÑA INCORRECTA
+        # --------------------------------------------------------
         messages.error(
             request,
             "Contraseña incorrecta.",
             extra_tags="password_error"
         )
-        return render(request, "gestion_asociacion/primer_login.html", context)
 
-    return render(request, "gestion_asociacion/primer_login.html")
+        return redirect("login")
+
+    # ============================================================
+    # GET - MOSTRAR LOGIN
+    # ============================================================
+
+    # get() lo recupera SIN borrarlo.
+    email_value = request.session.get(
+        "login_email_temporal",
+        ""
+    )
+
+    context = {
+        "email_value": email_value
+    }
+
+    return render(
+        request,
+        "gestion_asociacion/primer_login.html",
+        context
+    )
 
 @login_required
 def logout_view(request):

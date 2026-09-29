@@ -1,11 +1,34 @@
 {% extends "gestion_asociacion/base_auth.html" %} {% load static %} {% block title %}Registro de Usuario{% endblock %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5"> {% endblock %} {% block content %} {% now "Y-m-d" as hoy %}
+<link rel="stylesheet" href="{% static 'css/registro.css' %}?v=5">
+
+<style>
+    .btn-limpiar {
+        background: #e8f7f3;
+        border: 1px solid #63c7b2;
+        color: #2f7467;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-limpiar:hover,
+    .btn-limpiar:focus {
+        background: #63c7b2;
+        border-color: #63c7b2;
+        color: #ffffff;
+        box-shadow: 0 0 0 0.2rem rgba(99, 199, 178, 0.18);
+    }
+</style>
+{% endblock %} {% block content %} {% now "Y-m-d" as hoy %}
+
 <div class="main-container d-flex justify-content-center align-items-center">
     <div class="register-container p-4 shadow rounded bg-white">
-        <h2 class="text-center mb-4">Registro de Usuario</h2>
+
+        <h2 class="text-center mb-4">
+            Registro de Usuario
+        </h2>
 
         {% if messages %}
-        <div class="alert alert-danger">
+        <div class="alert alert-danger mensaje-auto" id="mensajeRegistro">
             <ul class="mb-0">
                 {% for message in messages %}
                 <li>{{ message }}</li>
@@ -18,352 +41,1681 @@
             {% csrf_token %}
 
             <div class="row g-3 row-cols-1 row-cols-md-2">
+
+                <!-- Usuario -->
                 <div class="col">
-                    <label for="username" class="form-label">Nombre de usuario:</label>
+                    <label for="username" class="form-label">
+                        Nombre de usuario:
+                    </label>
+
                     <input type="text" id="username" name="username" class="form-control" required autocomplete="username" value="{{ form.username.value|default:'' }}">
-                    <div id="error-username-email"></div>
                 </div>
 
+                <!-- Nombre -->
                 <div class="col">
-                    <label for="first_name" class="form-label">Nombre:</label>
+                    <label for="first_name" class="form-label">
+                        Nombre:
+                    </label>
+
                     <input type="text" id="first_name" name="first_name" class="form-control" required autocomplete="given-name" value="{{ form.first_name.value|default:'' }}">
                 </div>
 
+                <!-- Apellido -->
                 <div class="col">
-                    <label for="last_name" class="form-label">Apellido:</label>
+                    <label for="last_name" class="form-label">
+                        Apellido:
+                    </label>
+
                     <input type="text" id="last_name" name="last_name" class="form-control" required autocomplete="family-name" value="{{ form.last_name.value|default:'' }}">
                 </div>
 
+                <!-- Correo -->
                 <div class="col">
-                    <label for="email" class="form-label">Correo electrónico:</label>
+                    <label for="email" class="form-label">
+                        Correo electrónico:
+                    </label>
+
                     <input type="email" id="email" name="email" class="form-control" required autocomplete="email" value="{{ form.email.value|default:'' }}">
+
+                    <div id="error-username-email"></div>
                 </div>
 
+                <!-- Información correo -->
                 <div class="col">
-                    <label for="telefono" class="form-label">Teléfono:</label>
-                    <input type="text" id="telefono" name="telefono" class="form-control" inputmode="numeric" autocomplete="tel" value="{{ form.telefono.value|default:'' }}">
+                    <div class="h-100 d-flex align-items-center">
+                        <div class="w-100 p-3 rounded border bg-light text-muted small">
+                            <i class="fa fa-envelope me-2"></i> Este correo se utilizará para verificar tu cuenta y para recuperar el acceso si olvidas tu contraseña.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmar correo -->
+                <div class="col">
+                    <label for="email_confirmacion" class="form-label">
+                        Confirmar correo electrónico:
+                    </label>
+
+                    <input type="email" id="email_confirmacion" name="email_confirmacion" class="form-control" required autocomplete="email" placeholder="Confirma tu correo electrónico">
+
+                    <div id="error-email-confirmacion"></div>
+                </div>
+
+                <!-- Teléfono -->
+                <div class="col">
+                    <label for="telefono" class="form-label">
+                        Teléfono:
+                    </label>
+
+                    <input type="text" id="telefono" name="telefono" class="form-control" inputmode="numeric" autocomplete="tel" maxlength="10" pattern="[0-9]{10}" value="{{ form.telefono.value|default:'' }}">
+
                     <div id="error-telefono"></div>
                 </div>
 
+                <!-- Dirección -->
                 <div class="col">
-                    <label for="direccion" class="form-label">Dirección:</label>
+                    <label for="direccion" class="form-label">
+                        Dirección:
+                    </label>
+
                     <input type="text" id="direccion" name="direccion" class="form-control" autocomplete="street-address" value="{{ form.direccion.value|default:'' }}">
+
                     <div id="error-direccion"></div>
                 </div>
 
+                <!-- Género -->
                 <div class="col">
-                    <label for="genero" class="form-label">Género:</label>
+                    <label for="genero" class="form-label">
+                        Género:
+                    </label>
+
                     <select id="genero" name="genero" class="form-select">
-                        <option value="M" {% if form.genero.value == "M" %}selected{% endif %}>Masculino</option>
-                        <option value="F" {% if form.genero.value == "F" %}selected{% endif %}>Femenino</option>
-                        <option value="O" {% if form.genero.value == "O" %}selected{% endif %}>Otro</option>
+                        <option
+                            value="M"
+                            {% if form.genero.value == "M" %}selected{% endif %}
+                        >
+                            Masculino
+                        </option>
+
+                        <option
+                            value="F"
+                            {% if form.genero.value == "F" %}selected{% endif %}
+                        >
+                            Femenino
+                        </option>
+
+                        <option
+                            value="O"
+                            {% if form.genero.value == "O" %}selected{% endif %}
+                        >
+                            Otro
+                        </option>
                     </select>
                 </div>
 
+                <!-- Fecha nacimiento -->
                 <div class="col">
-                    <label for="fecha_nacimiento" class="form-label">Fecha de nacimiento:</label>
+                    <label for="fecha_nacimiento" class="form-label">
+                        Fecha de nacimiento:
+                    </label>
+
                     <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-control" autocomplete="bday" value="{{ form.fecha_nacimiento.value|default:'' }}" min="1900-01-01" max="{{ hoy }}">
+
                     <div id="error-fecha-nacimiento"></div>
                 </div>
 
+                <!-- Contraseña -->
                 <div class="col">
-                    <label for="password1" class="form-label">Contraseña:</label>
+                    <label for="password1" class="form-label">
+                        Contraseña:
+                    </label>
+
                     <div class="input-group">
+
                         <input type="password" id="password1" name="password1" class="form-control" required autocomplete="new-password">
+
                         <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
                             <i class="fa fa-eye"></i>
                         </span>
+
                     </div>
+
                     <div id="error-password"></div>
                 </div>
 
+                <!-- Confirmar contraseña -->
                 <div class="col">
-                    <label for="password2" class="form-label">Confirmar contraseña:</label>
+                    <label for="password2" class="form-label">
+                        Confirmar contraseña:
+                    </label>
+
                     <div class="input-group">
+
                         <input type="password" id="password2" name="password2" class="form-control" required autocomplete="new-password">
+
                         <span class="input-group-text toggle-password" role="button" tabindex="0" aria-label="Mostrar/ocultar contraseña">
                             <i class="fa fa-eye"></i>
                         </span>
+
                     </div>
+
                     <div id="error-password2"></div>
                 </div>
+
             </div>
 
-            <button id="btnRegistrar" type="submit" class="btn btn-primary w-100 mt-4">Registrar</button>
+            <button id="btnRegistrar" type="submit" class="btn btn-primary w-100 mt-4" disabled>
+                Registrar
+            </button>
+
+            <button id="btnLimpiarFormulario" type="button" class="btn btn-limpiar w-100 mt-2">
+                Limpiar formulario
+            </button>
+
             <div id="registroHint" class="mt-2 text-center"></div>
+
         </form>
+
     </div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+
+        const mensaje = document.getElementById("mensajeRegistro");
+
+        if (!mensaje) {
+            return;
+        }
+
+        setTimeout(function() {
+
+            mensaje.style.transition = "opacity 0.5s ease";
+            mensaje.style.opacity = "0";
+
+            setTimeout(function() {
+                mensaje.remove();
+            }, 500);
+
+        }, 2500);
+
+    });
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
         const form = document.getElementById("registroForm");
+
         const btn = document.getElementById("btnRegistrar");
-        const hint = document.getElementById("registroHint");
 
-        const usernameInput = document.getElementById("username");
-        const emailInput = document.getElementById("email");
-        const telefonoInput = document.getElementById("telefono");
-        const direccionInput = document.getElementById("direccion");
-        const fechaNacimientoInput = document.getElementById("fecha_nacimiento");
-        const password1Input = document.getElementById("password1");
-        const password2Input = document.getElementById("password2");
+        const btnLimpiarFormulario =
+            document.getElementById("btnLimpiarFormulario");
 
-        const errorUserEmail = document.getElementById("error-username-email");
-        const errorTel = document.getElementById("error-telefono");
-        const errorDir = document.getElementById("error-direccion");
-        const errorFechaNacimiento = document.getElementById("error-fecha-nacimiento");
-        const errorPass1 = document.getElementById("error-password");
-        const errorPass2 = document.getElementById("error-password2");
+        const hint =
+            document.getElementById("registroHint");
 
-        const verificarUrl = "{% url 'verificar_usuario' %}";
-        const fechaMaxima = "{{ hoy }}";
+
+        const usernameInput =
+            document.getElementById("username");
+
+        const firstNameInput =
+            document.getElementById("first_name");
+
+        const lastNameInput =
+            document.getElementById("last_name");
+
+        const emailInput =
+            document.getElementById("email");
+
+        const emailConfirmacionInput =
+            document.getElementById("email_confirmacion");
+
+        const telefonoInput =
+            document.getElementById("telefono");
+
+        const direccionInput =
+            document.getElementById("direccion");
+
+        const generoInput =
+            document.getElementById("genero");
+
+        const fechaNacimientoInput =
+            document.getElementById("fecha_nacimiento");
+
+        const password1Input =
+            document.getElementById("password1");
+
+        const password2Input =
+            document.getElementById("password2");
+
+
+        const errorUserEmail =
+            document.getElementById("error-username-email");
+
+        const errorEmailConfirmacion =
+            document.getElementById("error-email-confirmacion");
+
+        const errorTel =
+            document.getElementById("error-telefono");
+
+        const errorDir =
+            document.getElementById("error-direccion");
+
+        const errorFechaNacimiento =
+            document.getElementById("error-fecha-nacimiento");
+
+        const errorPass1 =
+            document.getElementById("error-password");
+
+        const errorPass2 =
+            document.getElementById("error-password2");
+
+
+        const verificarUrl =
+            "{% url 'verificar_usuario' %}";
+
+        const fechaMaxima =
+            "{{ hoy }}";
 
         let estado = {
+
+            validUsername: false,
+
+            validFirstName: false,
+
+            validLastName: false,
+
+            validEmail: false,
+
+            validEmailMatch: false,
+
             duplicado: false,
+
             validTelefono: true,
+
             validDireccion: true,
+
             validFechaNacimiento: true,
-            validPasswordMin: true,
-            validPasswordsMatch: true,
+
+            validPasswordSegura: false,
+
+            validPasswordsMatch: false,
+
             verificando: false,
-            enviando: false,
+
+            enviando: false
         };
 
-        function setHint(msgs) {
-            hint.innerHTML = msgs.length ?
-                `<small class="text-danger">⚠️ ${msgs.join(" • ")}</small>` :
+
+        let emailTocado = false;
+
+        let emailConfirmacionTocado = false;
+
+        let debounceTimer = null;
+
+        let controller = null;
+
+        const registroStorageKey =
+            "registro_usuario_temporal";
+
+
+        const camposPersistentes = [
+
+            usernameInput,
+
+            firstNameInput,
+
+            lastNameInput,
+
+            emailInput,
+
+            emailConfirmacionInput,
+
+            telefonoInput,
+
+            direccionInput,
+
+            generoInput,
+
+            fechaNacimientoInput
+        ];
+
+
+        function guardarDatosRegistro() {
+
+            try {
+
+                const datos = {};
+
+                camposPersistentes.forEach(function(campo) {
+
+                    if (!campo) {
+                        return;
+                    }
+
+                    datos[campo.id] = campo.value;
+
+                });
+
+
+                sessionStorage.setItem(
+                    registroStorageKey,
+                    JSON.stringify(datos)
+                );
+
+            } catch (error) {
+
+                console.warn(
+                    "No se pudieron guardar temporalmente los datos del registro."
+                );
+
+            }
+
+        }
+
+
+        function restaurarDatosRegistro() {
+
+            try {
+
+                const datosGuardados =
+                    sessionStorage.getItem(registroStorageKey);
+
+                if (!datosGuardados) {
+                    return;
+                }
+
+
+                const datos =
+                    JSON.parse(datosGuardados);
+
+
+                camposPersistentes.forEach(function(campo) {
+
+                    if (!campo) {
+                        return;
+                    }
+
+
+                    if (!Object.prototype.hasOwnProperty.call(
+                            datos,
+                            campo.id
+                        )) {
+                        return;
+                    }
+
+                    if (campo.id === "genero") {
+
+                        campo.value =
+                            datos[campo.id] || campo.value;
+
+                    } else if (!campo.value) {
+
+                        campo.value =
+                            datos[campo.id] || "";
+
+                    }
+
+                });
+
+            } catch (error) {
+
+                sessionStorage.removeItem(
+                    registroStorageKey
+                );
+
+            }
+
+        }
+
+
+        function limpiarDatosRegistro() {
+
+            try {
+
+                sessionStorage.removeItem(
+                    registroStorageKey
+                );
+
+            } catch (error) {
+
+            }
+
+        }
+
+        function normUsernameDisplay(valor) {
+
+            return (valor || "")
+                .trim()
+                .replace(/\s+/g, " ");
+
+        }
+
+
+        function normUsernameForCheck(valor) {
+
+            return normUsernameDisplay(valor)
+                .toLowerCase();
+
+        }
+
+
+        function normEmailDisplay(valor) {
+
+            return (valor || "")
+                .trim()
+                .toLowerCase();
+
+        }
+
+
+        function emailValido(valor) {
+
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+
+        }
+
+        function setHint(mensajes) {
+
+            hint.innerHTML = mensajes.length ?
+                `<small class="text-danger">
+                   ⚠️ ${mensajes.join(" • ")}
+               </small>` :
                 "";
+
         }
 
         function actualizarBoton() {
+
             const errores = [];
 
-            if (estado.verificando) errores.push("Verificando disponibilidad…");
-            if (estado.duplicado) errores.push("El usuario o correo ya están registrados");
-            if (!estado.validTelefono) errores.push("Teléfono inválido");
-            if (!estado.validDireccion) errores.push("Dirección muy corta");
-            if (!estado.validFechaNacimiento) errores.push("Fecha de nacimiento inválida");
-            if (!estado.validPasswordMin) errores.push("Contraseña muy corta");
-            if (!estado.validPasswordsMatch) errores.push("Las contraseñas no coinciden");
 
-            const bloquear = estado.enviando || estado.verificando || estado.duplicado ||
-                !estado.validTelefono || !estado.validDireccion ||
+            if (estado.verificando) {
+
+                errores.push(
+                    "Verificando disponibilidad…"
+                );
+
+            }
+
+
+            if (!estado.validTelefono) {
+
+                errores.push(
+                    "Teléfono inválido"
+                );
+
+            }
+
+
+            if (!estado.validDireccion) {
+
+                errores.push(
+                    "Dirección muy corta"
+                );
+
+            }
+
+
+            if (!estado.validFechaNacimiento) {
+
+                errores.push(
+                    "Fecha de nacimiento inválida"
+                );
+
+            }
+
+
+            const bloquear =
+
+                estado.enviando ||
+
+                estado.verificando ||
+
+                estado.duplicado ||
+
+                !estado.validUsername ||
+
+                !estado.validFirstName ||
+
+                !estado.validLastName ||
+
+                !estado.validEmail ||
+
+                !estado.validEmailMatch ||
+
+                !estado.validTelefono ||
+
+                !estado.validDireccion ||
+
                 !estado.validFechaNacimiento ||
-                !estado.validPasswordMin || !estado.validPasswordsMatch;
+
+                !estado.validPasswordSegura ||
+
+                !estado.validPasswordsMatch;
+
 
             btn.disabled = bloquear;
-            btn.textContent = estado.enviando ?
+
+
+            btn.textContent =
+                estado.enviando ?
                 "Registrando…" :
-                (estado.verificando ? "Verificando…" : "Registrar");
+                estado.verificando ?
+                "Verificando…" :
+                "Registrar";
+
 
             setHint(errores);
+
         }
 
-        function togglePassword(btnEye) {
-            const input = btnEye.parentElement.querySelector("input");
-            const icon = btnEye.querySelector("i");
-            if (!input || !icon) return;
+        function validarCamposRequeridos() {
 
-            if (input.type === "password") {
-                input.type = "text";
-                icon.classList.replace("fa-eye", "fa-eye-slash");
-            } else {
-                input.type = "password";
-                icon.classList.replace("fa-eye-slash", "fa-eye");
-            }
-        }
+            estado.validUsername =
+                normUsernameDisplay(
+                    usernameInput.value
+                ).length > 0;
 
-        document.querySelectorAll(".toggle-password").forEach(btnEye => {
-            btnEye.addEventListener("click", () => togglePassword(btnEye));
-            btnEye.addEventListener("keydown", (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    togglePassword(btnEye);
+
+            estado.validFirstName =
+                (firstNameInput.value || "")
+                .trim()
+                .length > 0;
+
+
+            estado.validLastName =
+                (lastNameInput.value || "")
+                .trim()
+                .length > 0;
+
+
+            const email =
+                normEmailDisplay(
+                    emailInput.value
+                );
+
+
+            estado.validEmail =
+                emailValido(email);
+
+            if (emailTocado) {
+
+                if (!email) {
+
+                    errorUserEmail.innerHTML =
+                        "<small class='text-danger'>" +
+                        "El correo electrónico es obligatorio." +
+                        "</small>";
+
+                } else if (!estado.validEmail) {
+
+                    errorUserEmail.innerHTML =
+                        "<small class='text-danger'>" +
+                        "El correo electrónico está incompleto o no es válido." +
+                        "</small>";
+
+                } else if (!estado.duplicado) {
+
+                    errorUserEmail.innerHTML = "";
+
                 }
-            });
-        });
 
-        function normUsernameDisplay(v) {
-            return (v || "").trim().replace(/\s+/g, " ");
+            }
+
+
+            actualizarBoton();
+
         }
 
-        function normUsernameForCheck(v) {
-            return normUsernameDisplay(v).toLowerCase();
+        function validarConfirmacionEmail(
+            mostrarErrores = true
+        ) {
+
+            const email =
+                normEmailDisplay(
+                    emailInput.value
+                );
+
+
+            const confirmacion =
+                normEmailDisplay(
+                    emailConfirmacionInput.value
+                );
+
+
+            const confirmacionFormatoValido =
+                emailValido(confirmacion);
+
+
+            estado.validEmailMatch =
+
+                estado.validEmail &&
+
+                confirmacionFormatoValido &&
+
+                email === confirmacion;
+
+            if (!mostrarErrores ||
+                !emailConfirmacionTocado
+            ) {
+
+                errorEmailConfirmacion.innerHTML = "";
+
+                actualizarBoton();
+
+                return;
+
+            }
+
+
+            if (!confirmacion) {
+
+                errorEmailConfirmacion.innerHTML =
+                    "<small class='text-danger'>" +
+                    "Debes confirmar tu correo electrónico." +
+                    "</small>";
+
+            } else if (!confirmacionFormatoValido) {
+
+                errorEmailConfirmacion.innerHTML =
+                    "<small class='text-danger'>" +
+                    "El correo de confirmación está incompleto o no es válido." +
+                    "</small>";
+
+            } else if (!estado.validEmail) {
+
+                errorEmailConfirmacion.innerHTML = "";
+
+            } else if (email !== confirmacion) {
+
+                errorEmailConfirmacion.innerHTML =
+                    "<small class='text-danger'>" +
+                    "Los correos electrónicos no coinciden." +
+                    "</small>";
+
+            } else {
+
+                errorEmailConfirmacion.innerHTML = "";
+
+            }
+
+
+            actualizarBoton();
+
         }
 
-        function normEmailDisplay(v) {
-            return (v || "").trim().toLowerCase();
-        }
 
         function validarTelefono() {
-            const v = telefonoInput.value.trim();
-            estado.validTelefono = !v || (/^[0-9]+$/.test(v) && v.length >= 7 && v.length <= 10);
-            errorTel.innerHTML = estado.validTelefono ?
+
+            const valor =
+                telefonoInput.value.trim();
+
+
+            estado.validTelefono = !valor ||
+                /^[0-9]{10}$/.test(valor);
+
+
+            errorTel.innerHTML =
+                estado.validTelefono ?
                 "" :
-                "<small class='text-danger'>Solo números (10 dígitos)</small>";
+                "<small class='text-danger'>" +
+                "El teléfono debe tener 10 dígitos." +
+                "</small>";
+
+
             actualizarBoton();
+
         }
 
         function validarDireccion() {
-            const v = direccionInput.value.trim();
-            estado.validDireccion = !v || v.length >= 10;
-            errorDir.innerHTML = estado.validDireccion ?
+
+            const valor =
+                direccionInput.value.trim();
+
+
+            estado.validDireccion = !valor ||
+                valor.length >= 10;
+
+
+            errorDir.innerHTML =
+                estado.validDireccion ?
                 "" :
-                "<small class='text-danger'>Mínimo 10 caracteres</small>";
+                "<small class='text-danger'>" +
+                "La dirección debe tener al menos 10 caracteres." +
+                "</small>";
+
+
             actualizarBoton();
+
         }
 
         function validarFechaNacimiento() {
-            const v = fechaNacimientoInput.value;
 
-            if (!v) {
+            const valor =
+                fechaNacimientoInput.value;
+
+
+            if (!valor) {
+
                 estado.validFechaNacimiento = true;
+
                 errorFechaNacimiento.innerHTML = "";
+
                 actualizarBoton();
+
+                return;
+
+            }
+
+
+            const partes =
+                valor.split("-");
+
+
+            let year =
+                partes[0] || "";
+
+
+            if (year.length > 4) {
+
+                year =
+                    year.slice(0, 4);
+
+                partes[0] =
+                    year;
+
+                fechaNacimientoInput.value =
+                    partes.join("-");
+
+            }
+
+
+            const fechaIngresada =
+                fechaNacimientoInput.value;
+
+
+            const anio =
+                parseInt(year, 10);
+
+
+            estado.validFechaNacimiento = true;
+
+            errorFechaNacimiento.innerHTML = "";
+
+
+            if (year.length !== 4) {
+
+                estado.validFechaNacimiento = false;
+
+                errorFechaNacimiento.innerHTML =
+                    "<small class='text-danger'>" +
+                    "El año debe tener 4 dígitos." +
+                    "</small>";
+
+            } else if (anio < 1900) {
+
+                estado.validFechaNacimiento = false;
+
+                errorFechaNacimiento.innerHTML =
+                    "<small class='text-danger'>" +
+                    "El año no puede ser menor a 1900." +
+                    "</small>";
+
+            } else if (
+                fechaIngresada > fechaMaxima
+            ) {
+
+                estado.validFechaNacimiento = false;
+
+                errorFechaNacimiento.innerHTML =
+                    "<small class='text-danger'>" +
+                    "La fecha no puede ser futura." +
+                    "</small>";
+
+            }
+
+
+            actualizarBoton();
+
+        }
+
+        function validarContrasenas(
+            mostrarErrores = true
+        ) {
+
+            const password1 =
+                password1Input.value || "";
+
+
+            const password2 =
+                password2Input.value || "";
+
+
+            const tieneMinimo =
+                password1.length >= 8;
+
+
+            const tieneLetra =
+                /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(
+                    password1
+                );
+
+
+            const tieneNumero =
+                /[0-9]/.test(
+                    password1
+                );
+
+
+            estado.validPasswordSegura =
+
+                tieneMinimo &&
+
+                tieneLetra &&
+
+                tieneNumero;
+
+
+            estado.validPasswordsMatch =
+
+                password2.length > 0 &&
+
+                password1 === password2;
+
+
+            if (!mostrarErrores) {
+
+                errorPass1.innerHTML = "";
+
+                errorPass2.innerHTML = "";
+
+                actualizarBoton();
+
+                return;
+
+            }
+
+
+            if (!password1) {
+
+                errorPass1.innerHTML =
+                    "<small class='text-danger'>" +
+                    "La contraseña es obligatoria." +
+                    "</small>";
+
+            } else if (!tieneMinimo) {
+
+                errorPass1.innerHTML =
+                    "<small class='text-danger'>" +
+                    "La contraseña debe tener al menos 8 caracteres." +
+                    "</small>";
+
+            } else if (!tieneLetra ||
+                !tieneNumero
+            ) {
+
+                errorPass1.innerHTML =
+                    "<small class='text-danger'>" +
+                    "La contraseña debe incluir al menos una letra y un número." +
+                    "</small>";
+
+            } else {
+
+                errorPass1.innerHTML = "";
+
+            }
+
+
+            if (!password2) {
+
+                errorPass2.innerHTML = "";
+
+            } else if (
+                password1 !== password2
+            ) {
+
+                errorPass2.innerHTML =
+                    "<small class='text-danger'>" +
+                    "Las contraseñas no coinciden." +
+                    "</small>";
+
+            } else {
+
+                errorPass2.innerHTML = "";
+
+            }
+
+
+            actualizarBoton();
+
+        }
+
+
+        function togglePassword(btnEye) {
+
+            const input =
+                btnEye.parentElement.querySelector("input");
+
+
+            const icon =
+                btnEye.querySelector("i");
+
+
+            if (!input || !icon) {
                 return;
             }
 
-            const partes = v.split("-");
-            let year = partes[0] || "";
 
-            if (year.length > 4) {
-                year = year.slice(0, 4);
-                partes[0] = year;
-                fechaNacimientoInput.value = partes.join("-");
+            if (input.type === "password") {
+
+                input.type = "text";
+
+                icon.classList.replace(
+                    "fa-eye",
+                    "fa-eye-slash"
+                );
+
+            } else {
+
+                input.type = "password";
+
+                icon.classList.replace(
+                    "fa-eye-slash",
+                    "fa-eye"
+                );
+
             }
 
-            const fechaIngresada = fechaNacimientoInput.value;
-            const anio = parseInt(year, 10);
-
-            estado.validFechaNacimiento = true;
-            errorFechaNacimiento.innerHTML = "";
-
-            if (year.length !== 4) {
-                estado.validFechaNacimiento = false;
-                errorFechaNacimiento.innerHTML = "<small class='text-danger'>El año debe tener 4 dígitos</small>";
-            } else if (anio < 1900) {
-                estado.validFechaNacimiento = false;
-                errorFechaNacimiento.innerHTML = "<small class='text-danger'>El año no puede ser menor a 1900</small>";
-            } else if (fechaIngresada > fechaMaxima) {
-                estado.validFechaNacimiento = false;
-                errorFechaNacimiento.innerHTML = "<small class='text-danger'>La fecha no puede ser futura</small>";
-            }
-
-            actualizarBoton();
         }
 
-        function validarContrasenas() {
-            const p1 = password1Input.value;
-            const p2 = password2Input.value;
 
-            estado.validPasswordMin = !p1 || p1.length >= 8;
-            estado.validPasswordsMatch = !p2 || p1 === p2;
+        document
+            .querySelectorAll(".toggle-password")
+            .forEach(function(btnEye) {
 
-            errorPass1.innerHTML = estado.validPasswordMin ?
-                "" :
-                "<small class='text-danger'>Mínimo 8 caracteres</small>";
-            errorPass2.innerHTML = estado.validPasswordsMatch ?
-                "" :
-                "<small class='text-danger'>No coinciden</small>";
+                btnEye.addEventListener(
+                    "click",
+                    function() {
+                        togglePassword(btnEye);
+                    }
+                );
 
-            actualizarBoton();
-        }
 
-        let debounceTimer = null;
-        let controller = null;
+                btnEye.addEventListener(
+                    "keydown",
+                    function(event) {
 
-        function debounce(fn, delay = 400) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(fn, delay);
+                        if (
+                            event.key === "Enter" ||
+                            event.key === " "
+                        ) {
+
+                            event.preventDefault();
+
+                            togglePassword(btnEye);
+
+                        }
+
+                    }
+                );
+
+            });
+
+
+        function debounce(
+            funcion,
+            delay = 400
+        ) {
+
+            clearTimeout(
+                debounceTimer
+            );
+
+
+            debounceTimer =
+                setTimeout(
+                    funcion,
+                    delay
+                );
+
         }
 
         function validarUsuarioEmail() {
-            const usernameCheck = normUsernameForCheck(usernameInput.value);
-            const emailCheck = normEmailDisplay(emailInput.value);
 
-            if (!usernameCheck && !emailCheck) {
+            const usernameCheck =
+                normUsernameForCheck(
+                    usernameInput.value
+                );
+
+
+            const emailCheck =
+                normEmailDisplay(
+                    emailInput.value
+                );
+
+
+            validarCamposRequeridos();
+
+            if (!estado.validUsername ||
+                !estado.validEmail
+            ) {
+
                 estado.duplicado = false;
-                errorUserEmail.innerHTML = "";
+
+                estado.verificando = false;
+
                 actualizarBoton();
+
                 return;
+
             }
+
 
             estado.verificando = true;
+
             actualizarBoton();
 
-            if (controller) controller.abort();
-            controller = new AbortController();
 
-            fetch(`${verificarUrl}?username=${encodeURIComponent(usernameCheck)}&email=${encodeURIComponent(emailCheck)}`, {
-                    signal: controller.signal
+            if (controller) {
+
+                controller.abort();
+
+            }
+
+
+            controller =
+                new AbortController();
+
+
+            fetch(
+                    `${verificarUrl}?username=${encodeURIComponent(usernameCheck)}&email=${encodeURIComponent(emailCheck)}`, {
+                        signal: controller.signal
+                    }
+                )
+                .then(function(response) {
+
+                    return response.json();
+
                 })
-                .then(r => r.json())
-                .then(data => {
+                .then(function(data) {
+
                     estado.duplicado = !!data.exists;
-                    errorUserEmail.innerHTML = estado.duplicado ?
-                        "<small class='text-danger'>El usuario o correo ya están registrados.</small>" :
-                        "";
+
+
+                    if (estado.duplicado) {
+
+                        errorUserEmail.innerHTML =
+                            "<small class='text-danger'>" +
+                            "El usuario o correo ya están registrados." +
+                            "</small>";
+
+                    } else {
+
+                        if (estado.validEmail) {
+
+                            errorUserEmail.innerHTML = "";
+
+                        }
+
+                    }
+
                 })
-                .catch(err => {
-                    if (err.name === "AbortError") return;
+                .catch(function(error) {
+
+                    if (
+                        error.name === "AbortError"
+                    ) {
+                        return;
+                    }
+
+
                     estado.duplicado = false;
-                    errorUserEmail.innerHTML = "<small class='text-warning'>No se pudo validar por el momento.</small>";
+
+
+                    errorUserEmail.innerHTML =
+                        "<small class='text-warning'>" +
+                        "No se pudo validar por el momento." +
+                        "</small>";
+
                 })
-                .finally(() => {
+                .finally(function() {
+
                     estado.verificando = false;
+
                     actualizarBoton();
+
                 });
+
         }
 
-        usernameInput.addEventListener("blur", () => {
-            usernameInput.value = normUsernameDisplay(usernameInput.value);
-            validarUsuarioEmail();
-        });
+        function restablecerFormularioCompleto() {
 
-        emailInput.addEventListener("blur", () => {
-            emailInput.value = normEmailDisplay(emailInput.value);
-            validarUsuarioEmail();
-        });
+            if (controller) {
 
-        usernameInput.addEventListener("input", () => debounce(validarUsuarioEmail));
-        emailInput.addEventListener("input", () => debounce(validarUsuarioEmail));
+                controller.abort();
 
-        telefonoInput.addEventListener("input", validarTelefono);
-        direccionInput.addEventListener("input", validarDireccion);
-        fechaNacimientoInput.addEventListener("input", validarFechaNacimiento);
-        fechaNacimientoInput.addEventListener("blur", validarFechaNacimiento);
-        password1Input.addEventListener("input", validarContrasenas);
-        password2Input.addEventListener("input", validarContrasenas);
+                controller = null;
 
-        form.addEventListener("submit", function(e) {
-            if (estado.verificando || estado.enviando) {
-                e.preventDefault();
-                return;
             }
 
-            usernameInput.value = normUsernameDisplay(usernameInput.value);
-            emailInput.value = normEmailDisplay(emailInput.value);
 
-            validarTelefono();
-            validarDireccion();
-            validarFechaNacimiento();
-            validarContrasenas();
+            clearTimeout(
+                debounceTimer
+            );
 
-            if (btn.disabled) {
-                e.preventDefault();
-                return;
+
+            limpiarDatosRegistro();
+
+
+            usernameInput.value = "";
+
+            firstNameInput.value = "";
+
+            lastNameInput.value = "";
+
+            emailInput.value = "";
+
+            emailConfirmacionInput.value = "";
+
+            telefonoInput.value = "";
+
+            direccionInput.value = "";
+
+            fechaNacimientoInput.value = "";
+
+            password1Input.value = "";
+
+            password2Input.value = "";
+
+
+            generoInput.value = "M";
+
+
+            password1Input.type = "password";
+
+            password2Input.type = "password";
+
+
+            document
+                .querySelectorAll(".toggle-password i")
+                .forEach(function(icon) {
+
+                    icon.classList.remove(
+                        "fa-eye-slash"
+                    );
+
+                    icon.classList.add(
+                        "fa-eye"
+                    );
+
+                });
+
+
+            errorUserEmail.innerHTML = "";
+
+            errorEmailConfirmacion.innerHTML = "";
+
+            errorTel.innerHTML = "";
+
+            errorDir.innerHTML = "";
+
+            errorFechaNacimiento.innerHTML = "";
+
+            errorPass1.innerHTML = "";
+
+            errorPass2.innerHTML = "";
+
+            hint.innerHTML = "";
+
+
+            const mensajeRegistro =
+                document.getElementById(
+                    "mensajeRegistro"
+                );
+
+
+            if (mensajeRegistro) {
+
+                mensajeRegistro.remove();
+
             }
 
-            estado.enviando = true;
-            actualizarBoton();
-        });
+
+            estado = {
+
+                validUsername: false,
+
+                validFirstName: false,
+
+                validLastName: false,
+
+                validEmail: false,
+
+                validEmailMatch: false,
+
+                duplicado: false,
+
+                validTelefono: true,
+
+                validDireccion: true,
+
+                validFechaNacimiento: true,
+
+                validPasswordSegura: false,
+
+                validPasswordsMatch: false,
+
+                verificando: false,
+
+                enviando: false
+            };
+
+
+            emailTocado = false;
+
+            emailConfirmacionTocado = false;
+
+
+            btn.disabled = true;
+
+            btn.textContent =
+                "Registrar";
+
+
+            usernameInput.focus();
+
+        }
+
+
+        function confirmarLimpiezaFormulario() {
+
+            if (
+                typeof Swal !== "undefined"
+            ) {
+
+                Swal.fire({
+
+                    title: "¿Limpiar formulario?",
+
+                    text: "Se borrarán los datos ingresados",
+
+                    icon: "warning",
+
+                    showCancelButton: true,
+
+                    confirmButtonText: "Sí, limpiar",
+
+                    cancelButtonText: "Cancelar",
+
+                    reverseButtons: true
+
+                }).then(function(result) {
+
+                    if (result.isConfirmed) {
+
+                        restablecerFormularioCompleto();
+
+
+                        Swal.fire({
+
+                            icon: "success",
+
+                            title: "Formulario limpio",
+
+                            text: "Puedes comenzar un registro nuevo.",
+
+                            showConfirmButton: false,
+
+                            timer: 1800
+
+                        });
+
+                    }
+
+                });
+
+
+                return;
+
+            }
+
+
+            if (
+                window.confirm(
+                    "¿Deseas limpiar todos los datos del formulario?"
+                )
+            ) {
+
+                restablecerFormularioCompleto();
+
+            }
+
+        }
+
+        usernameInput.addEventListener(
+            "input",
+            function() {
+
+                estado.duplicado = false;
+
+                validarCamposRequeridos();
+
+            }
+        );
+
+
+        usernameInput.addEventListener(
+            "blur",
+            function() {
+
+                usernameInput.value =
+                    normUsernameDisplay(
+                        usernameInput.value
+                    );
+
+
+                validarCamposRequeridos();
+
+                if (
+                    estado.validUsername &&
+                    estado.validEmail
+                ) {
+
+                    validarUsuarioEmail();
+
+                }
+
+            }
+        );
+
+
+        firstNameInput.addEventListener(
+            "input",
+            validarCamposRequeridos
+        );
+
+
+        lastNameInput.addEventListener(
+            "input",
+            validarCamposRequeridos
+        );
+
+
+        emailInput.addEventListener(
+            "input",
+            function() {
+
+                emailTocado = false;
+
+                estado.duplicado = false;
+
+                errorUserEmail.innerHTML = "";
+
+
+                validarCamposRequeridos();
+
+                validarConfirmacionEmail(false);
+
+
+                actualizarBoton();
+
+            }
+        );
+
+
+        emailInput.addEventListener(
+            "blur",
+            function() {
+
+                emailTocado = true;
+
+
+                emailInput.value =
+                    normEmailDisplay(
+                        emailInput.value
+                    );
+
+
+                validarCamposRequeridos();
+
+                validarConfirmacionEmail(
+                    emailConfirmacionTocado
+                );
+
+                if (
+                    estado.validUsername &&
+                    estado.validEmail
+                ) {
+
+                    validarUsuarioEmail();
+
+                }
+
+            }
+        );
+
+        emailConfirmacionInput.addEventListener(
+            "input",
+            function() {
+
+                /*
+                    Mientras escribe no mostramos error.
+                */
+
+                emailConfirmacionTocado = false;
+
+
+                errorEmailConfirmacion.innerHTML = "";
+
+
+                validarConfirmacionEmail(false);
+
+            }
+        );
+
+
+        emailConfirmacionInput.addEventListener(
+            "blur",
+            function() {
+
+                emailConfirmacionTocado = true;
+
+
+                emailConfirmacionInput.value =
+                    normEmailDisplay(
+                        emailConfirmacionInput.value
+                    );
+
+
+                validarConfirmacionEmail(true);
+
+            }
+        );
+
+
+        telefonoInput.addEventListener(
+            "input",
+            validarTelefono
+        );
+
+
+        direccionInput.addEventListener(
+            "input",
+            validarDireccion
+        );
+
+
+        fechaNacimientoInput.addEventListener(
+            "input",
+            validarFechaNacimiento
+        );
+
+
+        fechaNacimientoInput.addEventListener(
+            "blur",
+            validarFechaNacimiento
+        );
+
+
+        password1Input.addEventListener(
+            "input",
+            function() {
+
+                validarContrasenas(true);
+
+            }
+        );
+
+
+        password2Input.addEventListener(
+            "input",
+            function() {
+
+                validarContrasenas(true);
+
+            }
+        );
+
+
+        btnLimpiarFormulario.addEventListener(
+            "click",
+            confirmarLimpiezaFormulario
+        );
+
+
+        camposPersistentes.forEach(
+            function(campo) {
+
+                if (!campo) {
+                    return;
+                }
+
+
+                campo.addEventListener(
+                    "input",
+                    guardarDatosRegistro
+                );
+
+
+                campo.addEventListener(
+                    "change",
+                    guardarDatosRegistro
+                );
+
+            }
+        );
+
+        form.addEventListener(
+            "submit",
+            function(event) {
+
+                if (
+                    estado.verificando ||
+                    estado.enviando
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+
+                }
+
+
+                usernameInput.value =
+                    normUsernameDisplay(
+                        usernameInput.value
+                    );
+
+
+                emailInput.value =
+                    normEmailDisplay(
+                        emailInput.value
+                    );
+
+
+                emailConfirmacionInput.value =
+                    normEmailDisplay(
+                        emailConfirmacionInput.value
+                    );
+
+
+                emailTocado = true;
+
+                emailConfirmacionTocado = true;
+
+
+                validarCamposRequeridos();
+
+                validarConfirmacionEmail(true);
+
+                validarTelefono();
+
+                validarDireccion();
+
+                validarFechaNacimiento();
+
+                validarContrasenas(true);
+
+
+                if (btn.disabled) {
+
+                    event.preventDefault();
+
+                    return;
+
+                }
+
+
+                limpiarDatosRegistro();
+
+
+                estado.enviando = true;
+
+
+                actualizarBoton();
+
+            }
+        );
+
+        restaurarDatosRegistro();
+
+        emailTocado = false;
+
+        emailConfirmacionTocado = false;
+
+
+        validarCamposRequeridos();
+
+        validarConfirmacionEmail(false);
 
         validarTelefono();
+
         validarDireccion();
+
         validarFechaNacimiento();
-        validarContrasenas();
+
+        validarContrasenas(false);
+
         actualizarBoton();
+
+
+        guardarDatosRegistro();
+
+        if (
+            estado.validUsername &&
+            estado.validEmail
+        ) {
+
+            debounce(
+                validarUsuarioEmail,
+                400
+            );
+
+        }
+
     });
 </script>
+
 {% endblock %}

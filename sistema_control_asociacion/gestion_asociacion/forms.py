@@ -3,15 +3,16 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.auth.base_user import BaseUserManager
+
 from .models import Usuario, Mensaje, Capacitacion, CapacitacionAsignada, MaterialCapacitacion
 
 
 def nombre_bonito(valor: str) -> str:
     """
-    Normaliza textos “humanos”:
+    Normaliza textos humanos:
     - Quita espacios extra
     - Capitaliza palabras
-    - Mantiene preposiciones comunes en minúscula (de, la, del, etc.)
+    - Mantiene preposiciones comunes en minúscula.
     """
     if not valor:
         return ""
@@ -20,8 +21,10 @@ def nombre_bonito(valor: str) -> str:
     partes = str(valor).strip().split()
 
     resultado = []
+
     for p in partes:
         pl = p.lower()
+
         if pl in minusculas:
             resultado.append(pl)
         else:
@@ -32,7 +35,7 @@ def nombre_bonito(valor: str) -> str:
 
 def username_norm_value(v: str) -> str:
     """
-    ✅ Normalización real para unicidad:
+    Normalización real para unicidad:
     - strip
     - colapsa espacios
     - lower
@@ -46,8 +49,10 @@ class RegistroForm(UserCreationForm):
         label="Número de teléfono",
         required=False,
         widget=forms.TextInput(attrs={
-            "placeholder": "Introduce tu número de teléfono (opcional)",
-            "maxlength": "12"
+            "placeholder": "Introduce tu número de teléfono (10 dígitos)",
+            "maxlength": "10",
+            "inputmode": "numeric",
+            "pattern": "[0-9]{10}",
         })
     )
 
@@ -56,7 +61,7 @@ class RegistroForm(UserCreationForm):
         required=False,
         widget=forms.Textarea(attrs={
             "placeholder": "Introduce tu dirección",
-            "rows": 2
+            "rows": 2,
         })
     )
 
@@ -76,24 +81,65 @@ class RegistroForm(UserCreationForm):
         })
     )
 
+    password1 = forms.CharField(
+        label="Contraseña",
+        required=True,
+        strip=False,
+        error_messages={
+            "required": "La contraseña es obligatoria.",
+        },
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "new-password",
+            "placeholder": "Introduce tu contraseña",
+        })
+    )
+
+    password2 = forms.CharField(
+        label="Confirmar contraseña",
+        required=True,
+        strip=False,
+        error_messages={
+            "required": "Debes confirmar la contraseña.",
+        },
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "new-password",
+            "placeholder": "Confirma tu contraseña",
+        })
+    )
+
     class Meta:
         model = Usuario
         fields = [
-            "username", "first_name", "last_name", "email",
-            "telefono", "direccion", "genero", "fecha_nacimiento",
-            "password1", "password2",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "telefono",
+            "direccion",
+            "genero",
+            "fecha_nacimiento",
+            "password1",
+            "password2",
         ]
+
         widgets = {
-            "username": forms.TextInput(attrs={"placeholder": "Introduce un nombre de usuario"}),
-            "first_name": forms.TextInput(attrs={"placeholder": "Ingresa tu nombre"}),
-            "last_name": forms.TextInput(attrs={"placeholder": "Ingresa tu apellido"}),
-            "email": forms.EmailInput(attrs={"placeholder": "Introduce tu correo electrónico"}),
+            "username": forms.TextInput(attrs={
+                "placeholder": "Introduce un nombre de usuario",
+            }),
+            "first_name": forms.TextInput(attrs={
+                "placeholder": "Ingresa tu nombre",
+            }),
+            "last_name": forms.TextInput(attrs={
+                "placeholder": "Ingresa tu apellido",
+            }),
+            "email": forms.EmailInput(attrs={
+                "placeholder": "Introduce tu correo electrónico",
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Máximo dinámico: hoy
         hoy = timezone.localdate().strftime("%Y-%m-%d")
         self.fields["fecha_nacimiento"].widget.attrs["max"] = hoy
 
@@ -117,7 +163,9 @@ class RegistroForm(UserCreationForm):
         uname_norm = username_norm_value(uname_display)
 
         if Usuario.objects.filter(username_norm=uname_norm).exists():
-            raise forms.ValidationError("El nombre de usuario ya está registrado. Prueba con otro.")
+            raise forms.ValidationError(
+                "El nombre de usuario ya está registrado. Prueba con otro."
+            )
 
         return uname_display
 
@@ -129,25 +177,38 @@ class RegistroForm(UserCreationForm):
 
     def clean_email(self):
         email = self._norm_email(self.cleaned_data.get("email"))
+
         if Usuario.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError("El correo electrónico ya está en uso. Usa otro.")
+            raise forms.ValidationError(
+                "El correo electrónico ya está en uso. Usa otro."
+            )
+
         return email
 
     def clean_telefono(self):
         telefono = (self.cleaned_data.get("telefono") or "").strip()
+
         if telefono:
             if not telefono.isdigit():
-                raise forms.ValidationError("El número de teléfono debe contener solo dígitos.")
-            if len(telefono) < 7:
-                raise forms.ValidationError("El teléfono debe tener al menos 7 dígitos.")
-            if len(telefono) > 15:
-                raise forms.ValidationError("El teléfono es demasiado largo.")
+                raise forms.ValidationError(
+                    "El número de teléfono debe contener solo dígitos."
+                )
+
+            if len(telefono) != 10:
+                raise forms.ValidationError(
+                    "El teléfono debe tener 10 dígitos."
+                )
+
         return telefono
 
     def clean_direccion(self):
         direccion = (self.cleaned_data.get("direccion") or "").strip()
+
         if direccion and len(direccion) < 10:
-            raise forms.ValidationError("La dirección debe tener al menos 10 caracteres.")
+            raise forms.ValidationError(
+                "La dirección debe tener al menos 10 caracteres."
+            )
+
         return direccion
 
     def clean_fecha_nacimiento(self):
@@ -156,21 +217,25 @@ class RegistroForm(UserCreationForm):
         if fecha_nacimiento:
             hoy = timezone.localdate()
 
-            # No futura
             if fecha_nacimiento > hoy:
-                raise forms.ValidationError("La fecha de nacimiento no puede ser en el futuro.")
+                raise forms.ValidationError(
+                    "La fecha de nacimiento no puede ser en el futuro."
+                )
 
-            # Año mínimo razonable
             if fecha_nacimiento.year < 1900:
-                raise forms.ValidationError("El año de nacimiento no puede ser menor a 1900.")
+                raise forms.ValidationError(
+                    "El año de nacimiento no puede ser menor a 1900."
+                )
 
-            # Año máximo válido
             if fecha_nacimiento.year > hoy.year:
-                raise forms.ValidationError("El año de nacimiento no es válido.")
+                raise forms.ValidationError(
+                    "El año de nacimiento no es válido."
+                )
 
-            # Blindaje extra por si llega algo raro
             if len(str(fecha_nacimiento.year)) != 4:
-                raise forms.ValidationError("El año debe tener exactamente 4 dígitos.")
+                raise forms.ValidationError(
+                    "El año debe tener exactamente 4 dígitos."
+                )
 
         return fecha_nacimiento
 
@@ -185,22 +250,37 @@ class RegistroForm(UserCreationForm):
         return password
 
     def validar_password_segura(self, password: str, username_norm: str):
-        username_norm = (username_norm or "")
+        username_norm = username_norm or ""
+
         if len(password) < 8:
-            raise ValidationError("La contraseña debe tener al menos 8 caracteres.")
+            raise ValidationError(
+                "La contraseña debe tener al menos 8 caracteres."
+            )
+
         if username_norm and username_norm in password.lower():
-            raise ValidationError("La contraseña no puede contener el nombre de usuario.")
+            raise ValidationError(
+                "La contraseña no puede contener el nombre de usuario."
+            )
+
         if not any(char.isdigit() for char in password):
-            raise ValidationError("La contraseña debe incluir al menos un número.")
+            raise ValidationError(
+                "La contraseña debe incluir al menos un número."
+            )
+
         if not any(char.isalpha() for char in password):
-            raise ValidationError("La contraseña debe incluir al menos una letra.")
+            raise ValidationError(
+                "La contraseña debe incluir al menos una letra."
+            )
 
     def clean(self):
         cleaned_data = super().clean()
+
         p1 = cleaned_data.get("password1")
         p2 = cleaned_data.get("password2")
+
         if p1 and p2 and p1 != p2:
             self.add_error("password2", "Las contraseñas no coinciden.")
+
         return cleaned_data
 
     # -------------------------
@@ -218,10 +298,11 @@ class RegistroForm(UserCreationForm):
 
         if commit:
             user.save()
-        return user
-    
-class MaterialCapacitacionForm(forms.ModelForm):
 
+        return user
+
+
+class MaterialCapacitacionForm(forms.ModelForm):
     class Meta:
         model = MaterialCapacitacion
         fields = [
@@ -233,21 +314,18 @@ class MaterialCapacitacionForm(forms.ModelForm):
 
         widgets = {
             "capacitacion": forms.Select(attrs={
-                "class": "form-select"
+                "class": "form-select",
             }),
-
             "titulo": forms.TextInput(attrs={
                 "class": "form-control",
-                "placeholder": "Ej. Manual del curso"
+                "placeholder": "Ej. Manual del curso",
             }),
-
             "archivo": forms.ClearableFileInput(attrs={
-                "class": "form-control"
+                "class": "form-control",
             }),
-
             "enlace": forms.URLInput(attrs={
                 "class": "form-control",
-                "placeholder": "https://..."
+                "placeholder": "https://...",
             }),
         }
 
@@ -268,18 +346,37 @@ class MaterialCapacitacionForm(forms.ModelForm):
 class MensajeForm(forms.ModelForm):
     EXTENSIONES_PERMITIDAS = {
         ".pdf",
-        ".jpg", ".jpeg", ".png", ".gif", ".webp",
-        ".doc", ".docx",
-        ".xls", ".xlsx",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".webp",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
         ".txt",
     }
 
     EXTENSIONES_BLOQUEADAS = {
-        ".exe", ".bat", ".cmd", ".com", ".scr", ".msi",
-        ".js", ".vbs", ".ps1", ".sh",
-        ".php", ".py", ".jar",
-        ".html", ".htm",
-        ".zip", ".rar", ".7z",
+        ".exe",
+        ".bat",
+        ".cmd",
+        ".com",
+        ".scr",
+        ".msi",
+        ".js",
+        ".vbs",
+        ".ps1",
+        ".sh",
+        ".php",
+        ".py",
+        ".jar",
+        ".html",
+        ".htm",
+        ".zip",
+        ".rar",
+        ".7z",
     }
 
     TAMANO_MAXIMO_MB = 5
@@ -288,15 +385,16 @@ class MensajeForm(forms.ModelForm):
     class Meta:
         model = Mensaje
         fields = ["asunto", "cuerpo", "archivo"]
+
         widgets = {
             "asunto": forms.TextInput(attrs={
                 "placeholder": "Asunto",
-                "class": "form-control"
+                "class": "form-control",
             }),
             "cuerpo": forms.Textarea(attrs={
                 "placeholder": "Escribe tu mensaje...",
                 "class": "form-control",
-                "rows": 5
+                "rows": 5,
             }),
         }
 
@@ -307,7 +405,9 @@ class MensajeForm(forms.ModelForm):
             raise forms.ValidationError("El asunto es obligatorio.")
 
         if len(asunto) > 160:
-            raise forms.ValidationError("El asunto no debe superar 160 caracteres.")
+            raise forms.ValidationError(
+                "El asunto no debe superar 160 caracteres."
+            )
 
         return asunto
 
@@ -328,7 +428,7 @@ class MensajeForm(forms.ModelForm):
         import os
 
         nombre_archivo = archivo.name or ""
-        nombre_base, extension = os.path.splitext(nombre_archivo)
+        _, extension = os.path.splitext(nombre_archivo)
         extension = extension.lower()
 
         if archivo.size > self.TAMANO_MAXIMO_BYTES:
@@ -338,17 +438,17 @@ class MensajeForm(forms.ModelForm):
 
         if not extension:
             raise forms.ValidationError(
-                "Debe ser un formato valido."
+                "Debe ser un formato válido."
             )
 
         if extension in self.EXTENSIONES_BLOQUEADAS:
             raise forms.ValidationError(
-                "tipo de archivo no permitido."
+                "Tipo de archivo no permitido."
             )
 
         if extension not in self.EXTENSIONES_PERMITIDAS:
             raise forms.ValidationError(
-                "Formato valido. Solo se acepta PDF, imágenes, Word, Excel o TXT."
+                "Formato inválido. Solo se acepta PDF, imágenes, Word, Excel o TXT."
             )
 
         if len(nombre_archivo) > 120:
@@ -357,39 +457,87 @@ class MensajeForm(forms.ModelForm):
             )
 
         return archivo
-    
+
+
 class CapacitacionForm(forms.ModelForm):
-        class Meta:
-            model = Capacitacion
-            fields = ["nombre", "descripcion", "duracion_horas", "modalidad", "estado"]
-            widgets = {
-                "nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej. Seguridad e higiene"}),
-                "descripcion": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Describe la capacitación..."}),
-                "duracion_horas": forms.NumberInput(attrs={"class": "form-control", "min": 1}),
-                "modalidad": forms.Select(attrs={"class": "form-select"}),
-                "estado": forms.Select(attrs={"class": "form-select"}),
-            }
+    class Meta:
+        model = Capacitacion
+        fields = [
+            "nombre",
+            "descripcion",
+            "duracion_horas",
+            "modalidad",
+            "estado",
+        ]
 
-        def clean_nombre(self):
-            nombre = (self.cleaned_data.get("nombre") or "").strip()
-            if not nombre:
-                raise forms.ValidationError("El nombre de la capacitación es obligatorio.")
-            return nombre
+        widgets = {
+            "nombre": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ej. Seguridad e higiene",
+            }),
+            "descripcion": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Describe la capacitación...",
+            }),
+            "duracion_horas": forms.NumberInput(attrs={
+                "class": "form-control",
+                "min": 1,
+            }),
+            "modalidad": forms.Select(attrs={
+                "class": "form-select",
+            }),
+            "estado": forms.Select(attrs={
+                "class": "form-select",
+            }),
+        }
 
-class CapacitacionAsignadaForm(forms.ModelForm):
-            usuarios = forms.ModelMultipleChoiceField(
-                queryset=Usuario.objects.filter(rol="Miembro", is_active=True).order_by("username"),
-                widget=forms.CheckboxSelectMultiple,
-                required=True,
-                label="Usuarios"
+    def clean_nombre(self):
+        nombre = (self.cleaned_data.get("nombre") or "").strip()
+
+        if not nombre:
+            raise forms.ValidationError(
+                "El nombre de la capacitación es obligatorio."
             )
 
-            class Meta:
-                model = CapacitacionAsignada
-                fields = ["capacitacion", "usuarios", "fecha_limite", "fecha_vencimiento", "observaciones"]
-                widgets = {
-                    "capacitacion": forms.Select(attrs={"class": "form-select"}),
-                    "fecha_limite": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-                    "fecha_vencimiento": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
-                    "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-                }
+        return nombre
+
+
+class CapacitacionAsignadaForm(forms.ModelForm):
+    usuarios = forms.ModelMultipleChoiceField(
+        queryset=Usuario.objects.filter(
+            rol="Miembro",
+            is_active=True,
+        ).order_by("username"),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Usuarios",
+    )
+
+    class Meta:
+        model = CapacitacionAsignada
+        fields = [
+            "capacitacion",
+            "usuarios",
+            "fecha_limite",
+            "fecha_vencimiento",
+            "observaciones",
+        ]
+
+        widgets = {
+            "capacitacion": forms.Select(attrs={
+                "class": "form-select",
+            }),
+            "fecha_limite": forms.DateInput(attrs={
+                "class": "form-control",
+                "type": "date",
+            }),
+            "fecha_vencimiento": forms.DateInput(attrs={
+                "class": "form-control",
+                "type": "date",
+            }),
+            "observaciones": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 3,
+            }),
+        }
