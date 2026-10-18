@@ -2,263 +2,833 @@
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
+
     <div class="comunicacion-card card">
 
+        <!-- ================================================== -->
         <!-- HEADER -->
+        <!-- ================================================== -->
         <div class="card-header bg-secondary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+
             <h5 class="mb-0">
                 <i class="fas fa-trash-alt me-2"></i> Papelera
             </h5>
 
             <div class="d-flex align-items-center gap-2">
-                <span class="small text-white-50">Total:</span>
+
+                <span class="small text-white-50">
+                    Conversaciones:
+                </span>
+
                 <span class="badge bg-light text-dark">
                     {{ total_papelera }}
                 </span>
+
             </div>
+
         </div>
+
 
         <div class="card-body">
 
-            {% if messages %}
-            <div class="alert alert-info mb-4" id="mensajePapelera">
-                {% for message in messages %}
-                <div>
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- NAV TABS -->
+            <!-- ================================================== -->
+            <!-- PESTAÑAS -->
+            <!-- ================================================== -->
             <ul class="nav nav-tabs mb-3" role="tablist">
+
+                <!-- RECIBIDOS -->
                 <li class="nav-item" role="presentation">
+
                     <button class="nav-link active" id="tab-recibidos" data-bs-toggle="tab" data-bs-target="#pane-recibidos" type="button" role="tab">
-                        <i class="fas fa-inbox me-1"></i> Recibidos
+
+                        <i class="fas fa-inbox me-1"></i>
+                        Recibidos
+
                         {% if recibidos|length > 0 %}
-                        <span class="badge bg-dark ms-2">{{ recibidos|length }}</span>
+
+                        <span class="badge bg-dark ms-2">
+                            {{ recibidos|length }}
+                        </span>
+
                         {% endif %}
+
                     </button>
+
                 </li>
 
+
+                <!-- ENVIADOS -->
                 <li class="nav-item" role="presentation">
+
                     <button class="nav-link" id="tab-enviados" data-bs-toggle="tab" data-bs-target="#pane-enviados" type="button" role="tab">
-                        <i class="fas fa-paper-plane me-1"></i> Enviados
+
+                        <i class="fas fa-paper-plane me-1"></i>
+                        Enviados
+
                         {% if enviados|length > 0 %}
-                        <span class="badge bg-dark ms-2">{{ enviados|length }}</span>
+
+                        <span class="badge bg-dark ms-2">
+                            {{ enviados|length }}
+                        </span>
+
                         {% endif %}
+
                     </button>
+
                 </li>
 
+
+                <!-- VOLVER -->
                 <li class="ms-auto nav-item d-flex align-items-center">
+
                     <a class="btn btn-sm btn-outline-secondary" href="{% url es_admin|yesno:'comunicacion_admin,comunicacion_interna' %}">
+
                         <i class="fas fa-arrow-left me-1"></i> Volver
+
                     </a>
+
                 </li>
+
             </ul>
+
+            <!-- ================================================== -->
+            <!-- BUSCADOR DE PAPELERA -->
+            <!-- ================================================== -->
+            <div class="input-group mb-3">
+
+                <span class="input-group-text">
+        <i class="fas fa-search"></i>
+    </span>
+
+                <input type="text" id="papeleraSearch" class="form-control" placeholder="Buscar en la papelera..." autocomplete="off">
+
+                <button type="button" class="btn btn-outline-secondary d-none" id="papeleraSearchClear" title="Limpiar búsqueda">
+        <i class="fas fa-times"></i>
+    </button>
+
+            </div>
+
 
             <div class="tab-content">
 
+
+                <!-- ================================================== -->
                 <!-- RECIBIDOS -->
+                <!-- ================================================== -->
                 <div class="tab-pane fade show active" id="pane-recibidos" role="tabpanel" aria-labelledby="tab-recibidos">
 
-                    <div class="table-responsive">
+                    <div class="table-responsive papelera-scroll">
+
                         <table class="table table-hover table-bordered align-middle">
+
                             <thead class="table-dark">
+
                                 <tr>
-                                    <th style="width: 220px;">De</th>
-                                    <th>Asunto</th>
-                                    <th style="width: 170px;">Fecha</th>
-                                    <th style="width: 220px;">Acciones</th>
+
+                                    <th style="width: 220px;">
+                                        De
+                                    </th>
+
+                                    <th>
+                                        Conversación
+                                    </th>
+
+                                    <th style="width: 170px;">
+                                        Última actividad
+                                    </th>
+
+                                    <th class="papelera-col-acciones">
+                                        Acciones
+                                    </th>
+
                                 </tr>
+
                             </thead>
 
+
                             <tbody>
-                                {% for m in recibidos %}
+
+                                {% for h in recibidos %}
+
                                 <tr>
+
+                                    <!-- PARTICIPANTE -->
                                     <td>
+
                                         <div class="d-flex align-items-center gap-2">
+
                                             <div class="msg-avatar-sm">
-                                                {% if m.remitente %} {{ m.remitente.username|first|upper }} {% else %} ? {% endif %}
+
+                                                {% if h.otro_usuario %} {{ h.otro_usuario.username|first|upper }} {% else %} ? {% endif %}
+
                                             </div>
+
 
                                             <div class="text-truncate">
+
                                                 <div class="fw-semibold">
-                                                    {% if m.remitente %} {{ m.remitente.username }} {% else %} Usuario eliminado {% endif %}
+
+                                                    {% if h.otro_usuario %} {{ h.otro_usuario.username }} {% else %} Usuario eliminado {% endif %}
+
                                                 </div>
-                                                <div class="small text-muted">Remitente</div>
+
+                                                <div class="small text-muted">
+                                                    Participante
+                                                </div>
+
                                             </div>
+
                                         </div>
+
                                     </td>
 
+
+                                    <!-- CONVERSACIÓN -->
                                     <td>
-                                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                                            <div class="fw-semibold text-truncate">
+                                                {{ h.asunto }}
+                                            </div>
+
+                                            {% if h.total_mensajes > 1 %}
+
+                                            <span class="badge badge-conversacion-count">
+                                                {{ h.total_mensajes }} mensajes
+                                            </span> {% endif %}
+
+                                        </div>
+
+
                                         <div class="small text-muted text-truncate">
-                                            {{ m.cuerpo|striptags|truncatechars:90 }}
+                                            {{ h.cuerpo|striptags|truncatechars:90 }}
                                         </div>
+
                                     </td>
 
+
+                                    <!-- FECHA -->
                                     <td class="small text-muted">
-                                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                                        {{ h.creado_en|date:"d/m/Y H:i" }}
                                     </td>
 
-                                    <td>
-                                        <div class="d-grid gap-2">
-                                            <a class="btn btn-sm btn-secondary" href="{% url 'ver_mensaje' m.id %}?volver=papelera">
-                                                <i class="fas fa-eye me-1"></i> Ver
+
+                                    <!-- ACCIONES -->
+                                    <td class="papelera-col-acciones">
+
+                                        <div class="papelera-acciones">
+
+                                            <!-- VER -->
+                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera" title="Ver conversación">
+
+                                                <i class="fas fa-eye"></i>
+
+                                                <span>
+                                                    Ver
+                                                </span>
+
                                             </a>
 
-                                            <div class="d-flex gap-2">
-                                                <form method="post" action="{% url 'restaurar_mensaje' m.id %}" class="w-50 js-confirm-restaurar">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="tab" value="recibidos">
-                                                    <button class="btn btn-sm btn-success w-100" type="submit">
-                                                        <i class="fas fa-undo me-1"></i> Restaurar
-                                                    </button>
-                                                </form>
 
-                                                <form method="post" action="{% url 'eliminar_definitivo' m.id %}" class="w-50 js-confirm-eliminar">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="tab" value="recibidos">
-                                                    <button class="btn btn-sm btn-danger w-100" type="submit">
-                                                        <i class="fas fa-times me-1"></i> Eliminar
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <!-- RESTAURAR -->
+                                            <form method="post" action="{% url 'restaurar_mensaje' h.id %}" class="js-confirm-restaurar papelera-accion-form">
+
+                                                {% csrf_token %}
+
+                                                <input type="hidden" name="tab" value="recibidos">
+
+                                                <button class="btn btn-sm btn-success papelera-accion-btn" type="submit" title="Restaurar conversación">
+
+                                                    <i class="fas fa-undo"></i>
+
+                                                    <span>
+                                                        Restaurar
+                                                    </span>
+
+                                                </button>
+
+                                            </form>
+
+
+                                            <!-- ELIMINAR -->
+                                            <form method="post" action="{% url 'eliminar_definitivo' h.id %}" class="js-confirm-eliminar papelera-accion-form">
+
+                                                {% csrf_token %}
+
+                                                <input type="hidden" name="tab" value="recibidos">
+
+                                                <button class="btn btn-sm btn-danger papelera-accion-btn" type="submit" title="Eliminar definitivamente">
+
+                                                    <i class="fas fa-times"></i>
+
+                                                    <span>
+                                                        Eliminar
+                                                    </span>
+
+                                                </button>
+
+                                            </form>
+
                                         </div>
+
                                     </td>
+
                                 </tr>
+
+
                                 {% empty %}
+
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
-                                        No tienes mensajes recibidos en la papelera.
+
+                                    <td colspan="4" class="text-center text-muted py-4">
+
+                                        No tienes conversaciones recibidas en la papelera.
+
                                     </td>
+
                                 </tr>
+
                                 {% endfor %}
+
                             </tbody>
 
                         </table>
+
                     </div>
+
                 </div>
 
+
+                <!-- ================================================== -->
                 <!-- ENVIADOS -->
+                <!-- ================================================== -->
                 <div class="tab-pane fade" id="pane-enviados" role="tabpanel" aria-labelledby="tab-enviados">
 
-                    <div class="table-responsive">
+                    <div class="table-responsive papelera-scroll">
+
                         <table class="table table-hover table-bordered align-middle">
+
                             <thead class="table-dark">
+
                                 <tr>
-                                    <th style="width: 220px;">Para</th>
-                                    <th>Asunto</th>
-                                    <th style="width: 170px;">Fecha</th>
-                                    <th style="width: 220px;">Acciones</th>
+
+                                    <th style="width: 220px;">
+                                        Para
+                                    </th>
+
+                                    <th>
+                                        Conversación
+                                    </th>
+
+                                    <th style="width: 170px;">
+                                        Última actividad
+                                    </th>
+
+                                    <th class="papelera-col-acciones">
+                                        Acciones
+                                    </th>
+
                                 </tr>
+
                             </thead>
 
+
                             <tbody>
-                                {% for m in enviados %}
+
+                                {% for h in enviados %}
+
                                 <tr>
+
+                                    <!-- PARTICIPANTE -->
                                     <td>
+
                                         <div class="d-flex align-items-center gap-2">
+
                                             <div class="msg-avatar-sm msg-avatar-out">
-                                                {% if m.destinatario %} {{ m.destinatario.username|first|upper }} {% else %} ? {% endif %}
+
+                                                {% if h.otro_usuario %} {{ h.otro_usuario.username|first|upper }} {% else %} ? {% endif %}
+
                                             </div>
+
 
                                             <div class="text-truncate">
+
                                                 <div class="fw-semibold">
-                                                    {% if m.destinatario %} {{ m.destinatario.username }} {% else %} Usuario eliminado {% endif %}
+
+                                                    {% if h.otro_usuario %} {{ h.otro_usuario.username }} {% else %} Usuario eliminado {% endif %}
+
                                                 </div>
-                                                <div class="small text-muted">Destinatario</div>
+
+                                                <div class="small text-muted">
+                                                    Participante
+                                                </div>
+
                                             </div>
+
                                         </div>
+
                                     </td>
 
+
+                                    <!-- CONVERSACIÓN -->
                                     <td>
-                                        <div class="fw-semibold text-truncate">{{ m.asunto }}</div>
+
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                                            <div class="fw-semibold text-truncate">
+                                                {{ h.asunto }}
+                                            </div>
+
+                                            {% if h.total_mensajes > 1 %}
+
+                                            <span class="badge badge-conversacion-count">
+                                                {{ h.total_mensajes }} mensajes
+                                            </span> {% endif %}
+
+                                        </div>
+
+
                                         <div class="small text-muted text-truncate">
-                                            {{ m.cuerpo|striptags|truncatechars:90 }}
+                                            {{ h.cuerpo|striptags|truncatechars:90 }}
                                         </div>
+
                                     </td>
 
+
+                                    <!-- FECHA -->
                                     <td class="small text-muted">
-                                        {{ m.creado_en|date:"d/m/Y H:i" }}
+                                        {{ h.creado_en|date:"d/m/Y H:i" }}
                                     </td>
 
-                                    <td>
-                                        <div class="d-grid gap-2">
-                                            <a class="btn btn-sm btn-secondary" href="{% url 'ver_mensaje' m.id %}?volver=papelera">
-                                                <i class="fas fa-eye me-1"></i> Ver
+
+                                    <!-- ACCIONES -->
+                                    <td class="papelera-col-acciones">
+
+                                        <div class="papelera-acciones">
+
+                                            <!-- VER -->
+                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera" title="Ver conversación">
+
+                                                <i class="fas fa-eye"></i>
+
+                                                <span>
+                                                    Ver
+                                                </span>
+
                                             </a>
 
-                                            <div class="d-flex gap-2">
-                                                <form method="post" action="{% url 'restaurar_mensaje' m.id %}" class="w-50 js-confirm-restaurar">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="tab" value="enviados">
-                                                    <button type="submit" class="btn btn-sm btn-success w-100">
-                                                        <i class="fas fa-undo me-1"></i> Restaurar
-                                                    </button>
-                                                </form>
 
-                                                <form method="post" action="{% url 'eliminar_definitivo' m.id %}" class="w-50 js-confirm-eliminar">
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="tab" value="enviados">
-                                                    <button type="submit" class="btn btn-sm btn-danger w-100">
-                                                        <i class="fas fa-times me-1"></i> Eliminar
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <!-- RESTAURAR -->
+                                            <form method="post" action="{% url 'restaurar_mensaje' h.id %}" class="js-confirm-restaurar papelera-accion-form">
+
+                                                {% csrf_token %}
+
+                                                <input type="hidden" name="tab" value="enviados">
+
+                                                <button class="btn btn-sm btn-success papelera-accion-btn" type="submit" title="Restaurar conversación">
+
+                                                    <i class="fas fa-undo"></i>
+
+                                                    <span>
+                                                        Restaurar
+                                                    </span>
+
+                                                </button>
+
+                                            </form>
+
+
+                                            <!-- ELIMINAR -->
+                                            <form method="post" action="{% url 'eliminar_definitivo' h.id %}" class="js-confirm-eliminar papelera-accion-form">
+
+                                                {% csrf_token %}
+
+                                                <input type="hidden" name="tab" value="enviados">
+
+                                                <button class="btn btn-sm btn-danger papelera-accion-btn" type="submit" title="Eliminar definitivamente">
+
+                                                    <i class="fas fa-times"></i>
+
+                                                    <span>
+                                                        Eliminar
+                                                    </span>
+
+                                                </button>
+
+                                            </form>
+
                                         </div>
+
                                     </td>
+
                                 </tr>
+
+
                                 {% empty %}
+
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
-                                        No tienes mensajes enviados en la papelera.
+
+                                    <td colspan="4" class="text-center text-muted py-4">
+
+                                        No tienes conversaciones enviadas en la papelera.
+
                                     </td>
+
                                 </tr>
+
                                 {% endfor %}
+
                             </tbody>
 
                         </table>
+
                     </div>
+
                 </div>
 
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const mensaje = document.getElementById("mensajePapelera");
 
-        if (!mensaje) return;
+        /* =====================================================
+           ELEMENTOS
+           ===================================================== */
 
-        setTimeout(function() {
-            mensaje.style.transition = "opacity 0.5s ease";
-            mensaje.style.opacity = "0";
+        const input =
+            document.getElementById("papeleraSearch");
 
-            setTimeout(function() {
-                mensaje.remove();
-            }, 500);
-        }, 2500);
+        const btnLimpiar =
+            document.getElementById("papeleraSearchClear");
+
+        const tabRecibidos =
+            document.getElementById("tab-recibidos");
+
+        const tabEnviados =
+            document.getElementById("tab-enviados");
+
+
+        /* =====================================================
+           NORMALIZAR TEXTO
+           ===================================================== */
+
+        function normalizarTexto(texto) {
+
+            return (texto || "")
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim();
+
+        }
+
+
+        /* =====================================================
+           OBTENER PESTAÑA ACTIVA
+           ===================================================== */
+
+        function obtenerPanelActivo() {
+
+            return document.querySelector(
+                ".tab-content .tab-pane.active.show"
+            );
+
+        }
+
+
+        /* =====================================================
+           FILTRAR TABLA ACTUAL
+           ===================================================== */
+
+        function filtrarPapelera() {
+
+            if (!input) {
+                return;
+            }
+
+            const panel =
+                obtenerPanelActivo();
+
+            if (!panel) {
+                return;
+            }
+
+
+            const tabla =
+                panel.querySelector("table");
+
+            if (!tabla) {
+                return;
+            }
+
+
+            const tbody =
+                tabla.querySelector("tbody");
+
+            if (!tbody) {
+                return;
+            }
+
+
+            /*
+             * Eliminar aviso anterior de
+             * "sin resultados".
+             */
+            const avisoAnterior =
+                tbody.querySelector(
+                    ".papelera-sin-resultados"
+                );
+
+            if (avisoAnterior) {
+                avisoAnterior.remove();
+            }
+
+
+            const query =
+                normalizarTexto(
+                    input.value
+                );
+
+
+            /*
+             * Filas normales.
+             *
+             * Ignoramos las filas que usan colspan,
+             * porque corresponden a:
+             * "No tienes conversaciones..."
+             */
+            const filas =
+                Array.from(
+                    tbody.querySelectorAll("tr")
+                ).filter(function(fila) {
+
+                    return !fila.querySelector(
+                        "td[colspan]"
+                    );
+
+                });
+
+
+            let visibles = 0;
+
+
+            filas.forEach(function(fila) {
+
+                const contenido =
+                    normalizarTexto(
+                        fila.innerText
+                    );
+
+
+                const coincide = !query ||
+                    contenido.includes(query);
+
+
+                fila.style.display =
+                    coincide ?
+                    "" :
+                    "none";
+
+
+                if (coincide) {
+                    visibles++;
+                }
+
+            });
+
+
+            /* =================================================
+               AVISO SIN RESULTADOS
+               ================================================= */
+
+            if (
+                query &&
+                filas.length > 0 &&
+                visibles === 0
+            ) {
+
+                const filaAviso =
+                    document.createElement("tr");
+
+
+                filaAviso.className =
+                    "papelera-sin-resultados";
+
+
+                filaAviso.innerHTML = `
+                <td
+                    colspan="4"
+                    class="text-center text-muted py-4"
+                >
+                    <i class="fas fa-search me-2"></i>
+                    No se encontraron conversaciones
+                    para "<strong></strong>".
+                </td>
+            `;
+
+
+                const strong =
+                    filaAviso.querySelector("strong");
+
+
+                if (strong) {
+                    strong.textContent =
+                        input.value.trim();
+                }
+
+
+                tbody.appendChild(
+                    filaAviso
+                );
+
+            }
+
+
+            /* =================================================
+               BOTÓN LIMPIAR
+               ================================================= */
+
+            if (btnLimpiar) {
+
+                if (input.value.trim()) {
+
+                    btnLimpiar.classList.remove(
+                        "d-none"
+                    );
+
+                } else {
+
+                    btnLimpiar.classList.add(
+                        "d-none"
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        /* =====================================================
+           BUSCAR MIENTRAS SE ESCRIBE
+           ===================================================== */
+
+        if (input) {
+
+            input.addEventListener(
+                "input",
+                filtrarPapelera
+            );
+
+        }
+
+
+        /* =====================================================
+           LIMPIAR BÚSQUEDA
+           ===================================================== */
+
+        if (btnLimpiar) {
+
+            btnLimpiar.addEventListener(
+                "click",
+                function() {
+
+                    input.value = "";
+
+                    filtrarPapelera();
+
+                    input.focus();
+
+                }
+            );
+
+        }
+
+
+        /* =====================================================
+           AL CAMBIAR DE PESTAÑA
+           volver a aplicar el filtro actual
+           ===================================================== */
+
+        [
+            tabRecibidos,
+            tabEnviados
+        ].forEach(function(tab) {
+
+            if (!tab) {
+                return;
+            }
+
+
+            tab.addEventListener(
+                "shown.bs.tab",
+                function() {
+
+                    filtrarPapelera();
+
+                }
+            );
+
+        });
+
+
+        /* =====================================================
+           RECUPERAR PESTAÑA DESDE ?tab=
+           ===================================================== */
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        const tab =
+            params.get("tab");
+
+
+        if (tab) {
+
+            const btn =
+                document.getElementById(
+                    tab === "enviados" ?
+                    "tab-enviados" :
+                    "tab-recibidos"
+                );
+
+
+            if (
+                btn &&
+                window.bootstrap &&
+                bootstrap.Tab
+            ) {
+
+                const instancia =
+                    bootstrap.Tab.getOrCreateInstance(
+                        btn
+                    );
+
+
+                instancia.show();
+
+            }
+
+        }
+
+
+        /* =====================================================
+           FILTRO INICIAL
+           ===================================================== */
+
+        filtrarPapelera();
+
     });
-</script>
-
-<script>
-    (function() {
-        const params = new URLSearchParams(window.location.search);
-        const tab = params.get("tab");
-
-        if (!tab) return;
-
-        const btn = document.getElementById(tab === "enviados" ? "tab-enviados" : "tab-recibidos");
-
-        if (!btn) return;
-
-        const bsTab = new bootstrap.Tab(btn);
-        bsTab.show();
-    })();
 </script>
 
 {% endblock %}

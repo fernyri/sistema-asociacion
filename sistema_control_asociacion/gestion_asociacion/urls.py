@@ -62,7 +62,6 @@ urlpatterns = [
     path("gestion/usuarios/<int:user_id>/cambiar-rol/", views.cambiar_rol_usuario, name="cambiar_rol_usuario"),
     path("promover/<int:user_id>/", views.promover_usuario, name="promover_usuario"),
     path("eliminar/<int:user_id>/", views.eliminar_usuario, name="eliminar_usuario"),
-
     path("nomina/", views.nomina, name="nomina"),
     path("evaluacion_desem/", views.evaluacion_desem, name="evaluacion_desem"),
     path(
@@ -75,6 +74,11 @@ urlpatterns = [
         views.eliminar_evaluacion_desem,
         name="eliminar_evaluacion_desem"
     ),
+    path(
+    "gestion/mi-perfil/editar/",
+    views.editar_superuser,
+    name="editar_superuser"
+    ),
 
     # =========================
     # Comunicación
@@ -82,6 +86,7 @@ urlpatterns = [
     path("comunicacion/", views.comunicacion_interna, name="comunicacion_interna"),
     path("comunicacion/admin/", views.comunicacion_admin, name="comunicacion_admin"),
     path("comunicacion/ver/<int:mensaje_id>/", views.ver_mensaje, name="ver_mensaje"),
+    path("comunicacion/ver/<int:mensaje_id>/hilo/ajax/", views.conversacion_hilo_ajax, name="conversacion_hilo_ajax"),
     path("comunicacion/enviar/miembro/", views.enviar_mensaje_miembro, name="enviar_mensaje_miembro"),
     path("comunicacion/enviar/admin/", views.enviar_mensaje_admin, name="enviar_mensaje_admin"),
     path("comunicacion/ajax/miembro/", views.comunicacion_miembro_ajax, name="comunicacion_miembro_ajax"),

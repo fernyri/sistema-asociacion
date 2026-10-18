@@ -2,266 +2,1075 @@
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
+
     <div class="comunicacion-card card">
 
+        <!-- ================================================== -->
+        <!-- HEADER -->
+        <!-- ================================================== -->
         <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+
             <h5 class="mb-0">
                 <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
 
-            <div class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}" id="contador-no-leidos-header">
-                <span class="small text-white-50">No leídos:</span>
+            <div id="contador-no-leidos-header" class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
+
+                <span class="small text-white-50">
+                    No leídos:
+                </span>
+
                 <span class="badge bg-danger" id="contador-no-leidos-numero">
                     {{ no_leidos }}
                 </span>
+
             </div>
+
         </div>
+
 
         <div class="card-body">
 
+            <!-- ================================================== -->
+            <!-- PESTAÑAS -->
+            <!-- ================================================== -->
+            <ul class="nav nav-pills gap-2 mb-3" id="comunicacionTabs">
+
+                <!-- RECIBIDOS -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'recibidos' %}active{% endif %}" data-com-tab="recibidos">
+
+                        <i class="fas fa-inbox me-1"></i>
+                        Recibidos
+
+                        <span id="badge-recibidos"
+                              class="badge bg-danger ms-1 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
+
+                            {{ no_leidos }}
+
+                        </span>
+
+                    </button>
+
+                </li>
+
+
+                <!-- ENVIADOS -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
+
+                        <i class="fas fa-paper-plane me-1"></i>
+                        Enviados
+
+                    </button>
+
+                </li>
+
+
+                <!-- NUEVO MENSAJE -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'nuevo' %}active{% endif %}" data-com-tab="nuevo">
+
+                        <i class="fas fa-pen me-1"></i>
+                        Nuevo mensaje
+
+                    </button>
+
+                </li>
+
+            </ul>
+
+
+            <!-- ================================================== -->
             <!-- BUSCADOR -->
-            <div class="row g-2 mb-3">
-                <div class="col-md-12">
+            <!-- ================================================== -->
+            <div id="buscadorMensajes" class="row g-2 mb-3 {% if tab_activa == 'nuevo' %}d-none{% endif %}">
+
+                <div class="col-12">
+
                     <div class="input-group">
+
                         <span class="input-group-text">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input id="msgSearch" type="text" class="form-control" placeholder="Buscar por asunto o texto...">
+
+                        <input id="msgSearch" type="text" class="form-control" placeholder="Buscar en la pestaña actual...">
+
                     </div>
+
                 </div>
+
             </div>
 
-            <!-- LISTAS RECIBIDOS / ENVIADOS CON AJAX -->
+
+            <!-- ================================================== -->
+            <!-- RECIBIDOS / ENVIADOS -->
+            <!-- ================================================== -->
             <div id="comunicacion-listas-wrapper">
+
                 {% include "gestion_asociacion/partials/comunicacion_listas_miembro.html" %}
+
             </div>
 
-            <!-- ENVIAR A ADMIN / DIOS -->
-            <div class="mt-4" id="formResponder">
-                <h5 class="mb-2">
-                    <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador
-                </h5>
 
-                <p class="text-muted small mb-3">
-                    Selecciona un destinatario, escribe asunto y mensaje. Puedes adjuntar archivo.
-                </p>
+            <!-- ================================================== -->
+            <!-- NUEVO MENSAJE -->
+            <!-- ================================================== -->
+            <div id="panel-nuevo" class="{% if tab_activa != 'nuevo' %}d-none{% endif %}">
 
-                {% if messages %}
-                <div class="mb-3" id="mensajeComunicacionMiembro">
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} mb-2 mensaje-auto">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %} {% if form.non_field_errors %}
-                <div class="alert alert-warning mb-3">
-                    {% for error in form.non_field_errors %}
-                    <div>
-                        <i class="fas fa-exclamation-triangle me-1"></i> {{ error }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
+                <div class="mt-2">
 
-                <form method="post" action="{% url 'enviar_mensaje_miembro' %}#formResponder" enctype="multipart/form-data">
-                    {% csrf_token %}
+                    <h5 class="mb-2">
 
-                    <div class="row g-3">
+                        <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador
 
-                        <div class="col-md-6">
-                            <label class="form-label">Destinatario</label>
+                    </h5>
 
-                            <select class="form-select {% if form.non_field_errors %}is-invalid{% endif %}" name="destinatario_id" required>
-                                <option value="" disabled {% if not destinatario_id_seleccionado %}selected{% endif %}>
-                                    Selecciona un administrador o Dios
-                                </option>
+                    <p class="text-muted small mb-3">
 
-                                {% for a in admins %}
-                                <option value="{{ a.id }}" {% if destinatario_id_seleccionado == a.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ a.username }}{% if a.rol %} - {{ a.rol }}{% endif %}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                        Selecciona un administrador o Dios, escribe asunto y mensaje. Puedes adjuntar archivo.
 
-                        <div class="col-md-6">
-                            <label class="form-label">Asunto</label>
+                    </p>
 
-                            <input class="form-control {% if form.asunto.errors %}is-invalid{% endif %}" type="text" name="asunto" value="{% if form.asunto.value %}{{ form.asunto.value }}{% else %}{{ asunto_valor }}{% endif %}" placeholder="Ej. Solicitud, Duda, Aviso..." required>                            {% if form.asunto.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.asunto.errors %} {{ error }} {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
 
-                        <div class="col-12">
-                            <label class="form-label">Mensaje</label> {% if form.cuerpo.errors %}
-                            <textarea class="form-control is-invalid" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{{ form.cuerpo.value|default_if_none:"" }}</textarea>
+                    <!-- ================================================== -->
+                    <!-- FORMULARIO -->
+                    <!-- ================================================== -->
+                    <form id="formResponderMiembro" method="post" action="{% url 'enviar_mensaje_miembro' %}" enctype="multipart/form-data" novalidate>
 
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.cuerpo.errors %} {{ error }} {% endfor %}
-                            </div>
-                            {% else %}
-                            <textarea class="form-control" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required>{{ form.cuerpo.value|default_if_none:"" }}</textarea> {% endif %}
-                        </div>
+                        {% csrf_token %} {% if hilo_id_respuesta %}
+                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}"> {% endif %}
 
-                        <div class="col-12">
-                            <label class="form-label">Adjuntar archivo (opcional)</label>
+                        <div class="row g-3">
 
-                            <input class="form-control {% if form.archivo.errors %}is-invalid{% endif %}" type="file" name="archivo"> {% if form.archivo.errors %}
-                            <div class="alert alert-warning mt-2 mb-0">
-                                {% for error in form.archivo.errors %}
-                                <div>
-                                    <i class="fas fa-exclamation-triangle me-1"></i> {{ error }}
+
+                            <!-- ========================================== -->
+                            <!-- DESTINATARIO -->
+                            <!-- ========================================== -->
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Destinatario
+                                </label>
+
+                                <select id="destinatarioMiembro" class="form-select" name="destinatario_id">
+
+                                    <option value=""
+                                            disabled
+                                            selected>
+
+                                        Selecciona un administrador o Dios
+
+                                    </option>
+
+                                    {% for a in admins %}
+
+                                    <option value="{{ a.id }}">
+
+                                        {{ a.username }}
+
+                                        {% if a.rol %}
+                                            - {{ a.rol }}
+                                        {% endif %}
+
+                                    </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+
+                                <!-- Error del destinatario -->
+                                {% for error in form.non_field_errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="destinatario_id">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
                                 </div>
+
                                 {% endfor %}
+
                             </div>
-                            {% else %}
-                            <div class="form-text">
-                                Formatos comunes: PDF, imagen, Word, Excel.
+
+
+                            <!-- ========================================== -->
+                            <!-- ASUNTO -->
+                            <!-- ========================================== -->
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Asunto
+                                </label> {% if es_respuesta %}
+
+                                <input type="text" name="asunto" class="form-control" value="{{ form.asunto.value|default_if_none:'' }}" placeholder="Ej. Solicitud, Duda, Aviso..." readonly> {% else %}
+
+                                <input type="text" name="asunto" class="form-control" value="{{ form.asunto.value|default_if_none:'' }}" placeholder="Ej. Solicitud, Duda, Aviso..."> {% endif %} {% for error in form.asunto.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="asunto">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
                             </div>
-                            {% endif %}
+
+
+                            <!-- ========================================== -->
+                            <!-- MENSAJE -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Mensaje
+                                </label>
+
+                                <textarea name="cuerpo" rows="5" class="form-control" placeholder="Escribe tu mensaje...">{{ form.cuerpo.value|default_if_none:"" }}</textarea> {% for error in form.cuerpo.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="cuerpo">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- ARCHIVO -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Adjuntar archivo (opcional)
+                                </label>
+
+                                <input type="file" name="archivo" class="form-control"> {% for error in form.archivo.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="archivo">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
+
+                                <div class="form-text">
+
+                                    Formatos permitidos: PDF, JPG, JPEG, PNG, GIF, WEBP, Word, Excel o TXT. Máximo 5 MB.
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- BOTÓN -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <button id="btnEnviarMiembro" class="btn btn-success btn-lg w-100" type="submit">
+
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Enviar
+
+                                </button>
+
+                            </div>
+
                         </div>
 
-                        <div class="col-12">
-                            <button id="btnEnviarMiembro" class="btn btn-success btn-lg w-100" type="submit">
-                                <i class="fas fa-paper-plane me-2"></i> Enviar
-                            </button>
-                        </div>
+                    </form>
 
-                    </div>
-                </form>
+                </div>
+
             </div>
 
         </div>
+
     </div>
+
 </div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const mensaje = document.getElementById("mensajeComunicacionMiembro");
 
-        if (!mensaje) return;
+        // =====================================================
+        // ELEMENTOS
+        // =====================================================
 
-        setTimeout(function() {
-            mensaje.style.transition = "opacity 0.5s ease";
-            mensaje.style.opacity = "0";
+        const tabs =
+            document.querySelectorAll(
+                "[data-com-tab]"
+            );
 
-            setTimeout(function() {
-                mensaje.remove();
-            }, 500);
-        }, 2500);
-    });
-</script>
+        const buscador =
+            document.getElementById(
+                "buscadorMensajes"
+            );
 
-<script>
-    (function() {
-        const form = document.querySelector("#formResponder form");
-        const btn = document.getElementById("btnEnviarMiembro");
+        const inputBusqueda =
+            document.getElementById(
+                "msgSearch"
+            );
 
-        if (!form || !btn) return;
+        const wrapper =
+            document.getElementById(
+                "comunicacion-listas-wrapper"
+            );
 
-        form.addEventListener("submit", function() {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
-        });
-    })();
-</script>
+        const form =
+            document.getElementById(
+                "formResponderMiembro"
+            );
 
-<script>
-    function aplicarFiltroMensajes() {
-        const input = document.getElementById("msgSearch");
+        const btnEnviar =
+            document.getElementById(
+                "btnEnviarMiembro"
+            );
 
-        if (!input) return;
+        const destinatarioMiembro =
+            document.getElementById(
+                "destinatarioMiembro"
+            );
 
-        function filtrarTabla(table) {
-            if (!table) return;
 
-            const rows = table.querySelectorAll("tbody tr");
-            const q = (input.value || "").toLowerCase().trim();
+        // =====================================================
+        // PESTAÑA ACTUAL
+        // =====================================================
 
-            rows.forEach(row => {
-                const text = (row.innerText || "").toLowerCase();
-                row.style.display = text.includes(q) ? "" : "none";
-            });
-        }
+        let tabActiva =
+            "{{ tab_activa|default:'recibidos'|escapejs }}";
 
-        filtrarTabla(document.getElementById("tablaRecibidos"));
-        filtrarTabla(document.getElementById("tablaEnviados"));
-    }
 
-    (function() {
-        const input = document.getElementById("msgSearch");
+        // =====================================================
+        // RECUPERAR DESTINATARIO
+        // =====================================================
 
-        if (!input) return;
+        const destinatarioSeleccionado =
+            "{{ destinatario_id_seleccionado|default:''|escapejs }}";
 
-        input.addEventListener("input", aplicarFiltroMensajes);
-    })();
-</script>
 
-<script>
-    (function() {
-        const wrapper = document.getElementById("comunicacion-listas-wrapper");
+        if (destinatarioMiembro) {
 
-        if (!wrapper) return;
+            if (destinatarioSeleccionado) {
 
-        const url = "{% url 'comunicacion_miembro_ajax' %}";
-        const intervalo = 5000;
+                destinatarioMiembro.value =
+                    destinatarioSeleccionado;
 
-        function actualizarContadorNoLeidos(noLeidos) {
-            const contenedor = document.getElementById("contador-no-leidos-header");
-            const numero = document.getElementById("contador-no-leidos-numero");
-
-            if (!contenedor || !numero) return;
-
-            numero.textContent = noLeidos;
-
-            if (noLeidos > 0) {
-                contenedor.classList.remove("d-none");
             } else {
-                contenedor.classList.add("d-none");
+
+                destinatarioMiembro.selectedIndex =
+                    0;
+
             }
+
         }
 
-        async function actualizarComunicacion() {
-            try {
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest"
+
+        // =====================================================
+        // QUITAR ERROR VISUAL
+        // =====================================================
+
+        function quitarErrorCampo(
+            nombreCampo
+        ) {
+
+            const campo =
+                document.querySelector(
+                    `[name="${nombreCampo}"]`
+                );
+
+
+            if (campo) {
+
+                campo.classList.remove(
+                    "is-invalid"
+                );
+
+            }
+
+
+            const errores =
+                document.querySelectorAll(
+                    `.js-field-error[data-error-for="${nombreCampo}"]`
+                );
+
+
+            errores.forEach(function(error) {
+
+                error.style.transition =
+                    "opacity 0.2s ease";
+
+                error.style.opacity =
+                    "0";
+
+
+                setTimeout(function() {
+
+                    error.remove();
+
+                }, 200);
+
+            });
+
+        }
+
+
+        // =====================================================
+        // ASUNTO
+        // =====================================================
+
+        const campoAsunto =
+            document.querySelector(
+                '[name="asunto"]'
+            );
+
+
+        if (campoAsunto) {
+
+            campoAsunto.addEventListener(
+                "input",
+                function() {
+
+                    if (
+                        this.value.trim().length > 0
+                    ) {
+
+                        quitarErrorCampo(
+                            "asunto"
+                        );
+
                     }
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // MENSAJE
+        // =====================================================
+
+        const campoCuerpo =
+            document.querySelector(
+                '[name="cuerpo"]'
+            );
+
+
+        if (campoCuerpo) {
+
+            campoCuerpo.addEventListener(
+                "input",
+                function() {
+
+                    if (
+                        this.value.trim().length > 0
+                    ) {
+
+                        quitarErrorCampo(
+                            "cuerpo"
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // DESTINATARIO
+        // =====================================================
+
+        if (destinatarioMiembro) {
+
+            destinatarioMiembro.addEventListener(
+                "change",
+                function() {
+
+                    if (this.value) {
+
+                        quitarErrorCampo(
+                            "destinatario_id"
+                        );
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // ARCHIVO
+        // =====================================================
+
+        const campoArchivo =
+            document.querySelector(
+                '[name="archivo"]'
+            );
+
+
+        if (campoArchivo) {
+
+            campoArchivo.addEventListener(
+                "change",
+                function() {
+
+                    quitarErrorCampo(
+                        "archivo"
+                    );
+
+                }
+            );
+
+        }
+
+        // =====================================================
+        // ACTIVAR PESTAÑA
+        // =====================================================
+
+        function activarPestana(
+            nombre,
+            actualizarUrl = true
+        ) {
+
+            const pestanasValidas = [
+                "recibidos",
+                "enviados",
+                "nuevo"
+            ];
+
+
+            if (!pestanasValidas.includes(nombre)) {
+
+                nombre =
+                    "recibidos";
+
+            }
+
+
+            tabActiva =
+                nombre;
+
+
+            // -----------------------------------------
+            // Botones
+            // -----------------------------------------
+
+            tabs.forEach(function(boton) {
+
+                boton.classList.toggle(
+                    "active",
+                    boton.dataset.comTab === nombre
+                );
+
+            });
+
+
+            // -----------------------------------------
+            // Paneles
+            // -----------------------------------------
+
+            const recibidos =
+                document.getElementById(
+                    "panel-recibidos"
+                );
+
+            const enviados =
+                document.getElementById(
+                    "panel-enviados"
+                );
+
+            const nuevo =
+                document.getElementById(
+                    "panel-nuevo"
+                );
+
+
+            if (recibidos) {
+
+                recibidos.classList.toggle(
+                    "d-none",
+                    nombre !== "recibidos"
+                );
+
+            }
+
+
+            if (enviados) {
+
+                enviados.classList.toggle(
+                    "d-none",
+                    nombre !== "enviados"
+                );
+
+            }
+
+
+            if (nuevo) {
+
+                nuevo.classList.toggle(
+                    "d-none",
+                    nombre !== "nuevo"
+                );
+
+            }
+
+
+            // -----------------------------------------
+            // Buscador
+            // -----------------------------------------
+
+            if (buscador) {
+
+                buscador.classList.toggle(
+                    "d-none",
+                    nombre === "nuevo"
+                );
+
+            }
+
+
+            aplicarFiltroMensajes();
+
+
+            // -----------------------------------------
+            // URL
+            // -----------------------------------------
+
+            if (actualizarUrl) {
+
+                const url =
+                    new URL(
+                        window.location.href
+                    );
+
+
+                url.searchParams.set(
+                    "tab",
+                    nombre
+                );
+
+
+                window.history.replaceState({},
+                    "",
+                    url
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // CLIC EN PESTAÑAS
+        // =====================================================
+
+        tabs.forEach(function(boton) {
+
+            boton.addEventListener(
+                "click",
+                function() {
+
+                    activarPestana(
+                        this.dataset.comTab
+                    );
+
+                }
+            );
+
+        });
+
+
+        // =====================================================
+        // BUSCADOR
+        // =====================================================
+
+        function aplicarFiltroMensajes() {
+
+            const tablaRecibidos =
+                document.getElementById(
+                    "tablaRecibidos"
+                );
+
+            const tablaEnviados =
+                document.getElementById(
+                    "tablaEnviados"
+                );
+
+
+            const tablas = [
+                tablaRecibidos,
+                tablaEnviados
+            ];
+
+
+            // Restaurar tablas
+            tablas.forEach(function(tabla) {
+
+                if (!tabla) return;
+
+
+                tabla
+                    .querySelectorAll(
+                        "tbody tr"
+                    )
+                    .forEach(function(fila) {
+
+                        fila.style.display =
+                            "";
+
+                    });
+
+            });
+
+
+            if (!inputBusqueda) {
+                return;
+            }
+
+
+            const q =
+                (inputBusqueda.value || "")
+                .toLowerCase()
+                .trim();
+
+
+            if (!q) {
+                return;
+            }
+
+
+            let tablaActiva =
+                null;
+
+
+            if (
+                tabActiva === "recibidos"
+            ) {
+
+                tablaActiva =
+                    tablaRecibidos;
+
+            }
+
+
+            if (
+                tabActiva === "enviados"
+            ) {
+
+                tablaActiva =
+                    tablaEnviados;
+
+            }
+
+
+            if (!tablaActiva) {
+                return;
+            }
+
+
+            tablaActiva
+                .querySelectorAll(
+                    "tbody tr"
+                )
+                .forEach(function(fila) {
+
+                    const texto =
+                        (
+                            fila.innerText ||
+                            ""
+                        )
+                        .toLowerCase();
+
+
+                    fila.style.display =
+                        texto.includes(q) ?
+                        "" :
+                        "none";
+
                 });
 
-                if (!response.ok) return;
-
-                const data = await response.json();
-
-                if (!data.ok || !data.html) return;
-
-                wrapper.innerHTML = data.html;
-
-                actualizarContadorNoLeidos(data.no_leidos || 0);
-                aplicarFiltroMensajes();
-
-                if (window.bindConfirmSwal) {
-                    window.bindConfirmSwal("form.js-confirm-papelera", {
-                        icon: "warning",
-                        title: "¿Mover a papelera?",
-                        text: "Podrás restaurarlo desde la papelera.",
-                        confirmButtonText: "Sí, mover",
-                        cancelButtonText: "Cancelar",
-                        confirmButtonColor: "#d33",
-                    });
-                }
-
-            } catch (error) {
-                console.warn("No se pudo actualizar comunicación:", error);
-            }
         }
 
-        setInterval(actualizarComunicacion, intervalo);
-    })();
+
+        // =====================================================
+        // EVENTO BUSCADOR
+        // =====================================================
+
+        if (inputBusqueda) {
+
+            inputBusqueda.addEventListener(
+                "input",
+                aplicarFiltroMensajes
+            );
+
+        }
+
+
+        // =====================================================
+        // BOTÓN ENVIAR
+        // =====================================================
+
+        if (
+            form &&
+            btnEnviar
+        ) {
+
+            form.addEventListener(
+                "submit",
+                function() {
+
+                    btnEnviar.disabled =
+                        true;
+
+
+                    btnEnviar.innerHTML =
+                        '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // CONTADORES
+        // =====================================================
+
+        function actualizarContadorNoLeidos(
+            cantidad
+        ) {
+
+            const contenedor =
+                document.getElementById(
+                    "contador-no-leidos-header"
+                );
+
+
+            const numero =
+                document.getElementById(
+                    "contador-no-leidos-numero"
+                );
+
+
+            const badge =
+                document.getElementById(
+                    "badge-recibidos"
+                );
+
+
+            if (numero) {
+
+                numero.textContent =
+                    cantidad;
+
+            }
+
+
+            if (badge) {
+
+                badge.textContent =
+                    cantidad;
+
+
+                badge.classList.toggle(
+                    "d-none",
+                    cantidad <= 0
+                );
+
+            }
+
+
+            if (contenedor) {
+
+                contenedor.classList.toggle(
+                    "d-none",
+                    cantidad <= 0
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // AJAX
+        // =====================================================
+
+        const urlAjax =
+            "{% url 'comunicacion_miembro_ajax' %}";
+
+
+        const intervalo =
+            5000;
+
+
+        async function actualizarComunicacion() {
+
+            if (!wrapper) {
+                return;
+            }
+
+
+            try {
+
+                const separador =
+                    urlAjax.includes("?") ?
+                    "&" :
+                    "?";
+
+
+                const urlConsulta =
+                    urlAjax +
+                    separador +
+                    "tab=" +
+                    encodeURIComponent(
+                        tabActiva
+                    );
+
+
+                const response =
+                    await fetch(
+                        urlConsulta, {
+                            method: "GET",
+
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest"
+                            }
+                        }
+                    );
+
+
+                if (!response.ok) {
+                    return;
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                if (!data.ok ||
+                    !data.html
+                ) {
+
+                    return;
+
+                }
+
+
+                // -----------------------------------------
+                // Actualizar listas
+                // -----------------------------------------
+
+                wrapper.innerHTML =
+                    data.html;
+
+
+                // -----------------------------------------
+                // Contador
+                // -----------------------------------------
+
+                actualizarContadorNoLeidos(
+                    data.no_leidos || 0
+                );
+
+
+                // -----------------------------------------
+                // Mantener pestaña
+                // -----------------------------------------
+
+                activarPestana(
+                    tabActiva,
+                    false
+                );
+
+
+                // -----------------------------------------
+                // Mantener búsqueda
+                // -----------------------------------------
+
+                aplicarFiltroMensajes();
+
+
+                // -----------------------------------------
+                // Reenlazar SweetAlert
+                // -----------------------------------------
+
+                if (
+                    window.bindConfirmSwal
+                ) {
+
+                    window.bindConfirmSwal(
+
+                        "form.js-confirm-papelera",
+
+                        {
+                            icon: "warning",
+
+                            title: "¿Mover a papelera?",
+
+                            text: "Podrás restaurarlo desde la papelera.",
+
+                            confirmButtonText: "Sí, mover",
+
+                            cancelButtonText: "Cancelar",
+
+                            confirmButtonColor: "#d33",
+                        }
+
+                    );
+
+                }
+
+
+            } catch (error) {
+
+                console.warn(
+                    "No se pudo actualizar comunicación:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // ESTADO INICIAL
+        // =====================================================
+
+        activarPestana(
+            tabActiva,
+            false
+        );
+
+
+        // =====================================================
+        // ACTUALIZACIÓN AUTOMÁTICA
+        // =====================================================
+
+        setInterval(
+            actualizarComunicacion,
+            intervalo
+        );
+
+    });
 </script>
 
 {% endblock %}

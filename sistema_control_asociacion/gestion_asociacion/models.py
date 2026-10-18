@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -70,13 +71,36 @@ class UsuarioManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, email, password=None, **extra_fields):
+
+
+        if self.filter(rol="Dios").exists():
+            raise ValueError(
+                "Ya existe un usuario con rol Dios. "
+                "No se puede crear otro superusuario."
+            )
+
+        # El superusuario siempre será Dios
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        extra_fields["rol"] = "Dios"
 
-        # ✅ El superusuario será el nivel más alto del sistema
-        extra_fields.setdefault("rol", "Dios")
+        # Validaciones propias de Django
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(
+                "El superusuario debe tener is_staff=True."
+            )
 
-        return self.create_user(username, email, password, **extra_fields)
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(
+                "El superusuario debe tener is_superuser=True."
+            )
+
+        return self.create_user(
+            username,
+            email,
+            password,
+            **extra_fields
+        )
 
 
 # =========================
@@ -555,6 +579,16 @@ class Mensaje(models.Model):
         related_name="mensajes_recibidos",
     )
 
+    # Identifica todos los mensajes que pertenecen a la misma conversación.
+    # Se deja null=True para poder migrar los mensajes antiguos sin perderlos.
+    hilo_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        editable=False,
+        verbose_name="Hilo de conversación",
+    )
+
     asunto = models.CharField(max_length=160)
     cuerpo = models.TextField()
 
@@ -567,6 +601,13 @@ class Mensaje(models.Model):
     leido = models.BooleanField(default=False, db_index=True)
     creado_en = models.DateTimeField(auto_now_add=True, db_index=True)
     en_papelera = models.BooleanField(default=False, db_index=True)
+
+    def save(self, *args, **kwargs):
+        # Los mensajes nuevos siempre nacen dentro de un hilo.
+        if not self.hilo_id:
+            self.hilo_id = uuid.uuid4()
+
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["-creado_en"]

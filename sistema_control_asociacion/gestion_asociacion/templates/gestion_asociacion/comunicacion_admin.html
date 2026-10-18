@@ -2,242 +2,1061 @@
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
+
     <div class="comunicacion-card card">
 
+        <!-- ================================================== -->
+        <!-- HEADER -->
+        <!-- ================================================== -->
         <div class="card-header bg-dark text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+
             <h5 class="mb-0">
                 <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
 
-            <div class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}" id="contador-no-leidos-header">
-                <span class="small text-white-50">No leídos:</span>
+            <div id="contador-no-leidos-header" class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
+
+                <span class="small text-white-50">
+                    No leídos:
+                </span>
+
                 <span class="badge bg-danger" id="contador-no-leidos-numero">
                     {{ no_leidos }}
                 </span>
+
             </div>
+
         </div>
+
 
         <div class="card-body">
 
-            {% if messages %}
-            <div class="mb-4" id="mensajeComunicacionAdmin">
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} mb-2 mensaje-auto">
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            <!-- ================================================== -->
+            <!-- PESTAÑAS -->
+            <!-- ================================================== -->
+            <ul class="nav nav-pills gap-2 mb-3" id="comunicacionTabs">
 
+                <!-- RECIBIDOS -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'recibidos' %}active{% endif %}" data-com-tab="recibidos">
+
+                        <i class="fas fa-inbox me-1"></i>
+                        Recibidos
+
+                        <span id="badge-recibidos"
+                              class="badge bg-danger ms-1 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
+
+                            {{ no_leidos }}
+
+                        </span>
+
+                    </button>
+
+                </li>
+
+
+                <!-- ENVIADOS -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
+
+                        <i class="fas fa-paper-plane me-1"></i>
+                        Enviados
+
+                    </button>
+
+                </li>
+
+
+                <!-- NUEVO MENSAJE -->
+                <li class="nav-item">
+
+                    <button type="button" class="nav-link {% if tab_activa == 'nuevo' %}active{% endif %}" data-com-tab="nuevo">
+
+                        <i class="fas fa-pen me-1"></i>
+                        Nuevo mensaje
+
+                    </button>
+
+                </li>
+
+            </ul>
+
+
+            <!-- ================================================== -->
             <!-- BUSCADOR -->
-            <div class="row g-2 mb-3">
-                <div class="col-md-12">
+            <!-- ================================================== -->
+            <div id="buscadorMensajes" class="row g-2 mb-3 {% if tab_activa == 'nuevo' %}d-none{% endif %}">
+
+                <div class="col-12">
+
                     <div class="input-group">
+
                         <span class="input-group-text">
                             <i class="fas fa-search"></i>
                         </span>
-                        <input id="msgSearch" type="text" class="form-control" placeholder="Buscar por asunto o texto...">
+
+                        <input id="msgSearch" type="text" class="form-control" placeholder="Buscar en la pestaña actual...">
+
                     </div>
+
                 </div>
+
             </div>
 
-            <!-- LISTAS RECIBIDOS / ENVIADOS CON AJAX -->
+
+            <!-- ================================================== -->
+            <!-- RECIBIDOS / ENVIADOS -->
+            <!-- ACTUALIZACIÓN AJAX -->
+            <!-- ================================================== -->
             <div id="comunicacion-listas-wrapper">
+
                 {% include "gestion_asociacion/partials/comunicacion_listas_admin.html" %}
+
             </div>
 
-            <!-- ENVIAR A MIEMBRO -->
-            <div class="mt-4">
-                <h5 class="mb-2">
-                    <i class="fas fa-envelope me-1"></i> Enviar mensaje a Miembro
-                </h5>
 
-                <p class="text-muted small mb-3">
-                    Selecciona un miembro, escribe asunto y mensaje. Puedes adjuntar archivo.
-                </p>
+            <!-- ================================================== -->
+            <!-- NUEVO MENSAJE -->
+            <!-- ================================================== -->
+            <div id="panel-nuevo" class="{% if tab_activa != 'nuevo' %}d-none{% endif %}">
 
-                <form id="formResponder" method="post" action="{% url 'enviar_mensaje_admin' %}" enctype="multipart/form-data">
-                    {% csrf_token %}
+                <div class="mt-2">
 
-                    <div class="row g-3">
+                    <h5 class="mb-2">
 
-                        <div class="col-md-6">
-                            <label class="form-label">Destinatario</label>
+                        <i class="fas fa-envelope me-1"></i> Enviar mensaje a Miembro
 
-                            <select class="form-select" name="destinatario_id" required>
-                                <option value="" disabled {% if not request.GET.destinatario_id %}selected{% endif %}>
-                                    Selecciona un miembro
-                                </option>
+                    </h5>
 
-                                {% for u in miembros %}
-                                <option value="{{ u.id }}" {% if request.GET.destinatario_id == u.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ u.username }}
-                                </option>
+                    <p class="text-muted small mb-3">
+
+                        Selecciona un miembro, escribe asunto y mensaje. Puedes adjuntar archivo.
+
+                    </p>
+
+
+                    <!-- ================================================== -->
+                    <!-- FORMULARIO -->
+                    <!-- ================================================== -->
+                    <form id="formResponder" method="post" action="{% url 'enviar_mensaje_admin' %}" enctype="multipart/form-data" novalidate>
+
+                        {% csrf_token %} {% if hilo_id_respuesta %}
+                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}"> {% endif %}
+
+                        <div class="row g-3">
+
+
+                            <!-- ========================================== -->
+                            <!-- DESTINATARIO -->
+                            <!-- ========================================== -->
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Destinatario
+                                </label>
+
+                                <select id="destinatarioAdmin" class="form-select" name="destinatario_id">
+
+                                    <option value=""
+                                            disabled
+                                            selected>
+
+                                        Selecciona un miembro
+
+                                    </option>
+
+                                    {% for u in miembros %}
+
+                                    <option value="{{ u.id }}">
+                                        {{ u.username }}
+                                    </option>
+
+                                    {% endfor %}
+
+                                </select> {% for error in form.non_field_errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="destinatario_id">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
                                 {% endfor %}
-                            </select>
-                        </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Asunto</label>
-
-                            <input class="form-control" type="text" name="asunto" value="{{ request.GET.asunto|default:'' }}" placeholder="Ej. Reunión, Aviso, Recordatorio..." required>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Mensaje</label>
-
-                            <textarea class="form-control" name="cuerpo" rows="5" placeholder="Escribe tu mensaje..." required></textarea>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label">Adjuntar archivo (opcional)</label>
-
-                            <input class="form-control" type="file" name="archivo">
-
-                            <div class="form-text">
-                                Formatos comunes: PDF, imagen, Word, Excel.
                             </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- ASUNTO -->
+                            <!-- ========================================== -->
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Asunto
+                                </label> {% if es_respuesta %}
+
+                                <input type="text" name="asunto" class="form-control" value="{{ form.asunto.value|default_if_none:'' }}" placeholder="Ej. Reunión, Aviso, Recordatorio..." readonly> {% else %}
+
+                                <input type="text" name="asunto" class="form-control" value="{{ form.asunto.value|default_if_none:'' }}" placeholder="Ej. Reunión, Aviso, Recordatorio..."> {% endif %} {% for error in form.asunto.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="asunto">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- MENSAJE -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Mensaje
+                                </label>
+
+                                <textarea name="cuerpo" rows="5" class="form-control" placeholder="Escribe tu mensaje...">{{ form.cuerpo.value|default_if_none:"" }}</textarea> {% for error in form.cuerpo.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="cuerpo">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
+                            </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- ARCHIVO -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Adjuntar archivo (opcional)
+                                </label>
+
+                                <input type="file" name="archivo" class="form-control"> {% for error in form.archivo.errors %}
+
+                                <div class="text-danger small mt-1 js-field-error" data-error-for="archivo">
+
+                                    <i class="fas fa-circle-exclamation me-1"></i> {{ error }}
+
+                                </div>
+
+                                {% endfor %}
+
+
+                                <div class="form-text">
+
+                                    Formatos permitidos: PDF, JPG, JPEG, PNG, GIF, WEBP, Word, Excel o TXT. Máximo 5 MB.
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- ========================================== -->
+                            <!-- BOTÓN -->
+                            <!-- ========================================== -->
+                            <div class="col-12">
+
+                                <button id="btnEnviarAdmin" class="btn btn-success btn-lg w-100" type="submit">
+
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Enviar
+
+                                </button>
+
+                            </div>
+
                         </div>
 
-                        <div class="col-12">
-                            <button id="btnEnviarAdmin" class="btn btn-success btn-lg w-100" type="submit">
-                                <i class="fas fa-paper-plane me-2"></i> Enviar
-                            </button>
-                        </div>
+                    </form>
 
-                    </div>
-                </form>
+                </div>
+
             </div>
 
         </div>
+
     </div>
+
 </div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const mensaje = document.getElementById("mensajeComunicacionAdmin");
 
-        if (!mensaje) return;
+        // =====================================================
+        // ELEMENTOS
+        // =====================================================
 
-        setTimeout(function() {
-            mensaje.style.transition = "opacity 0.5s ease";
-            mensaje.style.opacity = "0";
+        const tabs =
+            document.querySelectorAll(
+                "[data-com-tab]"
+            );
 
-            setTimeout(function() {
-                mensaje.remove();
-            }, 500);
-        }, 2500);
-    });
-</script>
+        const buscador =
+            document.getElementById(
+                "buscadorMensajes"
+            );
 
-<script>
-    (function() {
-        const form = document.getElementById("formResponder");
-        const btn = document.getElementById("btnEnviarAdmin");
+        const inputBusqueda =
+            document.getElementById(
+                "msgSearch"
+            );
 
-        if (!form || !btn) return;
+        const wrapper =
+            document.getElementById(
+                "comunicacion-listas-wrapper"
+            );
 
-        form.addEventListener("submit", function() {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
-        });
-    })();
-</script>
+        const form =
+            document.getElementById(
+                "formResponder"
+            );
 
-<script>
-    function aplicarFiltroMensajes() {
-        const input = document.getElementById("msgSearch");
+        const btnEnviar =
+            document.getElementById(
+                "btnEnviarAdmin"
+            );
 
-        if (!input) return;
+        const destinatarioAdmin =
+            document.getElementById(
+                "destinatarioAdmin"
+            );
 
-        function filtrarTabla(table) {
-            if (!table) return;
 
-            const rows = table.querySelectorAll("tbody tr");
-            const q = (input.value || "").toLowerCase().trim();
+        // =====================================================
+        // QUITAR ERROR AL EMPEZAR A CORREGIR
+        // =====================================================
 
-            rows.forEach(row => {
-                const text = (row.innerText || "").toLowerCase();
-                row.style.display = text.includes(q) ? "" : "none";
-            });
-        }
+        function quitarErrorCampo(nombreCampo) {
 
-        filtrarTabla(document.getElementById("tablaRecibidos"));
-        filtrarTabla(document.getElementById("tablaEnviados"));
-    }
+            const campo =
+                document.querySelector(
+                    `[name="${nombreCampo}"]`
+                );
 
-    (function() {
-        const input = document.getElementById("msgSearch");
+            if (campo) {
 
-        if (!input) return;
+                campo.classList.remove(
+                    "is-invalid"
+                );
 
-        input.addEventListener("input", aplicarFiltroMensajes);
-    })();
-</script>
-
-<script>
-    (function() {
-        const wrapper = document.getElementById("comunicacion-listas-wrapper");
-
-        if (!wrapper) return;
-
-        const url = "{% url 'comunicacion_admin_ajax' %}";
-        const intervalo = 5000;
-
-        function actualizarContadorNoLeidos(noLeidos) {
-            const contenedor = document.getElementById("contador-no-leidos-header");
-            const numero = document.getElementById("contador-no-leidos-numero");
-
-            if (!contenedor || !numero) return;
-
-            numero.textContent = noLeidos;
-
-            if (noLeidos > 0) {
-                contenedor.classList.remove("d-none");
-            } else {
-                contenedor.classList.add("d-none");
             }
-        }
 
-        async function actualizarComunicacion() {
-            try {
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest"
-                    }
+
+            document
+                .querySelectorAll(
+                    `.js-field-error[data-error-for="${nombreCampo}"]`
+                )
+                .forEach(function(error) {
+
+                    error.style.transition =
+                        "opacity 0.2s ease";
+
+                    error.style.opacity =
+                        "0";
+
+
+                    setTimeout(function() {
+
+                        error.remove();
+
+                    }, 200);
+
                 });
 
-                if (!response.ok) return;
-
-                const data = await response.json();
-
-                if (!data.ok || !data.html) return;
-
-                wrapper.innerHTML = data.html;
-
-                actualizarContadorNoLeidos(data.no_leidos || 0);
-                aplicarFiltroMensajes();
-
-                if (window.bindConfirmSwal) {
-                    window.bindConfirmSwal("form.js-confirm-papelera", {
-                        icon: "warning",
-                        title: "¿Mover a papelera?",
-                        text: "Podrás restaurarlo desde la papelera.",
-                        confirmButtonText: "Sí, mover",
-                        cancelButtonText: "Cancelar",
-                        confirmButtonColor: "#d33",
-                    });
-                }
-
-            } catch (error) {
-                console.warn("No se pudo actualizar comunicación admin:", error);
-            }
         }
 
-        actualizarComunicacion();
-        setInterval(actualizarComunicacion, intervalo);
-    })();
+
+        // =====================================================
+        // ASUNTO
+        // =====================================================
+
+        const campoAsunto =
+            document.querySelector(
+                '[name="asunto"]'
+            );
+
+
+        if (campoAsunto) {
+
+            campoAsunto.addEventListener(
+                "input",
+                function() {
+
+                    quitarErrorCampo(
+                        "asunto"
+                    );
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // MENSAJE
+        // =====================================================
+
+        const campoCuerpo =
+            document.querySelector(
+                '[name="cuerpo"]'
+            );
+
+
+        if (campoCuerpo) {
+
+            campoCuerpo.addEventListener(
+                "input",
+                function() {
+
+                    quitarErrorCampo(
+                        "cuerpo"
+                    );
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // DESTINATARIO
+        // =====================================================
+
+        const campoDestinatario =
+            document.querySelector(
+                '[name="destinatario_id"]'
+            );
+
+
+        if (campoDestinatario) {
+
+            campoDestinatario.addEventListener(
+                "change",
+                function() {
+
+                    quitarErrorCampo(
+                        "destinatario_id"
+                    );
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // ARCHIVO
+        // =====================================================
+
+        const campoArchivo =
+            document.querySelector(
+                '[name="archivo"]'
+            );
+
+
+        if (campoArchivo) {
+
+            campoArchivo.addEventListener(
+                "change",
+                function() {
+
+                    quitarErrorCampo(
+                        "archivo"
+                    );
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // PESTAÑA ACTUAL
+        // =====================================================
+
+        let tabActiva =
+            "{{ tab_activa|default:'recibidos'|escapejs }}";
+
+
+        // =====================================================
+        // RECUPERAR DESTINATARIO
+        // =====================================================
+
+        const destinatarioSeleccionado =
+            "{{ destinatario_id_seleccionado|default:''|escapejs }}";
+
+
+        if (destinatarioAdmin) {
+
+            if (destinatarioSeleccionado) {
+
+                destinatarioAdmin.value =
+                    destinatarioSeleccionado;
+
+            } else {
+
+                destinatarioAdmin.selectedIndex =
+                    0;
+
+            }
+
+        }
+
+
+        // =====================================================
+        // ACTIVAR PESTAÑA
+        // =====================================================
+
+        function activarPestana(
+            nombre,
+            actualizarUrl = true
+        ) {
+
+            const pestanasValidas = [
+                "recibidos",
+                "enviados",
+                "nuevo"
+            ];
+
+
+            if (!pestanasValidas.includes(nombre)) {
+
+                nombre =
+                    "recibidos";
+
+            }
+
+
+            tabActiva =
+                nombre;
+
+
+            // -----------------------------------------
+            // BOTONES
+            // -----------------------------------------
+
+            tabs.forEach(function(boton) {
+
+                boton.classList.toggle(
+                    "active",
+                    boton.dataset.comTab === nombre
+                );
+
+            });
+
+
+            // -----------------------------------------
+            // PANELES
+            // -----------------------------------------
+
+            const recibidos =
+                document.getElementById(
+                    "panel-recibidos"
+                );
+
+            const enviados =
+                document.getElementById(
+                    "panel-enviados"
+                );
+
+            const nuevo =
+                document.getElementById(
+                    "panel-nuevo"
+                );
+
+
+            if (recibidos) {
+
+                recibidos.classList.toggle(
+                    "d-none",
+                    nombre !== "recibidos"
+                );
+
+            }
+
+
+            if (enviados) {
+
+                enviados.classList.toggle(
+                    "d-none",
+                    nombre !== "enviados"
+                );
+
+            }
+
+
+            if (nuevo) {
+
+                nuevo.classList.toggle(
+                    "d-none",
+                    nombre !== "nuevo"
+                );
+
+            }
+
+
+            // -----------------------------------------
+            // BUSCADOR
+            // -----------------------------------------
+
+            if (buscador) {
+
+                buscador.classList.toggle(
+                    "d-none",
+                    nombre === "nuevo"
+                );
+
+            }
+
+
+            aplicarFiltroMensajes();
+
+
+            // -----------------------------------------
+            // CAMBIAR URL SIN RECARGAR
+            // -----------------------------------------
+
+            if (actualizarUrl) {
+
+                const url =
+                    new URL(
+                        window.location.href
+                    );
+
+
+                url.searchParams.set(
+                    "tab",
+                    nombre
+                );
+
+
+                window.history.replaceState({},
+                    "",
+                    url
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // CLIC EN PESTAÑAS
+        // =====================================================
+
+        tabs.forEach(function(boton) {
+
+            boton.addEventListener(
+                "click",
+                function() {
+
+                    activarPestana(
+                        this.dataset.comTab
+                    );
+
+                }
+            );
+
+        });
+
+
+        // =====================================================
+        // BUSCADOR
+        // =====================================================
+
+        function aplicarFiltroMensajes() {
+
+            const tablaRecibidos =
+                document.getElementById(
+                    "tablaRecibidos"
+                );
+
+            const tablaEnviados =
+                document.getElementById(
+                    "tablaEnviados"
+                );
+
+
+            const tablas = [
+                tablaRecibidos,
+                tablaEnviados
+            ];
+
+
+            // -----------------------------------------
+            // RESTAURAR FILAS
+            // -----------------------------------------
+
+            tablas.forEach(function(tabla) {
+
+                if (!tabla) {
+                    return;
+                }
+
+
+                tabla
+                    .querySelectorAll(
+                        "tbody tr"
+                    )
+                    .forEach(
+                        function(fila) {
+
+                            fila.style.display =
+                                "";
+
+                        }
+                    );
+
+            });
+
+
+            if (!inputBusqueda) {
+                return;
+            }
+
+
+            const q =
+                (inputBusqueda.value || "")
+                .toLowerCase()
+                .trim();
+
+
+            if (!q) {
+                return;
+            }
+
+
+            let tablaActiva =
+                null;
+
+
+            if (
+                tabActiva === "recibidos"
+            ) {
+
+                tablaActiva =
+                    tablaRecibidos;
+
+            }
+
+
+            if (
+                tabActiva === "enviados"
+            ) {
+
+                tablaActiva =
+                    tablaEnviados;
+
+            }
+
+
+            if (!tablaActiva) {
+                return;
+            }
+
+
+            tablaActiva
+                .querySelectorAll(
+                    "tbody tr"
+                )
+                .forEach(
+                    function(fila) {
+
+                        const texto =
+                            (
+                                fila.innerText ||
+                                ""
+                            )
+                            .toLowerCase();
+
+
+                        fila.style.display =
+                            texto.includes(q) ?
+                            "" :
+                            "none";
+
+                    }
+                );
+
+        }
+
+
+        // =====================================================
+        // EVENTO BUSCADOR
+        // =====================================================
+
+        if (inputBusqueda) {
+
+            inputBusqueda.addEventListener(
+                "input",
+                aplicarFiltroMensajes
+            );
+
+        }
+
+
+        // =====================================================
+        // BOTÓN ENVIAR
+        // =====================================================
+
+        if (
+            form &&
+            btnEnviar
+        ) {
+
+            form.addEventListener(
+                "submit",
+                function() {
+
+                    btnEnviar.disabled =
+                        true;
+
+
+                    btnEnviar.innerHTML =
+                        '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
+
+                }
+            );
+
+        }
+
+
+        // =====================================================
+        // CONTADORES
+        // =====================================================
+
+        function actualizarContadorNoLeidos(
+            cantidad
+        ) {
+
+            const contenedor =
+                document.getElementById(
+                    "contador-no-leidos-header"
+                );
+
+
+            const numero =
+                document.getElementById(
+                    "contador-no-leidos-numero"
+                );
+
+
+            const badge =
+                document.getElementById(
+                    "badge-recibidos"
+                );
+
+
+            if (numero) {
+
+                numero.textContent =
+                    cantidad;
+
+            }
+
+
+            if (badge) {
+
+                badge.textContent =
+                    cantidad;
+
+
+                badge.classList.toggle(
+                    "d-none",
+                    cantidad <= 0
+                );
+
+            }
+
+
+            if (contenedor) {
+
+                contenedor.classList.toggle(
+                    "d-none",
+                    cantidad <= 0
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // AJAX
+        // =====================================================
+
+        const urlAjax =
+            "{% url 'comunicacion_admin_ajax' %}";
+
+
+        const intervalo =
+            5000;
+
+
+        async function actualizarComunicacion() {
+
+            if (!wrapper) {
+                return;
+            }
+
+
+            try {
+
+                const separador =
+                    urlAjax.includes("?") ?
+                    "&" :
+                    "?";
+
+
+                const urlConsulta =
+                    urlAjax +
+                    separador +
+                    "tab=" +
+                    encodeURIComponent(
+                        tabActiva
+                    );
+
+
+                const response =
+                    await fetch(
+                        urlConsulta, {
+                            method: "GET",
+
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest"
+                            }
+                        }
+                    );
+
+
+                if (!response.ok) {
+                    return;
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                if (!data.ok ||
+                    !data.html
+                ) {
+
+                    return;
+
+                }
+
+
+                // -----------------------------------------
+                // ACTUALIZAR TABLAS
+                // -----------------------------------------
+
+                wrapper.innerHTML =
+                    data.html;
+
+
+                // -----------------------------------------
+                // ACTUALIZAR CONTADOR
+                // -----------------------------------------
+
+                actualizarContadorNoLeidos(
+                    data.no_leidos || 0
+                );
+
+
+                // -----------------------------------------
+                // MANTENER PESTAÑA ACTUAL
+                // -----------------------------------------
+
+                activarPestana(
+                    tabActiva,
+                    false
+                );
+
+
+                // -----------------------------------------
+                // MANTENER BÚSQUEDA
+                // -----------------------------------------
+
+                aplicarFiltroMensajes();
+
+
+                // -----------------------------------------
+                // REENLAZAR SWEETALERT
+                // -----------------------------------------
+
+                if (
+                    window.bindConfirmSwal
+                ) {
+
+                    window.bindConfirmSwal(
+
+                        "form.js-confirm-papelera",
+
+                        {
+                            icon: "warning",
+
+                            title: "¿Mover a papelera?",
+
+                            text: "Podrás restaurarlo desde la papelera.",
+
+                            confirmButtonText: "Sí, mover",
+
+                            cancelButtonText: "Cancelar",
+
+                            confirmButtonColor: "#d33",
+                        }
+
+                    );
+
+                }
+
+
+            } catch (error) {
+
+                console.warn(
+                    "No se pudo actualizar comunicación admin:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        // =====================================================
+        // ESTADO INICIAL
+        // =====================================================
+
+        activarPestana(
+            tabActiva,
+            false
+        );
+
+
+        // =====================================================
+        // ACTUALIZACIÓN CADA 5 SEGUNDOS
+        // =====================================================
+
+        setInterval(
+            actualizarComunicacion,
+            intervalo
+        );
+
+    });
 </script>
 
 {% endblock %}

@@ -1,0 +1,403 @@
+{% extends 'gestion_asociacion/base.html' %} {% block title %}Editar Usuario{% endblock %} {% block content %}
+
+<div class="container-fluid mt-4">
+
+    <div class="row justify-content-center">
+
+        <main class="col-12 d-flex justify-content-center">
+
+            <div class="card shadow-lg p-4 bg-white rounded w-100 mx-auto" style="max-width: 950px;">
+
+                <!-- Encabezado -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+
+                    <h2 class="m-0 text-dark">
+                        <i class="fas fa-user-pen"></i> Editar Usuario
+                    </h2>
+
+                    <a href="{% url 'usuario_detalle' usuario_obj.id %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Volver al perfil
+                    </a>
+
+                </div>
+
+
+                <!-- Información -->
+                <div class="alert alert-info">
+
+                    <i class="fas fa-circle-info me-1"></i> Puedes completar o modificar tus datos personales.
+
+                </div>
+
+
+                <form method="post" novalidate>
+
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+
+
+                        <!-- Nombre de usuario -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Nombre de usuario
+                            </label>
+
+                            <input type="text" class="form-control" value="{{ usuario_obj.username }}" readonly>
+
+                        </div>
+
+
+                        <!-- Correo -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Correo electrónico
+                            </label>
+
+                            <input type="email" class="form-control" value="{{ usuario_obj.email }}" readonly>
+
+                        </div>
+
+
+                        <!-- Nombre -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Nombre
+                            </label>
+
+                            <input type="text" name="first_name" class="form-control {% if errores.first_name %}is-invalid{% endif %}" value="{{ form_data.first_name }}"> {% if errores.first_name %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.first_name }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Apellido -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Apellido
+                            </label>
+
+                            <input type="text" name="last_name" class="form-control {% if errores.last_name %}is-invalid{% endif %}" value="{{ form_data.last_name }}"> {% if errores.last_name %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.last_name }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Teléfono -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Teléfono
+                            </label>
+
+                            <input type="text" name="telefono" maxlength="10" inputmode="numeric" class="form-control {% if errores.telefono %}is-invalid{% endif %}" value="{{ form_data.telefono }}"> {% if errores.telefono %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.telefono }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Género -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Género
+                            </label>
+
+                            <select name="genero" class="form-select {% if errores.genero %}is-invalid{% endif %}">
+
+                                <option value="">
+                                    Selecciona una opción
+                                </option>
+
+                                <option value="M"
+                                    {% if form_data.genero == "M" %}selected{% endif %}>
+                                    Masculino
+                                </option>
+
+                                <option value="F"
+                                    {% if form_data.genero == "F" %}selected{% endif %}>
+                                    Femenino
+                                </option>
+
+                                <option value="O"
+                                    {% if form_data.genero == "O" %}selected{% endif %}>
+                                    Otro
+                                </option>
+
+                            </select> {% if errores.genero %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.genero }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Fecha de nacimiento -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Fecha de nacimiento
+                            </label>
+
+                            <input type="date" name="fecha_nacimiento" class="form-control {% if errores.fecha_nacimiento %}is-invalid{% endif %}" value="{{ form_data.fecha_nacimiento }}"> {% if errores.fecha_nacimiento %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.fecha_nacimiento }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Rol -->
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Rol
+                            </label>
+
+                            <input type="text" class="form-control" value="{{ usuario_obj.rol }}" readonly>
+
+                        </div>
+
+
+                        <!-- Dirección -->
+                        <div class="col-12">
+
+                            <label class="form-label">
+                                Dirección
+                            </label>
+
+                            <textarea name="direccion" class="form-control {% if errores.direccion %}is-invalid{% endif %}" rows="3">{{ form_data.direccion }}</textarea> {% if errores.direccion %}
+                            <div class="invalid-feedback d-block">
+                                <i class="fas fa-circle-exclamation me-1"></i> {{ errores.direccion }}
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Botones -->
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+
+                        <button type="submit" class="btn btn-success">
+
+                            <i class="fas fa-save"></i>
+                            Guardar cambios
+
+                        </button>
+
+                        <a href="{% url 'usuario_detalle' usuario_obj.id %}" class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // =========================================================
+        // Quitar visualmente el error de un campo
+        // =========================================================
+        function quitarError(campo) {
+
+            campo.classList.remove("is-invalid");
+
+            const contenedor = campo.closest(".col-md-6, .col-12");
+
+            if (!contenedor) return;
+
+            const error = contenedor.querySelector(".invalid-feedback");
+
+            if (error) {
+                error.style.transition = "opacity 0.3s ease";
+                error.style.opacity = "0";
+
+                setTimeout(function() {
+                    error.remove();
+                }, 300);
+            }
+        }
+
+
+        // =========================================================
+        // Nombre
+        // =========================================================
+        const firstName = document.querySelector(
+            '[name="first_name"]'
+        );
+
+        if (firstName) {
+            firstName.addEventListener("input", function() {
+
+                if (this.value.trim().length > 0) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+
+        // =========================================================
+        // Apellido
+        // =========================================================
+        const lastName = document.querySelector(
+            '[name="last_name"]'
+        );
+
+        if (lastName) {
+            lastName.addEventListener("input", function() {
+
+                if (this.value.trim().length > 0) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+
+        // =========================================================
+        // Teléfono
+        // Debe tener exactamente 10 números
+        // =========================================================
+        const telefono = document.querySelector(
+            '[name="telefono"]'
+        );
+
+        if (telefono) {
+            telefono.addEventListener("input", function() {
+
+                const valor = this.value.trim();
+
+                if (
+                    valor === "" ||
+                    /^\d{10}$/.test(valor)
+                ) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+
+        // =========================================================
+        // Dirección
+        // Vacía es válida, o debe tener mínimo 10 caracteres
+        // =========================================================
+        const direccion = document.querySelector(
+            '[name="direccion"]'
+        );
+
+        if (direccion) {
+            direccion.addEventListener("input", function() {
+
+                const valor = this.value.trim();
+
+                if (
+                    valor === "" ||
+                    valor.length >= 10
+                ) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+
+        // =========================================================
+        // Género
+        // =========================================================
+        const genero = document.querySelector(
+            '[name="genero"]'
+        );
+
+        if (genero) {
+            genero.addEventListener("change", function() {
+
+                const valoresValidos = [
+                    "",
+                    "M",
+                    "F",
+                    "O"
+                ];
+
+                if (valoresValidos.includes(this.value)) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+
+        // =========================================================
+        // Fecha de nacimiento
+        // =========================================================
+        const fechaNacimiento = document.querySelector(
+            '[name="fecha_nacimiento"]'
+        );
+
+        if (fechaNacimiento) {
+            fechaNacimiento.addEventListener("change", function() {
+
+                const valor = this.value;
+
+                // El campo vacío está permitido
+                if (!valor) {
+                    quitarError(this);
+                    return;
+                }
+
+                const fecha = new Date(
+                    valor + "T00:00:00"
+                );
+
+                const hoy = new Date();
+
+                hoy.setHours(
+                    0,
+                    0,
+                    0,
+                    0
+                );
+
+                const anio = fecha.getFullYear();
+
+                if (!isNaN(fecha.getTime()) &&
+                    anio >= 1900 &&
+                    fecha <= hoy
+                ) {
+                    quitarError(this);
+                }
+
+            });
+        }
+
+    });
+</script>
+
+{% endblock %}

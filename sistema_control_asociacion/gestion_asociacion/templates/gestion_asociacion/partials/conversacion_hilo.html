@@ -1,0 +1,52 @@
+{% for m in mensajes_hilo %}
+
+<div class="d-flex mb-3 {% if m.remitente_id == request.user.id %}justify-content-end{% else %}justify-content-start{% endif %}">
+
+    <div class="border rounded p-3 {% if m.remitente_id == request.user.id %}mensaje-propio{% else %}mensaje-recibido{% endif %}" style="max-width: 80%; min-width: 280px;">
+
+        <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+
+            <div class="fw-semibold">
+
+                {% if m.remitente %} {{ m.remitente.username }} {% else %} Usuario eliminado {% endif %} {% if m.remitente_id == request.user.id %}
+                <span class="badge bg-primary ms-1">
+                    Tú
+                </span> {% endif %}
+
+            </div>
+
+            <div class="small text-muted text-nowrap">
+                {{ m.creado_en|date:"d/m/Y H:i" }}
+            </div>
+
+        </div>
+
+        <div class="msg-body">
+            {{ m.cuerpo|linebreaksbr }}
+        </div>
+
+        {% if m.archivo %}
+
+        <div class="mt-3">
+
+            <a class="btn btn-sm btn-outline-primary" href="{{ m.archivo.url }}" target="_blank">
+
+                <i class="fas fa-paperclip me-1"></i> Descargar archivo
+
+            </a>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% empty %}
+
+<div class="text-center text-muted py-4">
+    No hay mensajes en esta conversación.
+</div>
+
+{% endfor %}

@@ -1,101 +1,291 @@
-{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Ver Mensaje{% endblock %} {% block extra_css %}
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Conversación{% endblock %} {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
+
     <div class="comunicacion-card card">
 
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+
             <div class="d-flex align-items-center gap-2">
-                <i class="fas fa-envelope-open-text"></i>
-                <span class="fw-semibold">{{ msg.asunto }}</span>
+
+                <i class="fas fa-comments"></i>
+
+                <div>
+
+                    <div class="small conversacion-label">
+                        Conversación
+                    </div>
+
+                    <span class="fw-semibold text-white">
+                        {{ msg.asunto }}
+                    </span>
+
+                </div>
+
             </div>
 
             <div class="d-flex align-items-center gap-2">
-                {% if msg.leido %}
-                <span class="badge bg-success">Leído</span> {% else %}
-                <span class="badge bg-warning text-dark">Nuevo</span> {% endif %}
+
+                <span class="badge badge-mensajes-hilo" id="contador-mensajes-hilo">
+                    {{ mensajes_hilo|length }}
+                    mensaje{% if mensajes_hilo|length != 1 %}s{% endif %}
+                </span>
 
                 <a class="btn btn-sm btn-dark" href="{% url back_url %}">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
-            </div>
-        </div>
 
-        <div class="card-body">
-
-            <div class="table-responsive mb-3">
-                <table class="table table-borderless table-sm align-middle mb-0">
-                    <tbody>
-                        <tr>
-                            <th class="text-nowrap" style="width: 110px;">De:</th>
-                            <td>
-                                {% if msg.remitente %} {{ msg.remitente.username }} {% else %}
-                                <span class="text-muted">Usuario eliminado</span> {% endif %}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th class="text-nowrap">Para:</th>
-                            <td>
-                                {% if msg.destinatario %} {{ msg.destinatario.username }} {% else %}
-                                <span class="text-muted">Usuario eliminado</span> {% endif %}
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th class="text-nowrap">Fecha:</th>
-                            <td>{{ msg.creado_en|date:"d/m/Y H:i" }}</td>
-                        </tr>
-
-                        {% if msg.archivo %}
-                        <tr>
-                            <th class="text-nowrap">Adjunto:</th>
-                            <td>
-                                <a class="btn btn-sm btn-outline-primary" href="{{ msg.archivo.url }}" target="_blank">
-                                    <i class="fas fa-paperclip me-1"></i> Descargar archivo
-                                </a>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-
-            <hr class="my-4">
-
-            <h5 class="fw-semibold mb-3">
-                <i class="fas fa-comment-alt me-2"></i>Mensaje
-            </h5>
-
-            <div class="msg-body p-3 rounded border bg-light">
-                {{ msg.cuerpo|linebreaksbr }}
             </div>
 
         </div>
-    </div>
 
-    <div class="mt-4 text-end">
 
-        {% if msg.remitente and msg.remitente.id == request.user.id %} {% if msg.destinatario %} {% if es_admin %}
-        <a href="{% url 'comunicacion_admin' %}?destinatario_id={{ msg.destinatario.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
-            <i class="fas fa-reply me-1"></i> Responder
-        </a>
-        {% else %}
-        <a href="{% url 'comunicacion_interna' %}?destinatario_id={{ msg.destinatario.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
-            <i class="fas fa-reply me-1"></i> Responder
-        </a>
-        {% endif %} {% endif %} {% else %} {% if msg.remitente %} {% if es_admin %}
-        <a href="{% url 'comunicacion_admin' %}?destinatario_id={{ msg.remitente.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
-            <i class="fas fa-reply me-1"></i> Responder
-        </a>
-        {% else %}
-        <a href="{% url 'comunicacion_interna' %}?destinatario_id={{ msg.remitente.id }}&asunto=Re:%20{{ msg.asunto|urlencode }}#formResponder" class="btn btn-outline-primary">
-            <i class="fas fa-reply me-1"></i> Responder
-        </a>
-        {% endif %} {% endif %} {% endif %}
+
+        <!-- HISTORIAL -->
+
+        <div class="card-body conversacion-historial" id="conversacion-hilo-wrapper" data-total="{{ mensajes_hilo|length }}">
+
+            {% include "gestion_asociacion/partials/conversacion_hilo.html" %}
+
+        </div>
+
+
+
+        <!-- RESPONDER -->
+
+        {% if not desde_papelera %}
+
+        <div class="p-3 text-end">
+
+            {% if destinatario_respuesta and destinatario_respuesta.is_active %} {% if es_admin %}
+
+            <a href="{% url 'comunicacion_admin' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}" class="btn btn-outline-primary">
+                <i class="fas fa-reply me-1"></i> Responder
+            </a>
+
+            {% else %}
+
+            <a href="{% url 'comunicacion_interna' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}" class="btn btn-outline-primary">
+                <i class="fas fa-reply me-1"></i> Responder
+            </a>
+
+            {% endif %} {% else %}
+
+            <span class="text-muted small">
+                No es posible responder porque el otro usuario ya no está activo.
+            </span> {% endif %}
+
+        </div>
+
+        {% endif %}
 
     </div>
 
 </div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const wrapper =
+            document.getElementById(
+                "conversacion-hilo-wrapper"
+            );
+
+        const contador =
+            document.getElementById(
+                "contador-mensajes-hilo"
+            );
+
+        if (!wrapper) {
+            return;
+        }
+
+
+        const url =
+            "{% url 'conversacion_hilo_ajax' msg.id %}";
+
+        const intervalo = 5000;
+
+        let totalActual =
+            parseInt(
+                wrapper.dataset.total || "0",
+                10
+            );
+
+        function irAlFinalInmediatamente() {
+
+            wrapper.scrollTop =
+                wrapper.scrollHeight;
+
+        }
+
+        requestAnimationFrame(function() {
+
+            requestAnimationFrame(function() {
+
+                wrapper.scrollTop =
+                    wrapper.scrollHeight;
+
+            });
+
+        });
+
+        window.addEventListener("load", function() {
+
+            wrapper.scrollTop =
+                wrapper.scrollHeight;
+
+        });
+
+        function estaCercaDelFinal() {
+
+            const distanciaAlFinal =
+                wrapper.scrollHeight -
+                wrapper.scrollTop -
+                wrapper.clientHeight;
+
+            return distanciaAlFinal <= 120;
+
+        }
+
+        function irAlFinalSuavemente() {
+
+            wrapper.scrollTo({
+                top: wrapper.scrollHeight,
+                behavior: "smooth"
+            });
+
+        }
+
+        async function actualizarConversacion() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        url, {
+                            method: "GET",
+
+                            headers: {
+                                "X-Requested-With": "XMLHttpRequest"
+                            },
+
+                            cache: "no-store"
+                        }
+                    );
+
+
+                if (!response.ok) {
+
+                    return;
+
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                if (!data.ok) {
+
+                    return;
+
+                }
+
+
+                const nuevoTotal =
+                    parseInt(
+                        data.total || "0",
+                        10
+                    );
+
+                if (nuevoTotal === totalActual) {
+
+                    return;
+
+                }
+
+                const estabaCercaDelFinal =
+                    estaCercaDelFinal();
+
+                const posicionAnterior =
+                    wrapper.scrollTop;
+
+                wrapper.innerHTML =
+                    data.html;
+
+
+                wrapper.dataset.total =
+                    nuevoTotal;
+
+
+                totalActual =
+                    nuevoTotal;
+
+                if (contador) {
+
+                    contador.textContent =
+                        nuevoTotal +
+                        (
+                            nuevoTotal === 1 ?
+                            " mensaje" :
+                            " mensajes"
+                        );
+
+                }
+
+                if (estabaCercaDelFinal) {
+
+                    requestAnimationFrame(function() {
+
+                        irAlFinalSuavemente();
+
+                    });
+
+                } else {
+
+                    wrapper.scrollTop =
+                        posicionAnterior;
+
+                }
+
+
+            } catch (error) {
+
+                console.warn(
+                    "No se pudo actualizar la conversación:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        actualizarConversacion();
+
+        setInterval(
+            actualizarConversacion,
+            intervalo
+        );
+
+
+        document.addEventListener(
+            "visibilitychange",
+            function() {
+
+                if (!document.hidden) {
+
+                    actualizarConversacion();
+
+                }
+
+            }
+        );
+
+    });
+</script>
 
 {% endblock %}

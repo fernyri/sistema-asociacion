@@ -1,17 +1,32 @@
-/* =========================
+/* =========================================================
    Comunicación - Estilo moderno claro
-   ========================= */
+   Versión optimizada
+   ========================================================= */
+
+:root {
+    --com-blue: #2563eb;
+    --com-blue-dark: #1d4ed8;
+    --com-blue-soft: #eff6ff;
+    --com-text: #111827;
+    --com-text-muted: #64748b;
+    --com-border: #dbe3ef;
+    --com-table-border: #e5e7eb;
+    --com-header-dark: #1f2937;
+    --com-success: #16a34a;
+    --com-success-dark: #15803d;
+    --com-danger: #dc2626;
+}
+
+
+/* =========================================================
+   Contenedor y card principal
+   ========================================================= */
 
 .comunicacion-page {
     width: 100%;
     padding: 10px 0 20px;
     background: transparent;
 }
-
-
-/* =========================
-   Card principal
-   ========================= */
 
 .comunicacion-card {
     border: none;
@@ -21,13 +36,10 @@
     box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
 }
 
-
-/* Header principal */
-
 .comunicacion-card>.card-header {
     border: none;
     padding: 1rem 1.3rem;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    background: linear-gradient( 135deg, var(--com-blue), var(--com-blue-dark)) !important;
     color: #ffffff !important;
 }
 
@@ -42,43 +54,66 @@
 }
 
 
-/* =========================
-   Títulos de secciones
-   ========================= */
+/* =========================================================
+   Títulos y texto
+   ========================================================= */
 
 .comunicacion-page h5 {
-    color: #1f2937;
+    color: var(--com-header-dark);
     font-weight: 700;
 }
 
 .comunicacion-page .text-muted {
-    color: #64748b !important;
+    color: var(--com-text-muted) !important;
 }
 
 
-/* =========================
-   Buscador
-   ========================= */
+/* =========================================================
+   Iconos de comunicación
+   ========================================================= */
+
+.comunicacion-page .comunicacion-card>.card-header h5,
+.comunicacion-page .comunicacion-card>.card-header h5 i {
+    color: #ffffff !important;
+}
+
+.comunicacion-page #panel-recibidos h5 i,
+.comunicacion-page #panel-enviados h5 i {
+    color: var(--com-blue) !important;
+}
+
+.comunicacion-page .nav-link i {
+    color: var(--com-blue);
+}
+
+.comunicacion-page .nav-link.active i {
+    color: #ffffff !important;
+}
+
+
+/* =========================================================
+   Buscador y formularios
+   ========================================================= */
 
 .comunicacion-page .input-group {
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .comunicacion-page .input-group-text {
     background: #ffffff;
-    border: 1px solid #dbe3ef;
-    color: #2563eb;
+    border: 1px solid var(--com-border);
+    color: var(--com-blue);
 }
 
 .comunicacion-page .form-control,
 .comunicacion-page .form-select {
-    background: #ffffff;
-    border: 1px solid #dbe3ef;
-    color: #111827;
-    border-radius: 12px;
     min-height: 44px;
+    background: #ffffff;
+    border: 1px solid var(--com-border);
+    border-radius: 12px;
+    color: var(--com-text);
 }
 
 .comunicacion-page .input-group .form-control {
@@ -88,7 +123,7 @@
 
 .comunicacion-page .form-control:focus,
 .comunicacion-page .form-select:focus {
-    border-color: #2563eb;
+    border-color: var(--com-blue);
     box-shadow: 0 0 0 0.18rem rgba(37, 99, 235, 0.18);
 }
 
@@ -97,15 +132,29 @@
     resize: vertical;
 }
 
+.comunicacion-page form label,
+.comunicacion-page .form-label {
+    color: #334155;
+    font-weight: 700;
+}
 
-/* =========================
+.comunicacion-page .form-text {
+    color: var(--com-text-muted);
+}
+
+.comunicacion-page input[type="file"].form-control {
+    padding: 0.55rem 0.75rem;
+}
+
+
+/* =========================================================
    Tablas
-   ========================= */
+   ========================================================= */
 
 .comunicacion-page .table-responsive {
-    border-radius: 14px;
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--com-table-border);
+    border-radius: 14px;
     background: #ffffff;
     box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
@@ -116,16 +165,16 @@
 }
 
 .comunicacion-page .table {
-    color: #111827;
+    color: var(--com-text);
 }
 
 .comunicacion-page .table thead {
-    background: #1f2937;
+    background: var(--com-header-dark);
 }
 
 .comunicacion-page .table-dark th,
 .comunicacion-page .table thead th {
-    background: #1f2937 !important;
+    background: var(--com-header-dark) !important;
     color: #ffffff !important;
     border-color: #374151 !important;
     font-weight: 700;
@@ -134,8 +183,8 @@
 
 .comunicacion-page .table td {
     background: #ffffff;
-    color: #111827;
-    border-color: #e5e7eb;
+    color: var(--com-text);
+    border-color: var(--com-table-border);
     vertical-align: middle;
 }
 
@@ -144,11 +193,13 @@
 }
 
 .comunicacion-page .table tbody tr:hover td {
-    background: #eff6ff;
+    background: var(--com-blue-soft);
 }
 
 
-/* Mensajes no leídos */
+/* =========================================================
+   Estados de mensajes
+   ========================================================= */
 
 .comunicacion-page .msg-unread td {
     background: #fff7ed;
@@ -163,9 +214,9 @@
 }
 
 
-/* =========================
+/* =========================================================
    Avatares
-   ========================= */
+   ========================================================= */
 
 .msg-avatar-sm {
     width: 38px;
@@ -175,7 +226,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #2563eb;
+    background: var(--com-blue);
     color: #ffffff;
     font-weight: 700;
     box-shadow: 0 2px 7px rgba(37, 99, 235, 0.25);
@@ -187,9 +238,19 @@
 }
 
 
-/* =========================
+/* =========================================================
    Badges
-   ========================= */
+   ========================================================= */
+
+
+/* Cantidad de mensajes dentro de una conversación */
+
+.comunicacion-page .badge-conversacion-count {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.10);
+}
 
 .comunicacion-page .badge {
     border-radius: 999px;
@@ -204,17 +265,17 @@
 }
 
 .comunicacion-page .badge.bg-success {
-    background: #16a34a !important;
+    background: var(--com-success) !important;
 }
 
 .comunicacion-page .badge.bg-danger {
-    background: #dc2626 !important;
+    background: var(--com-danger) !important;
 }
 
 
-/* =========================
+/* =========================================================
    Botones
-   ========================= */
+   ========================================================= */
 
 .comunicacion-page .btn {
     border-radius: 10px;
@@ -227,13 +288,13 @@
 }
 
 .comunicacion-page .btn-primary {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: var(--com-blue);
+    border-color: var(--com-blue);
 }
 
 .comunicacion-page .btn-primary:hover {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+    background: var(--com-blue-dark);
+    border-color: var(--com-blue-dark);
 }
 
 .comunicacion-page .btn-secondary {
@@ -247,53 +308,34 @@
 }
 
 .comunicacion-page .btn-success {
-    background: linear-gradient(135deg, #16a34a, #15803d);
+    background: linear-gradient( 135deg, var(--com-success), var(--com-success-dark));
     border: none;
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
 }
 
 .comunicacion-page .btn-success:hover {
-    background: linear-gradient(135deg, #15803d, #166534);
+    background: linear-gradient( 135deg, var(--com-success-dark), #166534);
 }
 
 .comunicacion-page .btn-outline-danger {
-    border-color: #dc2626;
-    color: #dc2626;
+    border-color: var(--com-danger);
+    color: var(--com-danger);
     background: #ffffff;
 }
 
 .comunicacion-page .btn-outline-danger:hover {
-    background: #dc2626;
+    background: var(--com-danger);
     color: #ffffff;
 }
 
 
-/* =========================
-   Formulario enviar mensaje
-   ========================= */
-
-.comunicacion-page form label,
-.comunicacion-page .form-label {
-    color: #334155;
-    font-weight: 700;
-}
-
-.comunicacion-page .form-text {
-    color: #64748b;
-}
-
-.comunicacion-page input[type="file"].form-control {
-    padding: 0.55rem 0.75rem;
-}
-
-
-/* =========================
+/* =========================================================
    Alertas
-   ========================= */
+   ========================================================= */
 
 .comunicacion-page .alert {
-    border-radius: 14px;
     border: none;
+    border-radius: 14px;
 }
 
 .comunicacion-page .alert-info {
@@ -302,9 +344,9 @@
 }
 
 
-/* =========================
-   Separación visual entre secciones
-   ========================= */
+/* =========================================================
+   Espaciado existente
+   ========================================================= */
 
 .comunicacion-page .mb-4 {
     padding-bottom: 0.5rem;
@@ -315,9 +357,177 @@
 }
 
 
-/* =========================
+/* =========================================================
+   Conversación - historial
+   ========================================================= */
+
+.comunicacion-page .comunicacion-card>.card-body.conversacion-historial {
+    background: linear-gradient( 180deg, #edf5ff 0%, #e3eeff 100%) !important;
+    /* Altura controlada del chat */
+    height: calc(100vh - 330px);
+    min-height: 420px;
+    max-height: 650px;
+    /* Scroll únicamente dentro del historial */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.5rem;
+    scroll-behavior: smooth;
+}
+
+
+/* Scroll del historial */
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb {
+    background: #bfd3ee;
+    border-radius: 10px;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb:hover {
+    background: #94b6df;
+}
+
+.comunicacion-page .conversacion-historial .mensaje-propio {
+    background: #dceaff !important;
+    border-color: #b8d2f5 !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.comunicacion-page .conversacion-historial .mensaje-recibido {
+    background: #ffffff !important;
+    border-color: #d2deec !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.comunicacion-page .conversacion-historial .mensaje-propio,
+.comunicacion-page .conversacion-historial .mensaje-recibido {
+    border-radius: 14px !important;
+}
+
+.comunicacion-page .conversacion-label {
+    color: #dbeafe !important;
+    font-weight: 600;
+}
+
+.comunicacion-page .badge-mensajes-hilo {
+    background: #ffffff !important;
+    color: var(--com-blue-dark) !important;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+    padding: 0.45em 0.85em;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================================
    Responsive
-   ========================= */
+   ========================================================= */
+
+
+/* =========================================================
+   Papelera - listado con scroll interno
+   ========================================================= */
+
+.comunicacion-page .table-responsive.papelera-scroll {
+    display: block;
+    height: 520px;
+    max-height: 520px;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    border: 1px solid var(--com-table-border);
+    border-radius: 14px;
+    background: #ffffff;
+    scrollbar-width: thin;
+    scrollbar-color: #bfd3ee transparent;
+}
+
+
+/* Encabezado fijo */
+
+.comunicacion-page .table-responsive.papelera-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--com-header-dark) !important;
+    color: #ffffff !important;
+}
+
+
+/* Scroll */
+
+.comunicacion-page .table-responsive.papelera-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.comunicacion-page .table-responsive.papelera-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comunicacion-page .table-responsive.papelera-scroll::-webkit-scrollbar-thumb {
+    background: #bfd3ee;
+    border-radius: 10px;
+}
+
+.comunicacion-page .table-responsive.papelera-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94b6df;
+}
+
+
+/* =========================================================
+   Papelera - acciones en una sola fila
+   ========================================================= */
+
+.comunicacion-page .papelera-col-acciones {
+    width: 340px;
+    min-width: 340px;
+}
+
+.comunicacion-page .papelera-acciones {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: nowrap;
+    width: 100%;
+}
+
+.comunicacion-page .papelera-acciones>.btn,
+.comunicacion-page .papelera-acciones>.papelera-accion-form {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.comunicacion-page .papelera-accion-form {
+    margin: 0;
+}
+
+.comunicacion-page .papelera-accion-btn {
+    width: 100%;
+    height: 100%;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.65rem;
+    white-space: nowrap;
+}
+
+
+/* Evita que los formularios modifiquen la altura */
+
+.comunicacion-page .papelera-acciones form {
+    display: flex;
+}
 
 @media (max-width: 768px) {
     .comunicacion-card>.card-body {
@@ -339,13 +549,10 @@
     }
     .comunicacion-page .table {
         font-size: 0.88rem;
+        border-radius: 14px;
+        overflow: hidden;
     }
-    /* =========================================================
-   ✨ EFECTOS PREMIUM / UI MODERNA
-   ========================================================= */
-    /* =========================
-   Hover tarjetas
-   ========================= */
+    /* Efectos que ya estaban activos únicamente en móvil */
     .comunicacion-card {
         transition: all 0.25s ease;
     }
@@ -353,32 +560,11 @@
         transform: translateY(-2px);
         box-shadow: 0 14px 35px rgba(0, 0, 0, 0.10);
     }
-    /* =========================
-   Hover filas mensajes
-   ========================= */
-    .comunicacion-page .table tbody tr {
-        transition: all 0.18s ease;
-    }
     .comunicacion-page .table-hover tbody tr:hover td {
         background: rgba(13, 110, 253, 0.08) !important;
     }
-    /* =========================
-   Mensajes nuevos
-   ========================= */
     .comunicacion-page tr.msg-unread td {
         background: rgba(13, 110, 253, 0.08) !important;
-    }
-    .comunicacion-page tr.msg-unread td:first-child::before {
-        background: #0d6efd;
-    }
-    /* =========================
-   Botones modernos
-   ========================= */
-    .comunicacion-page .btn {
-        transition: all 0.18s ease;
-    }
-    .comunicacion-page .btn:hover {
-        transform: translateY(-1px);
     }
     .comunicacion-page .btn-primary:hover {
         box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
@@ -389,9 +575,6 @@
     .comunicacion-page .btn-danger:hover {
         box-shadow: 0 6px 14px rgba(220, 53, 69, 0.25);
     }
-    /* =========================
-   Inputs modernos
-   ========================= */
     .comunicacion-page .form-control,
     .comunicacion-page .form-select {
         transition: all 0.2s ease;
@@ -400,85 +583,76 @@
     .comunicacion-page .form-select:hover {
         border-color: rgba(13, 110, 253, 0.35);
     }
-    /* =========================
-   Header elegante
-   ========================= */
-    .comunicacion-page .card-header {
-        background: linear-gradient(135deg, #0d6efd, #274bdb);
-        color: white;
-    }
-    /* =========================
-   Separación entre bloques
-   ========================= */
-    .comunicacion-page .section-spacing {
-        margin-top: 32px;
-    }
-    /* =========================
-   Avatar mejorado
-   ========================= */
     .comunicacion-page .msg-avatar-sm {
         font-size: 15px;
         font-weight: 900;
         background: linear-gradient(135deg, #0d6efd, #4c8dff);
         border: none;
     }
-    /* =========================
-   Estado NUEVO
-   ========================= */
     .comunicacion-page .badge.bg-warning {
         color: #212529;
         font-weight: 800;
         box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
     }
-    /* =========================
-   Tablas más suaves
-   ========================= */
-    .comunicacion-page .table {
-        border-radius: 14px;
-        overflow: hidden;
-    }
-    /* =========================
-   Caja de búsqueda premium
-   ========================= */
-    .comunicacion-page .search-wrapper {
-        position: relative;
-    }
-    .comunicacion-page .search-wrapper .form-control {
-        padding-left: 45px;
-        height: 48px;
-        border-radius: 14px;
-    }
-    .comunicacion-page .search-wrapper i {
-        position: absolute;
-        left: 16px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6c757d;
-    }
-    /* =========================
-   Textarea elegante
-   ========================= */
     .comunicacion-page textarea.form-control {
         min-height: 160px;
         line-height: 1.6;
     }
-    /* =========================
-   Responsive refinado
-   ========================= */
-    @media (max-width: 768px) {
-        .comunicacion-page .card-header h5 {
-            font-size: 1.1rem;
-        }
-        .comunicacion-page .table td,
-        .comunicacion-page .table th {
-            font-size: 13px;
-        }
-        .comunicacion-page .btn {
-            font-size: 13px;
-        }
+    .comunicacion-page .card-header h5 {
+        font-size: 1.1rem;
+    }
+    .comunicacion-page .table td,
+    .comunicacion-page .table th,
+    .comunicacion-page .btn {
+        font-size: 13px;
     }
     .msg-body {
         font-size: 1.05rem;
         line-height: 1.7;
     }
+    .comunicacion-page .conversacion-historial {
+        height: calc(100vh - 260px);
+        min-height: 350px;
+        max-height: none;
+        padding: 1rem;
+    }
+    .comunicacion-page .table-responsive.papelera-scroll {
+        height: calc(100vh - 310px);
+        max-height: calc(100vh - 310px);
+    }
+    /* =========================================================
+   Papelera - acciones responsive
+   ========================================================= */
+    .comunicacion-page .papelera-col-acciones {
+        width: 290px;
+        min-width: 290px;
+    }
+    .comunicacion-page .papelera-acciones {
+        gap: 0.3rem;
+    }
+    .comunicacion-page .papelera-accion-btn {
+        min-height: 34px;
+        padding: 0.38rem 0.45rem;
+        font-size: 0.75rem;
+    }
+    .comunicacion-page .papelera-accion-btn i {
+        font-size: 0.75rem;
+    }
+}
+
+
+/* =========================================================
+   Papelera - buscador
+   ========================================================= */
+
+.comunicacion-page #papeleraSearchClear {
+    border-color: var(--com-border);
+    border-left: 0;
+    background: #ffffff;
+    color: var(--com-text-muted);
+}
+
+.comunicacion-page #papeleraSearchClear:hover {
+    background: #f1f5f9;
+    color: var(--com-danger);
 }
