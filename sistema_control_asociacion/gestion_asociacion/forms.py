@@ -301,6 +301,127 @@ class RegistroForm(UserCreationForm):
 
         return user
 
+class CrearUsuarioForm(RegistroForm):
+
+    fecha_ingreso = forms.DateField(
+        label="Fecha de ingreso",
+        required=True,
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "min": "1900-01-01",
+            }
+        ),
+        error_messages={
+            "required": "La fecha de ingreso es obligatoria.",
+            "invalid": "La fecha de ingreso no es válida.",
+        }
+    )
+
+    class Meta(RegistroForm.Meta):
+        fields = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "telefono",
+            "direccion",
+            "genero",
+            "fecha_nacimiento",
+            "fecha_ingreso",
+            "password1",
+            "password2",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        if not args and "data" not in kwargs and "initial" not in kwargs:
+            kwargs["initial"] = {"fecha_ingreso": timezone.localdate()}
+        super().__init__(*args, **kwargs)
+
+        campos_input = [
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "telefono",
+            "direccion",
+            "fecha_nacimiento",
+            "fecha_ingreso",
+            "password1",
+            "password2",
+        ]
+
+        for nombre in campos_input:
+            if nombre in self.fields:
+
+                clase_actual = (
+                    self.fields[nombre]
+                    .widget
+                    .attrs
+                    .get("class", "")
+                )
+
+                self.fields[nombre].widget.attrs["class"] = (
+                    f"{clase_actual} form-control"
+                ).strip()
+
+        if "genero" in self.fields:
+            self.fields["genero"].widget.attrs["class"] = (
+                "form-select"
+            )
+
+        hoy = timezone.localdate().isoformat()
+
+        self.fields[
+            "fecha_ingreso"
+        ].widget.attrs["max"] = hoy
+
+    def clean_fecha_ingreso(self):
+
+        fecha = self.cleaned_data.get(
+            "fecha_ingreso"
+        )
+
+        if not fecha:
+            return fecha
+
+        hoy = timezone.localdate()
+
+        if fecha > hoy:
+            raise forms.ValidationError(
+                "La fecha de ingreso no puede estar en el futuro."
+            )
+
+        if fecha.year < 1900:
+            raise forms.ValidationError(
+                "El año de ingreso no puede ser menor a 1900."
+            )
+
+        return fecha
+
+    def clean(self):
+
+        cleaned_data = super().clean()
+
+        fecha_nacimiento = cleaned_data.get(
+            "fecha_nacimiento"
+        )
+
+        fecha_ingreso = cleaned_data.get(
+            "fecha_ingreso"
+        )
+
+        if (
+            fecha_nacimiento
+            and fecha_ingreso
+            and fecha_ingreso < fecha_nacimiento
+        ):
+            self.add_error(
+                "fecha_ingreso",
+                "La fecha de ingreso no puede ser anterior a la fecha de nacimiento."
+            )
+
+        return cleaned_data
 
 class MaterialCapacitacionForm(forms.ModelForm):
     class Meta:

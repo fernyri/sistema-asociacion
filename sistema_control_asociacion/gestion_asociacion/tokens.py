@@ -5,46 +5,38 @@ from django.utils.http import base36_to_int
 
 
 class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
-    """
-    Token para verificación de correo.
-    Se invalida automáticamente si cambia:
-    - password
-    - last_login
-    - is_active
-    """
+    """Token de un solo uso lógico para verificar el correo de una cuenta."""
 
     def _make_hash_value(self, user, timestamp):
         last_login = ""
         if user.last_login:
             last_login = user.last_login.replace(microsecond=0, tzinfo=None)
 
-        return f"{user.pk}{user.password}{last_login}{timestamp}{user.is_active}"
+        return (
+            f"{user.pk}{user.password}{last_login}{timestamp}"
+            f"{user.is_active}{user.email_verificado}{user.email}"
+        )
 
     def check_token(self, user, token):
-        if not (user and token):
+        if not user or not token or user.email_verificado:
             return False
 
         try:
             ts_b36, _hash = token.split("-")
-        except ValueError:
-            return False
-
-        try:
             ts_token = base36_to_int(ts_b36)
-        except ValueError:
+        except (ValueError, TypeError):
             return False
 
-        # Validar firma/hash
+        # La firma debe coincidir con el estado actual de la cuenta.
         if not constant_time_compare(
             self._make_token_with_timestamp(user, ts_token, self.secret),
             token,
         ):
             return False
 
-        # Validar expiración
         timeout = getattr(settings, "EMAIL_VERIFICATION_TIMEOUT", 3600)
-        now_ts = self._num_seconds(self._now())
-        if (now_ts - ts_token) > timeout:
+        elapsed = self._num_seconds(self._now()) - ts_token
+        if elapsed < 0 or elapsed > timeout:
             return False
 
         return True

@@ -9,6 +9,13 @@ from django.contrib.auth import (
     login,
     logout as auth_logout,
 )
+
+from django.utils.http import (
+    url_has_allowed_host_and_scheme,
+    urlsafe_base64_decode,
+    urlsafe_base64_encode,
+)
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordResetConfirmView, PasswordResetView
 from django.contrib.sessions.models import Session
@@ -16,7 +23,7 @@ from django.core.cache import cache
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, transaction
 from django.db.models import Avg, Q
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse, reverse_lazy
@@ -28,13 +35,14 @@ import uuid
 
 
 from .decorators import admin_only, dios_only
-from .forms import MensajeForm, RegistroForm, CapacitacionForm, CapacitacionAsignadaForm
+from .forms import (MensajeForm, RegistroForm, CapacitacionForm, CapacitacionAsignadaForm, CrearUsuarioForm)
 from .models import (
     Asistencia,
     ConfiguracionAsistencia,
     BitacoraAcceso,
     Evento,
     Mensaje,
+    EstadoConversacionUsuario,
     Notification,
     Personal,
     Usuario,
@@ -96,35 +104,129 @@ def _es_admin(u: Usuario) -> bool:
 
 
 def _clave_hilo(mensaje: Mensaje) -> str:
-    """
-    Devuelve una clave estable para agrupar mensajes por conversación.
 
-    Los mensajes nuevos usan hilo_id. Si existiera algún mensaje antiguo
-    todavía sin hilo, se trata temporalmente como una conversación individual
-    para evitar mezclar datos incorrectamente.
-    """
     if mensaje.hilo_id:
         return str(mensaje.hilo_id)
 
     return f"legacy-{mensaje.id}"
 
+def _asegurar_hilo_id(mensaje: Mensaje):
 
-def _mensajes_usuario(user: Usuario, en_papelera: bool = False):
+    if not mensaje.hilo_id:
+        mensaje.hilo_id = uuid.uuid4()
+
+        mensaje.save(
+            update_fields=["hilo_id"]
+        )
+
+    return mensaje.hilo_id
+
+
+def _estado_hilo_usuario(
+    user: Usuario,
+    hilo_id
+):
+    if not hilo_id:
+        return None
+
     return (
+        EstadoConversacionUsuario.objects
+        .filter(
+            usuario=user,
+            hilo_id=hilo_id
+        )
+        .first()
+    )
+
+
+def _reactivar_hilo_para_usuario(
+    user: Usuario,
+    hilo_id
+):
+
+    if not user or not hilo_id:
+        return
+
+    EstadoConversacionUsuario.objects.update_or_create(
+        usuario=user,
+        hilo_id=hilo_id,
+        defaults={
+            "en_papelera": False,
+            "eliminado": False,
+        }
+    )
+
+
+def _hilos_ocultos_usuario(user: Usuario):
+    """
+    Conversaciones que no deben aparecer en Comunicación:
+    - están en Papelera;
+    - fueron eliminadas por ese usuario.
+    """
+    return (
+        EstadoConversacionUsuario.objects
+        .filter(usuario=user)
+        .filter(
+            Q(en_papelera=True) |
+            Q(eliminado=True)
+        )
+        .values_list(
+            "hilo_id",
+            flat=True
+        )
+    )
+
+
+def _mensajes_usuario(
+    user: Usuario,
+    en_papelera: bool = False
+):
+    mensajes = (
         Mensaje.objects
-        .filter(en_papelera=en_papelera)
         .filter(
             Q(remitente=user) |
             Q(destinatario=user)
         )
-        .select_related("remitente", "destinatario")
-        .order_by("creado_en", "id")
+        .select_related(
+            "remitente",
+            "destinatario"
+        )
+        .order_by(
+            "creado_en",
+            "id"
+        )
     )
+
+    if en_papelera:
+        hilos_papelera = (
+            EstadoConversacionUsuario.objects
+            .filter(
+                usuario=user,
+                en_papelera=True,
+                eliminado=False,
+            )
+            .values_list(
+                "hilo_id",
+                flat=True
+            )
+        )
+
+        mensajes = mensajes.filter(
+            hilo_id__in=hilos_papelera
+        )
+
+    else:
+        mensajes = mensajes.exclude(
+            hilo_id__in=_hilos_ocultos_usuario(user)
+        )
+
+    return mensajes
 
 def _resumen_hilos(
     user: Usuario,
     sentido: str,
-    en_papelera: bool = False
+    en_papelera: bool = False,
+    clasificar_por_iniciador: bool = False
 ):
     mensajes = list(
         _mensajes_usuario(
@@ -143,27 +245,81 @@ def _resumen_hilos(
 
     for clave, mensajes_hilo in hilos.items():
 
-        tiene_recibidos = any(
-            m.destinatario_id == user.id
-            for m in mensajes_hilo
-        )
-
-        tiene_enviados = any(
-            m.remitente_id == user.id
-            for m in mensajes_hilo
-        )
-
-        if sentido == "recibidos" and not tiene_recibidos:
-            continue
-
-        if sentido == "enviados" and not tiene_enviados:
-            continue
-
         # =====================================================
-        # Mensaje representativo según la pestaña
+        # QUIÉN INICIÓ LA CONVERSACIÓN
         # =====================================================
 
-        if sentido == "recibidos":
+        primer_mensaje = mensajes_hilo[0]
+
+        iniciado_por_usuario = (
+            primer_mensaje.remitente_id == user.id
+        )
+
+        # =====================================================
+        # MIEMBRO:
+        # clasificar según quién inició el hilo
+        # =====================================================
+
+        if clasificar_por_iniciador:
+
+            # RECIBIDOS:
+            # solamente conversaciones iniciadas por otra persona
+            if (
+                sentido == "recibidos"
+                and iniciado_por_usuario
+            ):
+                continue
+
+            # ENVIADOS:
+            # solamente conversaciones iniciadas por el usuario
+            if (
+                sentido == "enviados"
+                and not iniciado_por_usuario
+            ):
+                continue
+
+        # =====================================================
+        # COMPORTAMIENTO ANTERIOR
+        # Admin / Dios lo conservan
+        # =====================================================
+
+        else:
+
+            tiene_recibidos = any(
+                m.destinatario_id == user.id
+                for m in mensajes_hilo
+            )
+
+            tiene_enviados = any(
+                m.remitente_id == user.id
+                for m in mensajes_hilo
+            )
+
+            if (
+                sentido == "recibidos"
+                and not tiene_recibidos
+            ):
+                continue
+
+            if (
+                sentido == "enviados"
+                and not tiene_enviados
+            ):
+                continue
+
+
+        # =====================================================
+        # MENSAJE REPRESENTATIVO
+        # =====================================================
+
+        if clasificar_por_iniciador:
+
+            # Para Miembro mostramos la última actividad
+            # de toda la conversación.
+            mensaje_representativo = mensajes_hilo[-1]
+
+        elif sentido == "recibidos":
+
             mensaje_representativo = next(
                 (
                     m
@@ -174,6 +330,7 @@ def _resumen_hilos(
             )
 
         elif sentido == "enviados":
+
             mensaje_representativo = next(
                 (
                     m
@@ -186,11 +343,13 @@ def _resumen_hilos(
         else:
             continue
 
+
         if not mensaje_representativo:
             continue
 
+
         # =====================================================
-        # Obtener al otro participante
+        # OTRO PARTICIPANTE
         # =====================================================
 
         otro_usuario = None
@@ -211,8 +370,9 @@ def _resumen_hilos(
                 otro_usuario = m.remitente
                 break
 
+
         # =====================================================
-        # Contar mensajes no leídos del hilo
+        # MENSAJES NO LEÍDOS DEL HILO
         # =====================================================
 
         no_leidos_hilo = sum(
@@ -224,8 +384,9 @@ def _resumen_hilos(
             )
         )
 
+
         # =====================================================
-        # Resumen de la conversación
+        # RESUMEN
         # =====================================================
 
         resumen.append({
@@ -240,6 +401,7 @@ def _resumen_hilos(
             "total_mensajes": len(mensajes_hilo),
         })
 
+
     resumen.sort(
         key=lambda item: item["creado_en"],
         reverse=True
@@ -248,31 +410,46 @@ def _resumen_hilos(
     return resumen
 
 
-def _mensajes_recibidos(user: Usuario):
+def _mensajes_recibidos(
+    user: Usuario,
+    clasificar_por_iniciador: bool = False
+):
     return _resumen_hilos(
         user,
         "recibidos",
-        en_papelera=False
+        en_papelera=False,
+        clasificar_por_iniciador=clasificar_por_iniciador
     )
 
 
-def _mensajes_enviados(user: Usuario):
+def _mensajes_enviados(
+    user: Usuario,
+    clasificar_por_iniciador: bool = False
+):
     return _resumen_hilos(
         user,
         "enviados",
-        en_papelera=False
+        en_papelera=False,
+        clasificar_por_iniciador=clasificar_por_iniciador
     )
 
+def _contar_hilos_no_leidos(
+    user: Usuario
+) -> int:
 
-def _contar_hilos_no_leidos(user: Usuario) -> int:
     mensajes = (
         Mensaje.objects
         .filter(
             destinatario=user,
             leido=False,
-            en_papelera=False
         )
-        .only("id", "hilo_id")
+        .exclude(
+            hilo_id__in=_hilos_ocultos_usuario(user)
+        )
+        .only(
+            "id",
+            "hilo_id"
+        )
     )
 
     claves = {
@@ -283,23 +460,19 @@ def _contar_hilos_no_leidos(user: Usuario) -> int:
     return len(claves)
 
 
-def _contar_hilos_papelera(user: Usuario) -> int:
-    mensajes = (
-        Mensaje.objects
-        .filter(en_papelera=True)
+def _contar_hilos_papelera(
+    user: Usuario
+) -> int:
+
+    return (
+        EstadoConversacionUsuario.objects
         .filter(
-            Q(remitente=user) |
-            Q(destinatario=user)
+            usuario=user,
+            en_papelera=True,
+            eliminado=False,
         )
-        .only("id", "hilo_id")
+        .count()
     )
-
-    claves = {
-        _clave_hilo(mensaje)
-        for mensaje in mensajes
-    }
-
-    return len(claves)
 
 
 def _parse_hilo_id(valor):
@@ -352,6 +525,20 @@ def _asunto_hilo(hilo_id):
     )
 
     return mensaje.asunto if mensaje else ""
+
+def _normalizar_origen_comunicacion(valor):
+    valor = (
+        valor or ""
+    ).strip().lower()
+
+    if valor in [
+        "recibidos",
+        "enviados",
+        "papelera",
+    ]:
+        return valor
+
+    return "recibidos"
 
 @login_required
 def registrar_entrada(request):
@@ -633,53 +820,114 @@ def registro(request):
             try:
                 with transaction.atomic():
                     user = form.save(commit=False)
+
+                    # La cuenta queda pendiente
+                    # hasta verificar el correo.
                     user.is_active = False
+                    user.email_verificado = False
+
                     user.save()
 
             except IntegrityError:
-                messages.error(request, "El usuario o correo ya están registrados.")
-                return render(request, "gestion_asociacion/registro.html", {"form": form})
+                messages.error(
+                    request,
+                    "El usuario o correo ya están registrados."
+                )
+
+                return render(
+                    request,
+                    "gestion_asociacion/registro.html",
+                    {
+                        "form": form
+                    }
+                )
 
             try:
-                enviar_correo_verificacion(request, user)
+                enviar_correo_verificacion(
+                    request,
+                    user
+                )
 
             except Exception:
-                return render(request, "gestion_asociacion/auth_status.html", {
-                    "titulo": "Cuenta creada",
-                    "mensaje": (
-                        "Tu cuenta fue creada correctamente, pero no pudimos enviar "
-                        "el correo de verificación en este momento. Puedes solicitar "
-                        "un nuevo enlace de verificación."
-                    ),
-                    "boton_texto": "Reenviar verificación",
-                    "boton_url": reverse("reenviar_verificacion"),
-                    "tipo": "warning",
-                })
+                return render(
+                    request,
+                    "gestion_asociacion/auth_status.html",
+                    {
+                        "titulo": "Cuenta creada",
+                        "mensaje": (
+                            "Tu cuenta fue creada correctamente, "
+                            "pero no pudimos enviar el correo de "
+                            "verificación en este momento. "
+                            "Puedes solicitar un nuevo enlace "
+                            "de verificación."
+                        ),
+                        "boton_texto": "Reenviar verificación",
+                        "boton_url": reverse(
+                            "reenviar_verificacion"
+                        ),
+                        "tipo": "warning",
+                    }
+                )
 
-            return redirect("registro_exito")
+            return redirect(
+                "registro_exito"
+            )
 
-        password1_vacio = not (request.POST.get("password1") or "").strip()
-        password2_vacio = not (request.POST.get("password2") or "").strip()
+        password1_vacio = not (
+            request.POST.get("password1") or ""
+        ).strip()
+
+        password2_vacio = not (
+            request.POST.get("password2") or ""
+        ).strip()
 
         for field, errs in form.errors.items():
+
             for err in errs:
-                # Si ambos campos de contraseña están vacíos, mostramos solo
-                # "La contraseña es obligatoria" y ocultamos por ahora
-                # "Debes confirmar la contraseña".
-                if field == "password2" and password1_vacio and password2_vacio:
+
+                if (
+                    field == "password2"
+                    and password1_vacio
+                    and password2_vacio
+                ):
                     continue
 
-                if field in ["password1", "password2", "__all__"]:
-                    messages.error(request, str(err))
+                if field in [
+                    "password1",
+                    "password2",
+                    "__all__",
+                ]:
+                    messages.error(
+                        request,
+                        str(err)
+                    )
+
                 else:
-                    campo = form.fields.get(field)
-                    nombre_campo = campo.label if campo and campo.label else field
-                    messages.error(request, f"{nombre_campo}: {err}")
+                    campo = form.fields.get(
+                        field
+                    )
+
+                    nombre_campo = (
+                        campo.label
+                        if campo and campo.label
+                        else field
+                    )
+
+                    messages.error(
+                        request,
+                        f"{nombre_campo}: {err}"
+                    )
 
     else:
         form = RegistroForm()
 
-    return render(request, "gestion_asociacion/registro.html", {"form": form})
+    return render(
+        request,
+        "gestion_asociacion/registro.html",
+        {
+            "form": form
+        }
+    )
 
 
 def registro_exito(request):
@@ -696,40 +944,102 @@ def registro_exito(request):
 
 
 def activar_cuenta(request, uidb64, token):
+
     try:
-        uid = force_str(urlsafe_base64_decode(uidb64))
-        user = Usuario.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, Usuario.DoesNotExist):
+        uid = force_str(
+            urlsafe_base64_decode(uidb64)
+        )
+
+        user = Usuario.objects.get(
+            pk=uid
+        )
+
+    except (
+        TypeError,
+        ValueError,
+        OverflowError,
+        Usuario.DoesNotExist
+    ):
         user = None
 
-    if user is not None and user.is_active:
-        return render(request, "gestion_asociacion/auth_status.html", {
-            "titulo": "Cuenta ya verificada",
-            "mensaje": "Esta cuenta ya está activa. Ya puedes iniciar sesión.",
-            "boton_texto": "Ir al login",
-            "boton_url": reverse("login"),
-            "tipo": "success",
-        })
+    # =========================================
+    # CUENTA YA VERIFICADA
+    # =========================================
 
-    if user is not None and email_verification_token.check_token(user, token):
+    if user is not None and user.email_verificado:
+        return render(
+            request,
+            "gestion_asociacion/auth_status.html",
+            {
+                "titulo": "Cuenta ya verificada",
+                "mensaje": (
+                    "Este correo ya fue verificado. "
+                    "Si tu cuenta está desactivada, contacta al administrador."
+                ),
+                "boton_texto": "Ir al login",
+                "boton_url": reverse("login"),
+                "tipo": "success",
+            }
+        )
+
+    # =========================================
+    # VALIDAR TOKEN
+    # =========================================
+
+    if (
+        user is not None
+        and email_verification_token.check_token(
+            user,
+            token
+        )
+    ):
+
         user.is_active = True
-        user.save(update_fields=["is_active"])
+        user.email_verificado = True
 
-        return render(request, "gestion_asociacion/auth_status.html", {
-            "titulo": "Cuenta verificada",
-            "mensaje": "Tu cuenta fue activada correctamente. Ya puedes iniciar sesión.",
-            "boton_texto": "Iniciar sesión",
-            "boton_url": reverse("login"),
-            "tipo": "success",
-        })
+        user.save(
+            update_fields=[
+                "is_active",
+                "email_verificado",
+            ]
+        )
 
-    return render(request, "gestion_asociacion/auth_status.html", {
-        "titulo": "Enlace inválido o expirado",
-        "mensaje": "El enlace de verificación ha expirado. Solicita uno nuevo.",
-        "boton_texto": "Reenviar verificación",
-        "boton_url": reverse("reenviar_verificacion"),
-        "tipo": "danger",
-    })
+        return render(
+            request,
+            "gestion_asociacion/auth_status.html",
+            {
+                "titulo": "Cuenta verificada",
+                "mensaje": (
+                    "Tu cuenta fue verificada y "
+                    "activada correctamente. "
+                    "Ya puedes iniciar sesión."
+                ),
+                "boton_texto": "Iniciar sesión",
+                "boton_url": reverse("login"),
+                "tipo": "success",
+            }
+        )
+
+    # =========================================
+    # TOKEN INVÁLIDO O EXPIRADO
+    # =========================================
+
+    return render(
+        request,
+        "gestion_asociacion/auth_status.html",
+        {
+            "titulo": "Enlace inválido o expirado",
+            "mensaje": (
+                "El enlace de verificación no es válido "
+                "o ha expirado. Solicita uno nuevo."
+            ),
+            "boton_texto": "Reenviar verificación",
+            "boton_url": reverse(
+                "reenviar_verificacion"
+            ),
+            "tipo": "danger",
+        }
+    )
 
 
 
@@ -816,17 +1126,17 @@ def reenviar_verificacion(request):
         # --------------------------------------------------------
         # CUENTA YA VERIFICADA
         # --------------------------------------------------------
-        if user.is_active:
+        if user.email_verificado:
 
             mensaje_activa = (
-                "Esta cuenta ya está activa. "
-                "Ya puedes iniciar sesión."
+                "Este correo ya está verificado. "
+                "Si tu cuenta está desactivada, contacta al administrador."
             )
 
             if es_ajax:
                 return JsonResponse({
                     "ok": True,
-                    "titulo": "Cuenta ya verificada",
+                    "titulo": "Correo ya verificado",
                     "mensaje": mensaje_activa,
                     "icono": "success",
                 })
@@ -835,7 +1145,7 @@ def reenviar_verificacion(request):
                 request,
                 "gestion_asociacion/auth_status.html",
                 {
-                    "titulo": "Cuenta ya verificada",
+                    "titulo": "Correo ya verificado",
                     "mensaje": mensaje_activa,
                     "boton_texto": "Ir al login",
                     "boton_url": reverse("login"),
@@ -1051,13 +1361,23 @@ def login_view(request):
         # --------------------------------------------------------
         # CUENTA SIN VERIFICAR
         # --------------------------------------------------------
-        if not user_obj.is_active:
+        if not user_obj.email_verificado:
 
             messages.error(
                 request,
                 "Tu cuenta no ha sido verificada. "
                 "Revisa tu correo o solicita un nuevo enlace.",
                 extra_tags="email_unverified"
+            )
+
+            return redirect("login")
+
+        if not user_obj.is_active:
+
+            messages.error(
+                request,
+                "Tu cuenta está desactivada. Contacta al administrador.",
+                extra_tags="account_inactive"
             )
 
             return redirect("login")
@@ -1176,11 +1496,9 @@ def dashboard(request):
             .first()
         )
 
-        mensajes_no_leidos = Mensaje.objects.filter(
-            destinatario=request.user,
-            leido=False,
-            en_papelera=False
-        ).count()
+        mensajes_no_leidos = _contar_hilos_no_leidos(
+            request.user
+        )
 
         capacitaciones_miembro = (
             CapacitacionAsignada.objects
@@ -1315,7 +1633,7 @@ def dashboard(request):
         "presentes": presentes,
         "ausentes": ausentes,
         "retardos": retardos,
-        "incompletas": incompletas, 
+        "incompletas": incompletas,
         "fecha_resumen": hoy,
         "hora_limite_retardo": hora_limite_retardo,
         "config_asistencia": config_asistencia,
@@ -1382,6 +1700,117 @@ def gestion(request):
         "miembros": usuarios,
         "user_role": getattr(request.user, "rol", ""),
     })
+
+@login_required
+@admin_only
+def crear_usuario(request):
+
+    if request.method == "POST":
+
+        form = CrearUsuarioForm(request.POST)
+
+        if form.is_valid():
+
+            try:
+                with transaction.atomic():
+
+                    usuario = form.save(commit=False)
+
+                    # =========================================
+                    # NUEVO EMPLEADO CREADO DESDE GESTIÓN
+                    # =========================================
+
+                    # Todo empleado nuevo inicia como Miembro.
+                    usuario.rol = "Miembro"
+
+                    # Debe verificar su correo antes de ingresar.
+                    usuario.is_active = False
+                    usuario.email_verificado = False
+
+                    # No utiliza Django Admin.
+                    usuario.is_staff = False
+                    usuario.is_superuser = False
+
+                    usuario.save()
+
+            except IntegrityError:
+
+                messages.error(
+                    request,
+                    "No se pudo crear el usuario porque "
+                    "el nombre de usuario o correo ya existe."
+                )
+
+                return render(
+                    request,
+                    "gestion_asociacion/crear_usuario.html",
+                    {
+                        "form": form,
+                        "user_role": getattr(
+                            request.user,
+                            "rol",
+                            ""
+                        ),
+                    }
+                )
+
+            # =============================================
+            # ENVIAR CORREO DE VERIFICACIÓN
+            # =============================================
+
+            try:
+
+                enviar_correo_verificacion(
+                    request,
+                    usuario
+                )
+
+                messages.success(
+                    request,
+                    (
+                        f'El empleado "{usuario.username}" '
+                        f'fue creado correctamente. '
+                        f'Se envió un correo de verificación '
+                        f'a {usuario.email}. '
+                        f'Debe verificar su cuenta antes '
+                        f'de iniciar sesión.'
+                    )
+                )
+
+            except Exception:
+
+                messages.warning(
+                    request,
+                    (
+                        f'El empleado "{usuario.username}" '
+                        f'fue creado correctamente, pero '
+                        f'no se pudo enviar el correo de '
+                        f'verificación. La cuenta permanecerá '
+                        f'pendiente hasta que sea verificada.'
+                    )
+                )
+
+            return redirect(
+                "usuario_detalle",
+                user_id=usuario.id
+            )
+
+    else:
+
+        form = CrearUsuarioForm()
+
+    return render(
+        request,
+        "gestion_asociacion/crear_usuario.html",
+        {
+            "form": form,
+            "user_role": getattr(
+                request.user,
+                "rol",
+                ""
+            ),
+        }
+    )
 
 
 @login_required
@@ -1553,125 +1982,547 @@ def editar_superuser(request):
         }
     )
 
-
 @login_required
 @admin_only
 def editar_usuario(request, user_id: int):
+
     usuario = Usuario.objects.filter(id=user_id).first()
+
     if not usuario:
-        messages.warning(request, "El usuario no existe.")
+        messages.warning(
+            request,
+            "El usuario no existe."
+        )
         return redirect("gestion")
 
-    user_role = getattr(request.user, "rol", "")
+
+    user_role = getattr(
+        request.user,
+        "rol",
+        ""
+    )
+
+
+    # =========================================================
+    # PERMISOS
+    # =========================================================
 
     if usuario.id == request.user.id:
-        messages.error(request, "No puedes editar tu propio usuario desde esta vista.")
-        return redirect("usuario_detalle", user_id=user_id)
+
+        messages.error(
+            request,
+            "No puedes editar tu propio usuario desde esta vista."
+        )
+
+        return redirect(
+            "usuario_detalle",
+            user_id=user_id
+        )
+
 
     if getattr(usuario, "rol", "") == "Dios":
-        messages.error(request, "No puedes editar a un usuario con el mismo rol")
-        return redirect("usuario_detalle", user_id=user_id)
 
-    if user_role == "Administrador" and getattr(usuario, "rol", "") != "Miembro":
-        messages.error(request, "Solo puedes editar usuarios con rol Miembro.")
-        return redirect("usuario_detalle", user_id=user_id)
+        messages.error(
+            request,
+            "No puedes editar a un usuario con rol Dios."
+        )
 
-    if getattr(usuario, "rol", "") == "Administrador" and user_role != "Dios":
-        messages.error(request, "Solo un usuario con rol Dios puede editar administradores.")
-        return redirect("usuario_detalle", user_id=user_id)
+        return redirect(
+            "usuario_detalle",
+            user_id=user_id
+        )
+
+
+    if (
+        user_role == "Administrador"
+        and getattr(usuario, "rol", "") != "Miembro"
+    ):
+
+        messages.error(
+            request,
+            "Solo puedes editar usuarios con rol Miembro."
+        )
+
+        return redirect(
+            "usuario_detalle",
+            user_id=user_id
+        )
+
+
+    if (
+        getattr(usuario, "rol", "") == "Administrador"
+        and user_role != "Dios"
+    ):
+
+        messages.error(
+            request,
+            "Solo un usuario con rol Dios puede editar administradores."
+        )
+
+        return redirect(
+            "usuario_detalle",
+            user_id=user_id
+        )
+
+
+    # =========================================================
+    # POST
+    # =========================================================
 
     if request.method == "POST":
-        username = (request.POST.get("username") or "").strip()
-        first_name = (request.POST.get("first_name") or "").strip()
-        last_name = (request.POST.get("last_name") or "").strip()
-        email = (request.POST.get("email") or "").strip().lower()
-        telefono = (request.POST.get("telefono") or "").strip()
-        direccion = (request.POST.get("direccion") or "").strip()
-        genero = (request.POST.get("genero") or "").strip()
-        fecha_nacimiento = (request.POST.get("fecha_nacimiento") or "").strip()
-        is_active = request.POST.get("is_active") == "on"
+
+        username = (
+            request.POST.get("username")
+            or ""
+        ).strip()
+
+        first_name = (
+            request.POST.get("first_name")
+            or ""
+        ).strip()
+
+        last_name = (
+            request.POST.get("last_name")
+            or ""
+        ).strip()
+
+        email = (
+            request.POST.get("email")
+            or ""
+        ).strip().lower()
+
+        telefono = (
+            request.POST.get("telefono")
+            or ""
+        ).strip()
+
+        direccion = (
+            request.POST.get("direccion")
+            or ""
+        ).strip()
+
+        genero = (
+            request.POST.get("genero")
+            or ""
+        ).strip()
+
+        fecha_nacimiento = (
+            request.POST.get("fecha_nacimiento")
+            or ""
+        ).strip()
+
+        fecha_ingreso = (
+            request.POST.get("fecha_ingreso")
+            or ""
+        ).strip()
+
+        is_active = (
+            request.POST.get("is_active")
+            == "on"
+        )
+
+
+        # =====================================================
+        # CAMPOS OBLIGATORIOS
+        # =====================================================
 
         if not username:
-            messages.error(request, "El nombre de usuario es obligatorio.")
-            return redirect("editar_usuario", user_id=user_id)
+
+            messages.error(
+                request,
+                "El nombre de usuario es obligatorio."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
 
         if not first_name:
-            messages.error(request, "El nombre es obligatorio.")
-            return redirect("editar_usuario", user_id=user_id)
+
+            messages.error(
+                request,
+                "El nombre es obligatorio."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
 
         if not last_name:
-            messages.error(request, "El apellido es obligatorio.")
-            return redirect("editar_usuario", user_id=user_id)
+
+            messages.error(
+                request,
+                "El apellido es obligatorio."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
 
         if not email:
-            messages.error(request, "El correo electrónico es obligatorio.")
-            return redirect("editar_usuario", user_id=user_id)
 
-        username_norm = " ".join(username.split()).lower()
-        existe_username = Usuario.objects.filter(username_norm=username_norm).exclude(id=usuario.id).exists()
+            messages.error(
+                request,
+                "El correo electrónico es obligatorio."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # USUARIO DUPLICADO
+        # =====================================================
+
+        username_norm = (
+            " ".join(username.split())
+            .lower()
+        )
+
+
+        existe_username = (
+            Usuario.objects
+            .filter(
+                username_norm=username_norm
+            )
+            .exclude(
+                id=usuario.id
+            )
+            .exists()
+        )
+
+
         if existe_username:
-            messages.error(request, "Este usuario ya está registrado.")
-            return redirect("editar_usuario", user_id=user_id)
 
-        existe_email = Usuario.objects.filter(email__iexact=email).exclude(id=usuario.id).exists()
+            messages.error(
+                request,
+                "Este usuario ya está registrado."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # CORREO DUPLICADO
+        # =====================================================
+
+        existe_email = (
+            Usuario.objects
+            .filter(
+                email__iexact=email
+            )
+            .exclude(
+                id=usuario.id
+            )
+            .exists()
+        )
+
+
         if existe_email:
-            messages.error(request, "Este correo electrónico ya está registrado.")
-            return redirect("editar_usuario", user_id=user_id)
+
+            messages.error(
+                request,
+                "Este correo electrónico ya está registrado."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # TELÉFONO
+        # =====================================================
 
         if telefono:
+
             if not telefono.isdigit():
-                messages.error(request, "El teléfono debe contener solo números.")
-                return redirect("editar_usuario", user_id=user_id)
+
+                messages.error(
+                    request,
+                    "El teléfono debe contener solo números."
+                )
+
+                return redirect(
+                    "editar_usuario",
+                    user_id=user_id
+                )
+
 
             if len(telefono) != 10:
-                messages.error(request, "El numero celular debe tener 10 dígitos.")
-                return redirect("editar_usuario", user_id=user_id)
+
+                messages.error(
+                    request,
+                    "El número celular debe tener 10 dígitos."
+                )
+
+                return redirect(
+                    "editar_usuario",
+                    user_id=user_id
+                )
+
+
+        # =====================================================
+        # DIRECCIÓN
+        # =====================================================
 
         if direccion and len(direccion) < 10:
-            messages.error(request, "La dirección debe tener al menos 10 caracteres.")
-            return redirect("editar_usuario", user_id=user_id)
 
-        if genero not in ["M", "F", "O", ""]:
-            messages.error(request, "El género seleccionado no es válido.")
-            return redirect("editar_usuario", user_id=user_id)
+            messages.error(
+                request,
+                "La dirección debe tener al menos 10 caracteres."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # GÉNERO
+        # =====================================================
+
+        if genero not in [
+            "M",
+            "F",
+            "O",
+            ""
+        ]:
+
+            messages.error(
+                request,
+                "El género seleccionado no es válido."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # FECHA DE NACIMIENTO
+        # =====================================================
 
         fecha_nacimiento_value = None
+
+
         if fecha_nacimiento:
+
             try:
-                fecha_nacimiento_value = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()
+
+                fecha_nacimiento_value = (
+                    datetime.strptime(
+                        fecha_nacimiento,
+                        "%Y-%m-%d"
+                    ).date()
+                )
+
+
                 hoy = timezone.localdate()
 
+
                 if fecha_nacimiento_value > hoy:
-                    messages.error(request, "La fecha de nacimiento no puede estar en el futuro.")
-                    return redirect("editar_usuario", user_id=user_id)
+
+                    messages.error(
+                        request,
+                        "La fecha de nacimiento no puede estar en el futuro."
+                    )
+
+                    return redirect(
+                        "editar_usuario",
+                        user_id=user_id
+                    )
+
 
                 if fecha_nacimiento_value.year < 1900:
-                    messages.error(request, "El año de nacimiento no puede ser menor a 1900.")
-                    return redirect("editar_usuario", user_id=user_id)
+
+                    messages.error(
+                        request,
+                        "El año de nacimiento no puede ser menor a 1900."
+                    )
+
+                    return redirect(
+                        "editar_usuario",
+                        user_id=user_id
+                    )
+
 
             except ValueError:
-                messages.error(request, "La fecha de nacimiento no es válida.")
-                return redirect("editar_usuario", user_id=user_id)
+
+                messages.error(
+                    request,
+                    "La fecha de nacimiento no es válida."
+                )
+
+                return redirect(
+                    "editar_usuario",
+                    user_id=user_id
+                )
+
+
+        # =====================================================
+        # FECHA DE INGRESO
+        # =====================================================
+
+        fecha_ingreso_value = None
+
+
+        if fecha_ingreso:
+
+            try:
+
+                fecha_ingreso_value = (
+                    datetime.strptime(
+                        fecha_ingreso,
+                        "%Y-%m-%d"
+                    ).date()
+                )
+
+
+                hoy = timezone.localdate()
+
+
+                if fecha_ingreso_value > hoy:
+
+                    messages.error(
+                        request,
+                        "La fecha de ingreso no puede estar en el futuro."
+                    )
+
+                    return redirect(
+                        "editar_usuario",
+                        user_id=user_id
+                    )
+
+
+                if fecha_ingreso_value.year < 1900:
+
+                    messages.error(
+                        request,
+                        "El año de ingreso no puede ser menor a 1900."
+                    )
+
+                    return redirect(
+                        "editar_usuario",
+                        user_id=user_id
+                    )
+
+
+            except ValueError:
+
+                messages.error(
+                    request,
+                    "La fecha de ingreso no es válida."
+                )
+
+                return redirect(
+                    "editar_usuario",
+                    user_id=user_id
+                )
+
+
+        # =====================================================
+        # VALIDACIÓN ENTRE FECHAS
+        # =====================================================
+
+        if (
+            fecha_nacimiento_value
+            and fecha_ingreso_value
+            and fecha_ingreso_value < fecha_nacimiento_value
+        ):
+
+            messages.error(
+                request,
+                "La fecha de ingreso no puede ser anterior a la fecha de nacimiento."
+            )
+
+            return redirect(
+                "editar_usuario",
+                user_id=user_id
+            )
+
+
+        # =====================================================
+        # GUARDAR
+        # =====================================================
 
         usuario.username = username
         usuario.first_name = first_name
         usuario.last_name = last_name
         usuario.email = email
-        usuario.telefono = telefono or None
-        usuario.direccion = direccion or None
-        usuario.genero = genero or None
-        usuario.fecha_nacimiento = fecha_nacimiento_value
-        usuario.is_active = is_active
+
+        usuario.telefono = (
+            telefono or None
+        )
+
+        usuario.direccion = (
+            direccion or None
+        )
+
+        usuario.genero = (
+            genero or None
+        )
+
+        usuario.fecha_nacimiento = (
+            fecha_nacimiento_value
+        )
+
+        usuario.fecha_ingreso = (
+            fecha_ingreso_value
+        )
+
+        # Una cuenta sin verificar no puede habilitarse desde edición.
+        # Tras verificar el correo, el administrador podrá activarla
+        # o desactivarla normalmente.
+        if is_active and not usuario.email_verificado:
+            messages.warning(
+                request,
+                "El usuario sigue pendiente de verificar su correo; "
+                "no se puede activar todavía."
+            )
+        usuario.is_active = is_active and usuario.email_verificado
+
         usuario.save()
 
-        messages.success(request, "Usuario actualizado correctamente.")
-        return redirect("usuario_detalle", user_id=usuario.id)
 
-    return render(request, "gestion_asociacion/editar_usuario.html", {
-        "usuario_obj": usuario,
-        "user_role": user_role,
-    })
+        messages.success(
+            request,
+            "Usuario actualizado correctamente."
+        )
 
+
+        return redirect(
+            "usuario_detalle",
+            user_id=usuario.id
+        )
+
+
+    # =========================================================
+    # GET
+    # =========================================================
+
+    return render(
+        request,
+        "gestion_asociacion/editar_usuario.html",
+        {
+            "usuario_obj": usuario,
+            "user_role": user_role,
+        }
+    )
 
 @login_required
 @admin_only
@@ -1722,25 +2573,61 @@ def comunicacion_interna(request):
     if _es_admin(request.user):
         return redirect("comunicacion_admin")
 
-    recibidos = _mensajes_recibidos(request.user)
-    enviados = _mensajes_enviados(request.user)
+    recibidos = _mensajes_recibidos(
+        request.user,
+        clasificar_por_iniciador=True
+    )
 
-    asunto_valor = request.GET.get("asunto", "")
+    enviados = _mensajes_enviados(
+        request.user,
+        clasificar_por_iniciador=True
+    )
+
+    enviados_count = len(enviados)
+
+    asunto_valor = request.GET.get(
+        "asunto",
+        ""
+    )
+
     destinatario_id_seleccionado = request.GET.get(
         "destinatario_id",
         ""
     )
+
     hilo_id_respuesta = (
         request.GET.get("hilo_id") or ""
     ).strip()
 
-    admins = Usuario.objects.filter(
-        rol__in=["Administrador", "Dios"],
-        is_active=True
-    ).order_by("username")
+    # ============================================================
+    # Conservar si venimos de Recibidos o Enviados
+    # ============================================================
+    origen_respuesta = (
+        _normalizar_origen_comunicacion(
+            request.GET.get("origen")
+        )
+        if hilo_id_respuesta
+        else ""
+    )
 
-    no_leidos = _contar_hilos_no_leidos(request.user)
-    papelera_count = _contar_hilos_papelera(request.user)
+    admins = (
+        Usuario.objects
+        .filter(
+            rol__in=["Administrador", "Dios"],
+            is_active=True
+        )
+        .order_by(
+            "username"
+        )
+    )
+
+    no_leidos = _contar_hilos_no_leidos(
+        request.user
+    )
+
+    papelera_count = _contar_hilos_papelera(
+        request.user
+    )
 
     tab_activa = (
         request.GET.get("tab") or ""
@@ -1767,18 +2654,44 @@ def comunicacion_interna(request):
     )
 
     context = {
-        "recibidos": recibidos,
-        "enviados": enviados,
-        "admins": admins,
-        "form": form,
-        "no_leidos": no_leidos,
-        "papelera_count": papelera_count,
-        "asunto_valor": asunto_valor,
+        "recibidos":
+            recibidos,
+
+        "enviados":
+            enviados,
+
+        "enviados_count":
+            enviados_count,
+
+        "admins":
+            admins,
+
+        "form":
+            form,
+
+        "no_leidos":
+            no_leidos,
+
+        "papelera_count":
+            papelera_count,
+
+        "asunto_valor":
+            asunto_valor,
+
         "destinatario_id_seleccionado":
             destinatario_id_seleccionado,
-        "hilo_id_respuesta": hilo_id_respuesta,
-        "es_respuesta": bool(hilo_id_respuesta),
-        "tab_activa": tab_activa,
+
+        "hilo_id_respuesta":
+            hilo_id_respuesta,
+
+        "origen_respuesta":
+            origen_respuesta,
+
+        "es_respuesta":
+            bool(hilo_id_respuesta),
+
+        "tab_activa":
+            tab_activa,
     }
 
     return render(
@@ -1786,7 +2699,6 @@ def comunicacion_interna(request):
         "gestion_asociacion/comunicacion_interna.html",
         context
     )
-
 
 @login_required
 def comunicacion_miembro_ajax(request):
@@ -1800,11 +2712,25 @@ def comunicacion_miembro_ajax(request):
             status=403
         )
 
-    recibidos = _mensajes_recibidos(request.user)
-    enviados = _mensajes_enviados(request.user)
+    recibidos = _mensajes_recibidos(
+        request.user,
+        clasificar_por_iniciador=True
+    )
 
-    no_leidos = _contar_hilos_no_leidos(request.user)
-    papelera_count = _contar_hilos_papelera(request.user)
+    enviados = _mensajes_enviados(
+        request.user,
+        clasificar_por_iniciador=True
+    )
+
+    enviados_count = len(enviados)
+
+    no_leidos = _contar_hilos_no_leidos(
+        request.user
+    )
+
+    papelera_count = _contar_hilos_papelera(
+        request.user
+    )
 
     tab_activa = (
         request.GET.get("tab") or "recibidos"
@@ -1821,11 +2747,23 @@ def comunicacion_miembro_ajax(request):
         "gestion_asociacion/partials/"
         "comunicacion_listas_miembro.html",
         {
-            "recibidos": recibidos,
-            "enviados": enviados,
-            "no_leidos": no_leidos,
-            "papelera_count": papelera_count,
-            "tab_activa": tab_activa,
+            "recibidos":
+                recibidos,
+
+            "enviados":
+                enviados,
+
+            "enviados_count":
+                enviados_count,
+
+            "no_leidos":
+                no_leidos,
+
+            "papelera_count":
+                papelera_count,
+
+            "tab_activa":
+                tab_activa,
         },
         request=request
     )
@@ -1835,6 +2773,7 @@ def comunicacion_miembro_ajax(request):
         "html": html,
         "no_leidos": no_leidos,
         "papelera_count": papelera_count,
+        "enviados_count": enviados_count,
     })
 
 
@@ -1843,6 +2782,7 @@ def comunicacion_miembro_ajax(request):
 def comunicacion_admin(request):
     recibidos = _mensajes_recibidos(request.user)
     enviados = _mensajes_enviados(request.user)
+    enviados_count = len(enviados)
 
     asunto_valor = request.GET.get("asunto", "")
     destinatario_id_seleccionado = request.GET.get(
@@ -1852,6 +2792,21 @@ def comunicacion_admin(request):
     hilo_id_respuesta = (
         request.GET.get("hilo_id") or ""
     ).strip()
+
+    origen_respuesta = (
+    _normalizar_origen_comunicacion(
+        request.GET.get("origen")
+    )
+    if hilo_id_respuesta
+    else ""
+)
+    origen_respuesta = (
+    _normalizar_origen_comunicacion(
+        request.GET.get("origen")
+    )
+    if hilo_id_respuesta
+    else ""
+)
 
     miembros = Usuario.objects.filter(
         rol="Miembro",
@@ -1898,6 +2853,9 @@ def comunicacion_admin(request):
         "hilo_id_respuesta": hilo_id_respuesta,
         "es_respuesta": bool(hilo_id_respuesta),
         "tab_activa": tab_activa,
+        "origen_respuesta": origen_respuesta,
+        "enviados_count": enviados_count,
+
     }
 
     return render(
@@ -1912,6 +2870,7 @@ def comunicacion_admin(request):
 def comunicacion_admin_ajax(request):
     recibidos = _mensajes_recibidos(request.user)
     enviados = _mensajes_enviados(request.user)
+    enviados_count = len(enviados)
 
     no_leidos = _contar_hilos_no_leidos(request.user)
     papelera_count = _contar_hilos_papelera(request.user)
@@ -1945,28 +2904,42 @@ def comunicacion_admin_ajax(request):
         "html": html,
         "no_leidos": no_leidos,
         "papelera_count": papelera_count,
+        "enviados_count": enviados_count,
     })
-
 
 @login_required
 def ver_mensaje(request, mensaje_id: int):
+    # ============================================================
+    # Buscar mensaje base
+    # ============================================================
     msg = (
         Mensaje.objects
         .select_related(
             "remitente",
             "destinatario"
         )
-        .filter(id=mensaje_id)
+        .filter(
+            id=mensaje_id
+        )
         .first()
     )
 
+    # ============================================================
+    # Mensaje inexistente
+    # ============================================================
     if not msg:
         messages.error(
             request,
             "Mensaje no encontrado."
         )
-        return redirect("dashboard")
 
+        return redirect(
+            "dashboard"
+        )
+
+    # ============================================================
+    # Seguridad
+    # ============================================================
     if not _user_puede_ver_mensaje(
         request.user,
         msg
@@ -1975,17 +2948,49 @@ def ver_mensaje(request, mensaje_id: int):
             request,
             "No tienes permiso para ver este mensaje."
         )
-        return redirect("dashboard")
 
-    # Si por alguna razón quedó un mensaje antiguo sin hilo,
-    # se le asigna uno antes de mostrarlo.
-    if not msg.hilo_id:
-        msg.hilo_id = uuid.uuid4()
-        msg.save(update_fields=["hilo_id"])
+        return redirect(
+            "dashboard"
+        )
 
+    # ============================================================
+    # Garantizar hilo
+    # ============================================================
+    hilo_id = _asegurar_hilo_id(
+        msg
+    )
+
+    # ============================================================
+    # Estado del hilo para este usuario
+    # ============================================================
+    estado_usuario = _estado_hilo_usuario(
+        request.user,
+        hilo_id
+    )
+
+    if (
+        estado_usuario
+        and estado_usuario.eliminado
+    ):
+        messages.warning(
+            request,
+            "Esta conversación ya no está disponible en tu cuenta."
+        )
+
+        return redirect(
+            "comunicacion_admin"
+            if _es_admin(request.user)
+            else "comunicacion_interna"
+        )
+
+    # ============================================================
+    # Obtener conversación
+    # ============================================================
     mensajes_hilo = list(
         Mensaje.objects
-        .filter(hilo_id=msg.hilo_id)
+        .filter(
+            hilo_id=hilo_id
+        )
         .filter(
             Q(remitente=request.user) |
             Q(destinatario=request.user)
@@ -2000,14 +3005,27 @@ def ver_mensaje(request, mensaje_id: int):
         )
     )
 
-    # Al abrir una conversación se marcan como leídos
-    # todos los mensajes recibidos pendientes de ese hilo.
+    if not mensajes_hilo:
+        messages.warning(
+            request,
+            "La conversación no está disponible."
+        )
+
+        return redirect(
+            "comunicacion_admin"
+            if _es_admin(request.user)
+            else "comunicacion_interna"
+        )
+
+    # ============================================================
+    # Marcar recibidos como leídos
+    # ============================================================
     ids_no_leidos = [
-        m.id
-        for m in mensajes_hilo
+        mensaje.id
+        for mensaje in mensajes_hilo
         if (
-            m.destinatario_id == request.user.id
-            and not m.leido
+            mensaje.destinatario_id == request.user.id
+            and not mensaje.leido
         )
     ]
 
@@ -2018,72 +3036,159 @@ def ver_mensaje(request, mensaje_id: int):
             leido=True
         )
 
-        for m in mensajes_hilo:
-            if m.id in ids_no_leidos:
-                m.leido = True
+        for mensaje in mensajes_hilo:
+            if mensaje.id in ids_no_leidos:
+                mensaje.leido = True
 
+    # ============================================================
+    # Destinatario de respuesta
+    # ============================================================
     destinatario_respuesta = None
 
-    for mensaje_hilo in reversed(mensajes_hilo):
+    for mensaje in reversed(
+        mensajes_hilo
+    ):
         if (
-            mensaje_hilo.remitente_id == request.user.id
-            and mensaje_hilo.destinatario_id != request.user.id
+            mensaje.remitente_id == request.user.id
+            and mensaje.destinatario_id != request.user.id
         ):
             destinatario_respuesta = (
-                mensaje_hilo.destinatario
+                mensaje.destinatario
             )
             break
 
         if (
-            mensaje_hilo.destinatario_id == request.user.id
-            and mensaje_hilo.remitente_id != request.user.id
+            mensaje.destinatario_id == request.user.id
+            and mensaje.remitente_id != request.user.id
         ):
             destinatario_respuesta = (
-                mensaje_hilo.remitente
+                mensaje.remitente
             )
             break
 
-    volver = request.GET.get("volver")
+    # ============================================================
+    # Origen
+    # ============================================================
+    # ============================================================
+# ORIGEN Y PESTAÑA DE REGRESO
+# ============================================================
 
-    if volver == "papelera":
+    volver = _normalizar_origen_comunicacion(
+        request.GET.get("volver")
+    )
+
+    desde_papelera = (
+        volver == "papelera"
+    )
+
+    back_tab = ""
+
+
+    # ============================================================
+    # VENIMOS DE PAPELERA
+    # ============================================================
+
+    if desde_papelera:
+
         back_url = "papelera"
-    else:
+
+        tab_papelera = (
+            request.GET.get("tab") or "recibidos"
+        ).strip().lower()
+
+        if tab_papelera not in [
+            "recibidos",
+            "enviados"
+        ]:
+            tab_papelera = "recibidos"
+
+        back_tab = tab_papelera
+
+
+    # ============================================================
+    # VENIMOS DE ENVIADOS
+    # ============================================================
+
+    elif volver == "enviados":
+
         back_url = (
             "comunicacion_admin"
             if _es_admin(request.user)
             else "comunicacion_interna"
         )
 
+        back_tab = "enviados"
+
+
+    # ============================================================
+    # VENIMOS DE RECIBIDOS
+    # ============================================================
+
+    else:
+
+        back_url = (
+            "comunicacion_admin"
+            if _es_admin(request.user)
+            else "comunicacion_interna"
+        )
+
+        back_tab = "recibidos"
+
+    # ============================================================
+    # Render
+    # ============================================================
     return render(
         request,
         "gestion_asociacion/ver_mensaje.html",
         {
             "msg": msg,
-            "mensajes_hilo": mensajes_hilo,
+            "mensajes_hilo":
+                mensajes_hilo,
+
             "destinatario_respuesta":
                 destinatario_respuesta,
-            "back_url": back_url,
-            "es_admin": _es_admin(request.user),
-            "desde_papelera": volver == "papelera",
+
+            "back_url":
+                back_url,
+
+            "back_tab":
+                back_tab,
+
+            "origen_conversacion":
+                volver,
+
+            "es_admin":
+                _es_admin(request.user),
+
+            "desde_papelera":
+                desde_papelera,
         }
     )
 
 @login_required
 def conversacion_hilo_ajax(request, mensaje_id):
+
+    # ============================================================
+    # Buscar mensaje base
+    # ============================================================
     msg = (
         Mensaje.objects
         .select_related(
             "remitente",
             "destinatario"
         )
-        .filter(id=mensaje_id)
+        .filter(
+            id=mensaje_id
+        )
         .first()
     )
+
 
     # ============================================================
     # Mensaje inexistente
     # ============================================================
     if not msg:
+
         return JsonResponse(
             {
                 "ok": False,
@@ -2092,13 +3197,16 @@ def conversacion_hilo_ajax(request, mensaje_id):
             status=404
         )
 
+
     # ============================================================
     # Seguridad
+    # El usuario debe participar en la conversación
     # ============================================================
     if not _user_puede_ver_mensaje(
         request.user,
         msg
     ):
+
         return JsonResponse(
             {
                 "ok": False,
@@ -2108,49 +3216,82 @@ def conversacion_hilo_ajax(request, mensaje_id):
             status=403
         )
 
-    # ============================================================
-    # Obtener conversación
-    # ============================================================
-    if msg.hilo_id:
 
-        mensajes_hilo = (
-            Mensaje.objects
-            .filter(
-                hilo_id=msg.hilo_id
-            )
-            .filter(
-                Q(remitente=request.user) |
-                Q(destinatario=request.user)
-            )
-            .select_related(
-                "remitente",
-                "destinatario"
-            )
-            .order_by(
-                "creado_en",
-                "id"
-            )
+    # ============================================================
+    # Garantizar hilo_id
+    # Principalmente para mensajes antiguos
+    # ============================================================
+    hilo_id = _asegurar_hilo_id(
+        msg
+    )
+
+
+    # ============================================================
+    # Revisar estado de esta conversación para ESTE usuario
+    # ============================================================
+    estado_usuario = _estado_hilo_usuario(
+        request.user,
+        hilo_id
+    )
+
+
+    # Si el usuario eliminó definitivamente la conversación
+    # de su propia cuenta, ya no puede consultarla por AJAX.
+    if (
+        estado_usuario
+        and estado_usuario.eliminado
+    ):
+
+        return JsonResponse(
+            {
+                "ok": False,
+                "mensaje":
+                    "La conversación ya no está disponible en tu cuenta."
+            },
+            status=404
         )
 
-    else:
-
-        mensajes_hilo = (
-            Mensaje.objects
-            .filter(
-                id=msg.id
-            )
-            .filter(
-                Q(remitente=request.user) |
-                Q(destinatario=request.user)
-            )
-            .select_related(
-                "remitente",
-                "destinatario"
-            )
-        )
 
     # ============================================================
-    # Marcar mensajes nuevos como leídos
+    # Obtener conversación completa
+    # ============================================================
+    mensajes_hilo = (
+        Mensaje.objects
+        .filter(
+            hilo_id=hilo_id
+        )
+        .filter(
+            Q(remitente=request.user) |
+            Q(destinatario=request.user)
+        )
+        .select_related(
+            "remitente",
+            "destinatario"
+        )
+        .order_by(
+            "creado_en",
+            "id"
+        )
+    )
+
+
+    # ============================================================
+    # Seguridad adicional
+    # ============================================================
+    if not mensajes_hilo.exists():
+
+        return JsonResponse(
+            {
+                "ok": False,
+                "mensaje":
+                    "La conversación no está disponible."
+            },
+            status=404
+        )
+
+
+    # ============================================================
+    # Marcar como leídos los mensajes recibidos
     # ============================================================
     mensajes_hilo.filter(
         destinatario=request.user,
@@ -2159,25 +3300,32 @@ def conversacion_hilo_ajax(request, mensaje_id):
         leido=True
     )
 
+
     # ============================================================
     # Renderizar únicamente el historial
     # ============================================================
     html = render_to_string(
-        "gestion_asociacion/partials/conversacion_hilo.html",
+        "gestion_asociacion/partials/"
+        "conversacion_hilo.html",
         {
-            "mensajes_hilo": mensajes_hilo,
+            "mensajes_hilo":
+                mensajes_hilo,
         },
         request=request
     )
 
+
     # ============================================================
     # Respuesta AJAX
     # ============================================================
-    return JsonResponse({
-        "ok": True,
-        "html": html,
-        "total": mensajes_hilo.count(),
-    })
+    return JsonResponse(
+        {
+            "ok": True,
+            "html": html,
+            "total":
+                mensajes_hilo.count(),
+        }
+    )
 
 
 @login_required
@@ -2192,22 +3340,46 @@ def enviar_mensaje_miembro(request):
         "destinatario_id"
     )
 
-    destinatario = Usuario.objects.filter(
-        id=destinatario_id,
-        rol__in=["Administrador", "Dios"],
-        is_active=True
-    ).first()
+    destinatario = (
+        Usuario.objects
+        .filter(
+            id=destinatario_id,
+            rol__in=["Administrador", "Dios"],
+            is_active=True
+        )
+        .first()
+    )
 
-    recibidos = _mensajes_recibidos(request.user)
-    enviados = _mensajes_enviados(request.user)
+    recibidos = _mensajes_recibidos(
+        request.user,
+        clasificar_por_iniciador=True
+    )
 
-    admins = Usuario.objects.filter(
-        rol__in=["Administrador", "Dios"],
-        is_active=True
-    ).order_by("username")
+    enviados = _mensajes_enviados(
+        request.user,
+        clasificar_por_iniciador=True
+    )
 
-    no_leidos = _contar_hilos_no_leidos(request.user)
-    papelera_count = _contar_hilos_papelera(request.user)
+    enviados_count = len(enviados)
+
+    admins = (
+        Usuario.objects
+        .filter(
+            rol__in=["Administrador", "Dios"],
+            is_active=True
+        )
+        .order_by(
+            "username"
+        )
+    )
+
+    no_leidos = _contar_hilos_no_leidos(
+        request.user
+    )
+
+    papelera_count = _contar_hilos_papelera(
+        request.user
+    )
 
     form = MensajeForm(
         request.POST,
@@ -2218,8 +3390,19 @@ def enviar_mensaje_miembro(request):
         request.POST.get("hilo_id") or ""
     ).strip()
 
+    origen_respuesta = (
+        _normalizar_origen_comunicacion(
+            request.POST.get("origen")
+        )
+        if hilo_id_respuesta
+        else ""
+    )
+
     hilo_uuid = None
 
+    # ============================================================
+    # Validar hilo de respuesta
+    # ============================================================
     if hilo_id_respuesta:
         hilo_uuid = _parse_hilo_id(
             hilo_id_respuesta
@@ -2245,6 +3428,9 @@ def enviar_mensaje_miembro(request):
                 "al destinatario."
             )
 
+    # ============================================================
+    # Validar destinatario
+    # ============================================================
     if not destinatario:
         form.add_error(
             None,
@@ -2252,7 +3438,13 @@ def enviar_mensaje_miembro(request):
             "Solo puedes enviar a administradores o Dios."
         )
 
-    if not form.is_valid() or not destinatario:
+    # ============================================================
+    # Formulario inválido
+    # ============================================================
+    if (
+        not form.is_valid()
+        or not destinatario
+    ):
         return render(
             request,
             "gestion_asociacion/comunicacion_interna.html",
@@ -2262,22 +3454,37 @@ def enviar_mensaje_miembro(request):
                 "admins": admins,
                 "form": form,
                 "no_leidos": no_leidos,
-                "papelera_count": papelera_count,
+                "papelera_count":
+                    papelera_count,
                 "destinatario_id_seleccionado":
                     destinatario_id,
                 "hilo_id_respuesta":
                     hilo_id_respuesta,
+                "origen_respuesta":
+                    origen_respuesta,
                 "es_respuesta":
                     bool(hilo_id_respuesta),
-                "tab_activa": "nuevo",
+                "tab_activa":
+                    "nuevo",
+                "enviados_count":
+                    enviados_count,
             }
         )
 
+    # ============================================================
+    # Guardar mensaje
+    # ============================================================
     with transaction.atomic():
-        msg = form.save(commit=False)
+        msg = form.save(
+            commit=False
+        )
+
         msg.remitente = request.user
         msg.destinatario = destinatario
 
+        # ========================================================
+        # Si es respuesta, conservar hilo y asunto original
+        # ========================================================
         if hilo_uuid:
             asunto_original = _asunto_hilo(
                 hilo_uuid
@@ -2290,11 +3497,39 @@ def enviar_mensaje_miembro(request):
 
         msg.save()
 
+        # ========================================================
+        # Reactivar conversación para ambos participantes
+        # ========================================================
+        _reactivar_hilo_para_usuario(
+            request.user,
+            msg.hilo_id
+        )
+
+        _reactivar_hilo_para_usuario(
+            destinatario,
+            msg.hilo_id
+        )
+
+    # ============================================================
+    # Mensaje de confirmación
+    # ============================================================
     messages.success(
         request,
         "Mensaje enviado correctamente."
     )
 
+    # ============================================================
+    # Si era respuesta, volver a la misma conversación
+    # ============================================================
+    if hilo_uuid:
+        return redirect(
+            f"{reverse('ver_mensaje', args=[msg.id])}"
+            f"?volver={origen_respuesta}"
+        )
+
+    # ============================================================
+    # Si era mensaje nuevo, ir a Enviados
+    # ============================================================
     return redirect(
         f"{reverse('comunicacion_interna')}?tab=enviados"
     )
@@ -2310,22 +3545,42 @@ def enviar_mensaje_admin(request):
         "destinatario_id"
     )
 
-    destinatario = Usuario.objects.filter(
-        id=destinatario_id,
-        rol="Miembro",
-        is_active=True
-    ).first()
+    destinatario = (
+        Usuario.objects
+        .filter(
+            id=destinatario_id,
+            rol="Miembro",
+            is_active=True
+        )
+        .first()
+    )
 
-    recibidos = _mensajes_recibidos(request.user)
-    enviados = _mensajes_enviados(request.user)
+    recibidos = _mensajes_recibidos(
+        request.user
+    )
 
-    miembros = Usuario.objects.filter(
-        rol="Miembro",
-        is_active=True
-    ).order_by("username")
+    enviados = _mensajes_enviados(
+        request.user
+    )
 
-    no_leidos = _contar_hilos_no_leidos(request.user)
-    papelera_count = _contar_hilos_papelera(request.user)
+    miembros = (
+        Usuario.objects
+        .filter(
+            rol="Miembro",
+            is_active=True
+        )
+        .order_by(
+            "username"
+        )
+    )
+
+    no_leidos = _contar_hilos_no_leidos(
+        request.user
+    )
+
+    papelera_count = _contar_hilos_papelera(
+        request.user
+    )
 
     form = MensajeForm(
         request.POST,
@@ -2336,8 +3591,19 @@ def enviar_mensaje_admin(request):
         request.POST.get("hilo_id") or ""
     ).strip()
 
+    origen_respuesta = (
+        _normalizar_origen_comunicacion(
+            request.POST.get("origen")
+        )
+        if hilo_id_respuesta
+        else ""
+    )
+
     hilo_uuid = None
 
+    # ============================================================
+    # Validar hilo de respuesta
+    # ============================================================
     if hilo_id_respuesta:
         hilo_uuid = _parse_hilo_id(
             hilo_id_respuesta
@@ -2363,6 +3629,9 @@ def enviar_mensaje_admin(request):
                 "al destinatario."
             )
 
+    # ============================================================
+    # Validar destinatario
+    # ============================================================
     if not destinatario:
         form.add_error(
             None,
@@ -2370,7 +3639,13 @@ def enviar_mensaje_admin(request):
             "Debe ser un miembro activo."
         )
 
-    if not form.is_valid() or not destinatario:
+    # ============================================================
+    # Formulario inválido
+    # ============================================================
+    if (
+        not form.is_valid()
+        or not destinatario
+    ):
         return render(
             request,
             "gestion_asociacion/comunicacion_admin.html",
@@ -2380,22 +3655,35 @@ def enviar_mensaje_admin(request):
                 "miembros": miembros,
                 "form": form,
                 "no_leidos": no_leidos,
-                "papelera_count": papelera_count,
+                "papelera_count":
+                    papelera_count,
                 "destinatario_id_seleccionado":
                     destinatario_id,
                 "hilo_id_respuesta":
                     hilo_id_respuesta,
+                "origen_respuesta":
+                    origen_respuesta,
                 "es_respuesta":
                     bool(hilo_id_respuesta),
-                "tab_activa": "nuevo",
+                "tab_activa":
+                    "nuevo",
             }
         )
 
+    # ============================================================
+    # Guardar mensaje
+    # ============================================================
     with transaction.atomic():
-        msg = form.save(commit=False)
+        msg = form.save(
+            commit=False
+        )
+
         msg.remitente = request.user
         msg.destinatario = destinatario
 
+        # ========================================================
+        # Si es respuesta, conservar hilo y asunto original
+        # ========================================================
         if hilo_uuid:
             asunto_original = _asunto_hilo(
                 hilo_uuid
@@ -2408,11 +3696,39 @@ def enviar_mensaje_admin(request):
 
         msg.save()
 
+        # ========================================================
+        # Reactivar conversación para ambos participantes
+        # ========================================================
+        _reactivar_hilo_para_usuario(
+            request.user,
+            msg.hilo_id
+        )
+
+        _reactivar_hilo_para_usuario(
+            destinatario,
+            msg.hilo_id
+        )
+
+    # ============================================================
+    # Mensaje de confirmación
+    # ============================================================
     messages.success(
         request,
         "Mensaje enviado correctamente."
     )
 
+    # ============================================================
+    # Si era respuesta, volver a la misma conversación
+    # ============================================================
+    if hilo_uuid:
+        return redirect(
+            f"{reverse('ver_mensaje', args=[msg.id])}"
+            f"?volver={origen_respuesta}"
+        )
+
+    # ============================================================
+    # Si era mensaje nuevo, ir a Enviados
+    # ============================================================
     return redirect(
         f"{reverse('comunicacion_admin')}?tab=enviados"
     )
@@ -2424,161 +3740,488 @@ def enviar_mensaje_admin(request):
 
 @login_required
 def papelera(request):
+
+    # ============================================================
+    # PESTAÑA ACTIVA
+    # ============================================================
+    tab_activa = (
+        request.GET.get("tab")
+        or "recibidos"
+    ).strip().lower()
+
+    if tab_activa not in [
+        "recibidos",
+        "enviados"
+    ]:
+        tab_activa = "recibidos"
+
+
+    # ============================================================
+    # CONVERSACIONES EN PAPELERA
+    # ============================================================
     recibidos = _resumen_hilos(
         request.user,
         "recibidos",
-        en_papelera=True
+        en_papelera=True,
+        clasificar_por_iniciador=True
     )
 
     enviados = _resumen_hilos(
         request.user,
         "enviados",
-        en_papelera=True
+        en_papelera=True,
+        clasificar_por_iniciador=True
     )
 
-    total_papelera = _contar_hilos_papelera(
+
+    # ============================================================
+    # CONTADORES REALES POR HILO
+    # ============================================================
+    papelera_count = _contar_hilos_papelera(
         request.user
     )
 
+    no_leidos = _contar_hilos_no_leidos(
+        request.user
+    )
+
+
+    # ============================================================
+    # RENDER
+    # ============================================================
     return render(
         request,
         "gestion_asociacion/papelera.html",
         {
             "recibidos": recibidos,
             "enviados": enviados,
-            "total_papelera": total_papelera,
+
+            # Contador interno de Papelera
+            "total_papelera": papelera_count,
+
+            # Contadores de la barra superior
+            "papelera_count": papelera_count,
+            "no_leidos": no_leidos,
+
             "es_admin": _es_admin(request.user),
+            "tab_activa": tab_activa,
         }
     )
 
-
 @login_required
-def mover_a_papelera(request, mensaje_id: int):
+def mover_a_papelera(
+    request,
+    mensaje_id: int
+):
     if request.method != "POST":
+
         messages.error(
             request,
             "Método no permitido."
         )
+
         return redirect(
             "comunicacion_admin"
             if _es_admin(request.user)
             else "comunicacion_interna"
         )
 
-    msg = Mensaje.objects.filter(
-        id=mensaje_id
-    ).first()
+
+    # ============================================================
+    # CONSERVAR PESTAÑA DE ORIGEN
+    # ============================================================
+
+    origen = _normalizar_origen_comunicacion(
+        request.POST.get("origen")
+    )
+
+    if origen not in [
+        "recibidos",
+        "enviados"
+    ]:
+        origen = "recibidos"
+
+
+    msg = (
+        Mensaje.objects
+        .filter(id=mensaje_id)
+        .first()
+    )
+
 
     if not msg:
+
         messages.error(
             request,
             "Mensaje no encontrado."
         )
+
         return redirect("dashboard")
+
 
     if not _user_puede_ver_mensaje(
         request.user,
         msg
     ):
+
         messages.error(
             request,
             "No tienes permiso para mover esta conversación."
         )
+
         return redirect("dashboard")
 
-    if msg.hilo_id:
-        (
-            Mensaje.objects
-            .filter(hilo_id=msg.hilo_id)
-            .filter(
-                Q(remitente=request.user) |
-                Q(destinatario=request.user)
-            )
-            .update(en_papelera=True)
-        )
-    else:
-        Mensaje.objects.filter(
-            id=msg.id
-        ).update(
-            en_papelera=True
-        )
+
+    hilo_id = _asegurar_hilo_id(msg)
+
+
+    EstadoConversacionUsuario.objects.update_or_create(
+        usuario=request.user,
+        hilo_id=hilo_id,
+        defaults={
+            "en_papelera": True,
+            "eliminado": False,
+        }
+    )
+
 
     messages.success(
         request,
-        "Movido a la papelera exitosamente."
+        "Conversación movida a la papelera."
     )
 
-    return redirect(
+
+    # ============================================================
+    # REGRESAR A LA MISMA PESTAÑA
+    # ============================================================
+
+    vista_destino = (
         "comunicacion_admin"
         if _es_admin(request.user)
         else "comunicacion_interna"
     )
 
+    return redirect(
+        f"{reverse(vista_destino)}?tab={origen}"
+    )
 
 @login_required
-def restaurar_mensaje(request, mensaje_id: int):
+def restaurar_mensaje(
+    request,
+    mensaje_id: int
+):
     if request.method != "POST":
+
         messages.error(
             request,
             "Método no permitido."
         )
+
         return redirect("papelera")
 
-    msg = Mensaje.objects.filter(
-        id=mensaje_id
-    ).first()
+
+    msg = (
+        Mensaje.objects
+        .filter(id=mensaje_id)
+        .first()
+    )
+
 
     if not msg:
+
         messages.error(
             request,
             "Conversación no encontrada."
         )
+
         return redirect("papelera")
+
 
     if not _user_puede_ver_mensaje(
         request.user,
         msg
     ):
+
         messages.error(
             request,
             "No tienes permiso para restaurar esta conversación."
         )
+
         return redirect("dashboard")
 
-    if msg.hilo_id:
-        (
-            Mensaje.objects
-            .filter(hilo_id=msg.hilo_id)
-            .filter(
-                Q(remitente=request.user) |
-                Q(destinatario=request.user)
-            )
-            .update(en_papelera=False)
+
+    hilo_id = _asegurar_hilo_id(msg)
+
+
+    estado = _estado_hilo_usuario(
+        request.user,
+        hilo_id
+    )
+
+
+    if (
+        not estado
+        or not estado.en_papelera
+        or estado.eliminado
+    ):
+
+        messages.warning(
+            request,
+            "La conversación no se encuentra en tu papelera."
         )
-    else:
-        Mensaje.objects.filter(
-            id=msg.id
-        ).update(
-            en_papelera=False
-        )
+
+        return redirect("papelera")
+
+
+    estado.en_papelera = False
+    estado.eliminado = False
+
+    estado.save(
+        update_fields=[
+            "en_papelera",
+            "eliminado",
+            "actualizado_en",
+        ]
+    )
+
 
     messages.success(
         request,
         "Conversación restaurada correctamente."
     )
 
+
     tab = request.POST.get(
         "tab",
         "recibidos"
     )
 
+
     return redirect(
         f"{reverse('papelera')}?tab={tab}"
     )
 
+@login_required
+def eliminar_definitivo(
+    request,
+    mensaje_id: int
+):
+    # ============================================================
+    # SOLO POST
+    # ============================================================
+    if request.method != "POST":
+
+        messages.error(
+            request,
+            "Método no permitido."
+        )
+
+        return redirect("papelera")
+
+
+    # ============================================================
+    # CONSERVAR PESTAÑA ACTUAL
+    # ============================================================
+    tab = (
+        request.POST.get("tab")
+        or "recibidos"
+    ).strip().lower()
+
+    if tab not in [
+        "recibidos",
+        "enviados"
+    ]:
+        tab = "recibidos"
+
+
+    # ============================================================
+    # BUSCAR MENSAJE BASE
+    # ============================================================
+    msg = (
+        Mensaje.objects
+        .filter(
+            id=mensaje_id
+        )
+        .first()
+    )
+
+    if not msg:
+
+        messages.error(
+            request,
+            "Mensaje no encontrado."
+        )
+
+        return redirect(
+            f"{reverse('papelera')}?tab={tab}"
+        )
+
+
+    # ============================================================
+    # SEGURIDAD
+    # EL USUARIO DEBE PARTICIPAR EN LA CONVERSACIÓN
+    # ============================================================
+    if not _user_puede_ver_mensaje(
+        request.user,
+        msg
+    ):
+
+        messages.error(
+            request,
+            "No tienes permiso para eliminar esta conversación."
+        )
+
+        return redirect("dashboard")
+
+
+    # ============================================================
+    # GARANTIZAR HILO
+    # ============================================================
+    hilo_id = _asegurar_hilo_id(
+        msg
+    )
+
+
+    # ============================================================
+    # TRANSACCIÓN
+    # Todo el proceso se realiza como una sola operación.
+    # ============================================================
+    with transaction.atomic():
+
+        # ========================================================
+        # OBTENER ESTADO DE ESTA CONVERSACIÓN
+        # PARA EL USUARIO ACTUAL
+        # ========================================================
+        estado = (
+            EstadoConversacionUsuario.objects
+            .select_for_update()
+            .filter(
+                usuario=request.user,
+                hilo_id=hilo_id
+            )
+            .first()
+        )
+
+
+        # ========================================================
+        # SOLO SE PUEDE ELIMINAR DEFINITIVAMENTE
+        # SI ESTÁ EN LA PAPELERA DEL USUARIO
+        # ========================================================
+        if (
+            not estado
+            or not estado.en_papelera
+            or estado.eliminado
+        ):
+
+            messages.error(
+                request,
+                "Primero debes mover la conversación a tu papelera."
+            )
+
+            return redirect(
+                f"{reverse('papelera')}?tab={tab}"
+            )
+
+        mensajes_hilo = (
+            Mensaje.objects
+            .filter(
+                hilo_id=hilo_id
+            )
+            .values(
+                "remitente_id",
+                "destinatario_id"
+            )
+        )
+
+
+        participantes = set()
+
+        for mensaje in mensajes_hilo:
+
+            remitente_id = (
+                mensaje["remitente_id"]
+            )
+
+            destinatario_id = (
+                mensaje["destinatario_id"]
+            )
+
+            if remitente_id is not None:
+                participantes.add(
+                    remitente_id
+                )
+
+            if destinatario_id is not None:
+                participantes.add(
+                    destinatario_id
+                )
+
+        estado.en_papelera = False
+        estado.eliminado = True
+
+        estado.save(
+            update_fields=[
+                "en_papelera",
+                "eliminado",
+                "actualizado_en",
+            ]
+        )
+
+        usuarios_que_eliminaron = set(
+            EstadoConversacionUsuario.objects
+            .filter(
+                hilo_id=hilo_id,
+                usuario_id__in=participantes,
+                eliminado=True
+            )
+            .values_list(
+                "usuario_id",
+                flat=True
+            )
+            .distinct()
+        )
+
+        borrar_fisicamente = (
+            bool(participantes)
+            and participantes.issubset(
+                usuarios_que_eliminaron
+            )
+        )
+
+
+        if borrar_fisicamente:
+
+            Mensaje.objects.filter(
+                hilo_id=hilo_id
+            ).delete()
+
+
+            EstadoConversacionUsuario.objects.filter(
+                hilo_id=hilo_id
+            ).delete()
+
+    if borrar_fisicamente:
+
+        messages.success(
+            request,
+            "Conversación eliminada definitivamente. "
+        )
+
+    else:
+
+        messages.success(
+            request,
+            "Conversación eliminada de tu cuenta."
+        )
+
+
+    return redirect(
+        f"{reverse('papelera')}?tab={tab}"
+    )
 
 @login_required
-def eliminar_definitivo(request, mensaje_id: int):
+def vaciar_papelera(request):
+
     if request.method != "POST":
         messages.error(
             request,
@@ -2586,83 +4229,191 @@ def eliminar_definitivo(request, mensaje_id: int):
         )
         return redirect("papelera")
 
-    msg = Mensaje.objects.filter(
-        id=mensaje_id
-    ).first()
 
-    if not msg:
-        messages.error(
-            request,
-            "Conversación no encontrada."
-        )
-        return redirect("papelera")
+    # ============================================================
+    # CONSERVAR PESTAÑA ACTUAL
+    # ============================================================
+    tab = (
+        request.POST.get("tab")
+        or "recibidos"
+    ).strip().lower()
 
-    if not _user_puede_ver_mensaje(
-        request.user,
-        msg
-    ):
-        messages.error(
-            request,
-            "No tienes permiso para eliminar esta conversación."
-        )
-        return redirect("dashboard")
+    if tab not in [
+        "recibidos",
+        "enviados"
+    ]:
+        tab = "recibidos"
 
-    if not msg.en_papelera:
-        messages.error(
-            request,
-            "Primero debes mover la conversación a papelera."
-        )
-        return redirect(
-            "comunicacion_admin"
-            if _es_admin(request.user)
-            else "comunicacion_interna"
-        )
+    with transaction.atomic():
 
-    if msg.hilo_id:
-        mensajes_a_eliminar = (
-            Mensaje.objects
+        estados_papelera = list(
+            EstadoConversacionUsuario.objects
+            .select_for_update()
             .filter(
-                hilo_id=msg.hilo_id,
-                en_papelera=True
-            )
-            .filter(
-                Q(remitente=request.user) |
-                Q(destinatario=request.user)
-            )
-        )
-    else:
-        mensajes_a_eliminar = (
-            Mensaje.objects
-            .filter(
-                id=msg.id,
-                en_papelera=True
+                usuario=request.user,
+                en_papelera=True,
+                eliminado=False
             )
         )
 
-    for mensaje in mensajes_a_eliminar:
-        if mensaje.archivo:
-            try:
-                mensaje.archivo.delete(
-                    save=False
+
+        # ========================================================
+        # PAPELERA YA VACÍA
+        # ========================================================
+        if not estados_papelera:
+
+            messages.info(
+                request,
+                "Tu papelera ya está vacía."
+            )
+
+            return redirect(
+                f"{reverse('papelera')}?tab={tab}"
+            )
+
+        hilos = [
+            estado.hilo_id
+            for estado in estados_papelera
+        ]
+
+        EstadoConversacionUsuario.objects.filter(
+            usuario=request.user,
+            hilo_id__in=hilos,
+            en_papelera=True,
+            eliminado=False
+        ).update(
+            en_papelera=False,
+            eliminado=True
+        )
+
+
+        # ========================================================
+        # CONTADORES
+        # ========================================================
+        conversaciones_vaciadas = len(hilos)
+        hilos_borrados_fisicamente = 0
+
+
+        # ========================================================
+        # REVISAR CADA HILO
+        # ========================================================
+        for hilo_id in hilos:
+
+            mensajes_hilo = list(
+                Mensaje.objects
+                .filter(
+                    hilo_id=hilo_id
                 )
-            except Exception:
-                pass
+                .values(
+                    "remitente_id",
+                    "destinatario_id"
+                )
+            )
 
-    mensajes_a_eliminar.delete()
+            if not mensajes_hilo:
+                continue
 
-    messages.success(
-        request,
-        "Conversación eliminada definitivamente."
-    )
 
-    tab = request.POST.get(
-        "tab",
-        "recibidos"
-    )
+            participantes = set()
 
+            for mensaje in mensajes_hilo:
+
+                remitente_id = (
+                    mensaje["remitente_id"]
+                )
+
+                destinatario_id = (
+                    mensaje["destinatario_id"]
+                )
+
+                if remitente_id is not None:
+                    participantes.add(
+                        remitente_id
+                    )
+
+                if destinatario_id is not None:
+                    participantes.add(
+                        destinatario_id
+                    )
+
+
+            # ====================================================
+            # USUARIOS QUE YA LO ELIMINARON DEFINITIVAMENTE
+            # ====================================================
+            usuarios_que_eliminaron = set(
+                EstadoConversacionUsuario.objects
+                .filter(
+                    hilo_id=hilo_id,
+                    usuario_id__in=participantes,
+                    eliminado=True
+                )
+                .values_list(
+                    "usuario_id",
+                    flat=True
+                )
+                .distinct()
+            )
+
+
+            # ====================================================
+            # ¿TODOS LOS PARTICIPANTES LO ELIMINARON?
+            # ====================================================
+            todos_eliminaron = (
+                bool(participantes)
+                and participantes.issubset(
+                    usuarios_que_eliminaron
+                )
+            )
+
+
+            # ====================================================
+            # BORRADO FÍSICO
+            # ====================================================
+            if todos_eliminaron:
+
+                Mensaje.objects.filter(
+                    hilo_id=hilo_id
+                ).delete()
+
+                EstadoConversacionUsuario.objects.filter(
+                    hilo_id=hilo_id
+                ).delete()
+
+                hilos_borrados_fisicamente += 1
+
+
+    # ============================================================
+    # MENSAJE
+    # ============================================================
+    if hilos_borrados_fisicamente > 0:
+
+        messages.success(
+            request,
+            (
+                f"Papelera vaciada. "
+                f"{conversaciones_vaciadas} conversación(es) "
+                f"fueron eliminadas de tu cuenta."
+            )
+        )
+
+    else:
+
+        messages.success(
+            request,
+            "Papelera vaciada correctamente."
+        )
+
+
+    # ============================================================
+    # REGRESAR A PAPELERA
+    # ============================================================
     return redirect(
         f"{reverse('papelera')}?tab={tab}"
     )
+
+
+
+
 
 
 @login_required
@@ -2816,7 +4567,7 @@ def gestion_cap(request):
 
                 creadas = 0
                 existentes = 0
-            
+
                 if fecha_limite and fecha_vencimiento and fecha_limite > fecha_vencimiento:
                     messages.error(request, "La fecha límite no puede ser mayor que la fecha de vencimiento.")
                     return redirect("gestion_cap")
@@ -3337,106 +5088,246 @@ def verificar_usuario(request):
 @admin_only
 def promover_usuario(request, user_id):
     if request.method != "POST":
-        messages.error(request, "Método no permitido.")
+        messages.error(
+            request,
+            "Método no permitido."
+        )
         return redirect("gestion")
 
-    next_url = request.POST.get("next") or ""
-    if not next_url.startswith("/"):
+    next_url = (
+        request.POST.get("next") or ""
+    ).strip()
+
+    if not url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
         next_url = ""
 
     try:
         with transaction.atomic():
-            usuario = Usuario.objects.select_for_update().get(id=user_id)
 
-            # ❌ No modificar su propio rol desde aquí
+            usuario = (
+                Usuario.objects
+                .select_for_update()
+                .get(id=user_id)
+            )
+
+            # No puede modificarse a sí mismo.
             if usuario.id == request.user.id:
-                messages.error(request, "No puedes modificar tu propio rol desde aquí.")
-                return redirect(next_url or "gestion")
+                messages.error(
+                    request,
+                    "No puedes modificar tu propio rol desde aquí."
+                )
+                return redirect(
+                    next_url or "gestion"
+                )
 
-            # ❌ No modificar superusuarios
-            if getattr(usuario, "is_superuser", False):
-                messages.error(request, "No puedes modificar el rol de un superusuario.")
-                return redirect(next_url or "gestion")
+            # No tocar superusuarios de Django.
+            if getattr(
+                usuario,
+                "is_superuser",
+                False
+            ):
+                messages.error(
+                    request,
+                    "No puedes modificar el rol de un superusuario."
+                )
+                return redirect(
+                    next_url or "gestion"
+                )
 
-            # ❌ No modificar usuarios Dios desde esta vista
-            if getattr(usuario, "rol", "") == "Dios":
-                messages.error(request, "No puedes modificar el rol de un usuario Dios desde aquí.")
-                return redirect(next_url or "gestion")
+            # Nunca modificar un usuario Dios desde aquí.
+            if getattr(
+                usuario,
+                "rol",
+                ""
+            ) == "Dios":
+                messages.error(
+                    request,
+                    "No puedes modificar el rol de un usuario Dios desde aquí."
+                )
+                return redirect(
+                    next_url or "gestion"
+                )
 
-            # ✅ Solo promover miembros
-            if getattr(usuario, "rol", "") != "Miembro":
-                messages.error(request, "Solo puedes promover usuarios con rol Miembro.")
-                return redirect(next_url or "gestion")
+            # Esta función solamente permite:
+            # Miembro -> Administrador
+            if getattr(
+                usuario,
+                "rol",
+                ""
+            ) != "Miembro":
+                messages.error(
+                    request,
+                    "Solo puedes promover usuarios con rol Miembro."
+                )
+                return redirect(
+                    next_url or "gestion"
+                )
 
             usuario.rol = "Administrador"
 
-        # Los administradores de la aplicación no usan Django Admin.
-        usuario.is_staff = False
-        usuario.is_superuser = False
+            # Los administradores de la aplicación
+            # no utilizan Django Admin.
+            usuario.is_staff = False
+            usuario.is_superuser = False
 
-        usuario.save(
-            update_fields=[
-                "rol",
-                "is_staff",
-                "is_superuser",
-            ]
+            usuario.save(
+                update_fields=[
+                    "rol",
+                    "is_staff",
+                    "is_superuser",
+                ]
+            )
+
+        messages.success(
+            request,
+            (
+                f"{usuario.username} fue promovido a Administrador. "
+                "Solo un usuario con rol Dios podrá regresarlo a Miembro."
+            )
         )
 
-        messages.success(request, f"{usuario.username} fue promovido a Administrador.")
-        return redirect(next_url or "gestion")
+        return redirect(
+            next_url or "gestion"
+        )
 
     except Usuario.DoesNotExist:
-        messages.error(request, " Usuario no encontrado.")
-        return redirect(next_url or "gestion")
-    
+        messages.error(
+            request,
+            "Usuario no encontrado."
+        )
+
+        return redirect(
+            next_url or "gestion"
+        )
+
 @login_required
 @admin_only
 def cambiar_rol_usuario(request, user_id):
     if request.method != "POST":
-        messages.error(request, "Método no permitido.")
+        messages.error(
+            request,
+            "Método no permitido."
+        )
         return redirect("gestion")
 
-    user_role = getattr(request.user, "rol", "")
-
-    if user_role != "Dios":
-        messages.error(request, "Solo un usuario con rol Dios puede cambiar roles.")
-        return redirect("gestion")
-
-    usuario = Usuario.objects.filter(id=user_id).first()
-    if not usuario:
-        messages.error(request, "Usuario no encontrado.")
-        return redirect("gestion")
-
-    if usuario.id == request.user.id:
-        messages.error(request, "No puedes modificar tu propio rol desde esta vista.")
-        return redirect("usuario_detalle", user_id=user_id)
-
-    if getattr(usuario, "rol", "") == "Dios":
-        messages.error(request, "No puedes modificar el rol de un usuario Dios.")
-        return redirect("usuario_detalle", user_id=user_id)
-
-    nuevo_rol = (request.POST.get("nuevo_rol") or "").strip()
-
-    if nuevo_rol not in ["Administrador", "Miembro"]:
-        messages.error(request, "El nuevo rol no es válido.")
-        return redirect("usuario_detalle", user_id=user_id)
-
-    if usuario.rol == nuevo_rol:
-        messages.warning(request, "El usuario ya tiene ese rol.")
-        return redirect("usuario_detalle", user_id=user_id)
-
-    usuario.rol = nuevo_rol
-    
-    usuario.is_staff = False
-    usuario.is_superuser = False
-
-    usuario.save(
-        update_fields=[
-            "rol",
-            "is_staff",
-            "is_superuser",
-        ]
+    user_role = getattr(
+        request.user,
+        "rol",
+        ""
     )
 
-    messages.success(request, f"El rol de {usuario.username} fue actualizado a {nuevo_rol}.")
-    return redirect("usuario_detalle", user_id=user_id)
+    # Esta función de cambio bidireccional
+    # es exclusiva de Dios.
+    if user_role != "Dios":
+        messages.error(
+            request,
+            "Solo un usuario con rol Dios puede cambiar roles."
+        )
+        return redirect("gestion")
+
+    nuevo_rol = (
+        request.POST.get("nuevo_rol") or ""
+    ).strip()
+
+    if nuevo_rol not in [
+        "Administrador",
+        "Miembro",
+    ]:
+        messages.error(
+            request,
+            "El nuevo rol no es válido."
+        )
+        return redirect("gestion")
+
+    try:
+        with transaction.atomic():
+
+            usuario = (
+                Usuario.objects
+                .select_for_update()
+                .get(id=user_id)
+            )
+
+            if usuario.id == request.user.id:
+                messages.error(
+                    request,
+                    "No puedes modificar tu propio rol desde esta vista."
+                )
+                return redirect(
+                    "usuario_detalle",
+                    user_id=user_id
+                )
+
+            if getattr(
+                usuario,
+                "is_superuser",
+                False
+            ):
+                messages.error(
+                    request,
+                    "No puedes modificar el rol de un superusuario."
+                )
+                return redirect(
+                    "usuario_detalle",
+                    user_id=user_id
+                )
+
+            if getattr(
+                usuario,
+                "rol",
+                ""
+            ) == "Dios":
+                messages.error(
+                    request,
+                    "No puedes modificar el rol de un usuario Dios."
+                )
+                return redirect(
+                    "usuario_detalle",
+                    user_id=user_id
+                )
+
+            if usuario.rol == nuevo_rol:
+                messages.warning(
+                    request,
+                    "El usuario ya tiene ese rol."
+                )
+                return redirect(
+                    "usuario_detalle",
+                    user_id=user_id
+                )
+
+            usuario.rol = nuevo_rol
+            usuario.is_staff = False
+            usuario.is_superuser = False
+
+            usuario.save(
+                update_fields=[
+                    "rol",
+                    "is_staff",
+                    "is_superuser",
+                ]
+            )
+
+        messages.success(
+            request,
+            (
+                f"El rol de {usuario.username} "
+                f"fue actualizado a {nuevo_rol}."
+            )
+        )
+
+        return redirect(
+            "usuario_detalle",
+            user_id=user_id
+        )
+
+    except Usuario.DoesNotExist:
+        messages.error(
+            request,
+            "Usuario no encontrado."
+        )
+        return redirect("gestion")

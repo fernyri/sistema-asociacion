@@ -1,30 +1,20 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Papelera{% endblock %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}?v=20261024-5"> {% endblock %} {% block content %}
 
-<div class="comunicacion-page">
+<div class="comunicacion-page papelera-page">
 
     <div class="comunicacion-card card">
 
         <!-- ================================================== -->
         <!-- HEADER -->
         <!-- ================================================== -->
-        <div class="card-header bg-secondary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between flex-wrap gap-2">
 
             <h5 class="mb-0">
                 <i class="fas fa-trash-alt me-2"></i> Papelera
             </h5>
 
-            <div class="d-flex align-items-center gap-2">
 
-                <span class="small text-white-50">
-                    Conversaciones:
-                </span>
-
-                <span class="badge bg-light text-dark">
-                    {{ total_papelera }}
-                </span>
-
-            </div>
 
         </div>
 
@@ -34,25 +24,21 @@
             <!-- ================================================== -->
             <!-- PESTAÑAS -->
             <!-- ================================================== -->
-            <ul class="nav nav-tabs mb-3" role="tablist">
+            <ul class="nav nav-pills gap-2 mb-3" role="tablist">
 
                 <!-- RECIBIDOS -->
                 <li class="nav-item" role="presentation">
 
-                    <button class="nav-link active" id="tab-recibidos" data-bs-toggle="tab" data-bs-target="#pane-recibidos" type="button" role="tab">
+                    <button class="nav-link {% if tab_activa == 'recibidos' %}active{% endif %}" id="tab-recibidos" data-bs-toggle="tab" data-bs-target="#pane-recibidos" data-papelera-tab="recibidos" type="button" role="tab" aria-controls="pane-recibidos" aria-selected="{% if tab_activa == 'recibidos' %}true{% else %}false{% endif %}">
+    <i class="fas fa-inbox me-1"></i>
+    Recibidos
 
-                        <i class="fas fa-inbox me-1"></i>
-                        Recibidos
-
-                        {% if recibidos|length > 0 %}
-
-                        <span class="badge bg-dark ms-2">
-                            {{ recibidos|length }}
-                        </span>
-
-                        {% endif %}
-
-                    </button>
+    {% if recibidos|length > 0 %}
+    <span class="badge bg-danger ms-1">
+        {{ recibidos|length }}
+    </span>
+    {% endif %}
+</button>
 
                 </li>
 
@@ -60,26 +46,44 @@
                 <!-- ENVIADOS -->
                 <li class="nav-item" role="presentation">
 
-                    <button class="nav-link" id="tab-enviados" data-bs-toggle="tab" data-bs-target="#pane-enviados" type="button" role="tab">
+                    <button class="nav-link nav-enviados {% if tab_activa == 'enviados' %}active{% endif %}" id="tab-enviados" data-bs-toggle="tab" data-bs-target="#pane-enviados" data-papelera-tab="enviados" type="button" role="tab" aria-controls="pane-enviados" aria-selected="{% if tab_activa == 'enviados' %}true{% else %}false{% endif %}">
+    <i class="fas fa-paper-plane me-1"></i>
+    Enviados
 
-                        <i class="fas fa-paper-plane me-1"></i>
-                        Enviados
-
-                        {% if enviados|length > 0 %}
-
-                        <span class="badge bg-dark ms-2">
-                            {{ enviados|length }}
-                        </span>
-
-                        {% endif %}
-
-                    </button>
+    {% if enviados|length > 0 %}
+    <span class="badge badge-enviados-panel ms-1">
+        {{ enviados|length }}
+    </span>
+    {% endif %}
+</button>
 
                 </li>
 
 
                 <!-- VOLVER -->
-                <li class="ms-auto nav-item d-flex align-items-center">
+                <!-- ACCIONES DE PAPELERA -->
+                <li class="ms-auto nav-item d-flex align-items-center gap-2">
+
+                    {% if total_papelera > 0 %}
+
+                    <form method="post" action="{% url 'vaciar_papelera' %}" class="m-0 js-vaciar-papelera">
+
+                        {% csrf_token %}
+
+                        <input type="hidden" name="tab" value="{{ tab_activa|default:'recibidos' }}">
+
+                        <button type="submit" class="btn btn-sm btn-danger">
+
+            <i class="fas fa-trash-alt me-1"></i>
+
+            Vaciar papelera
+
+        </button>
+
+                    </form>
+
+                    {% endif %}
+
 
                     <a class="btn btn-sm btn-outline-secondary" href="{% url es_admin|yesno:'comunicacion_admin,comunicacion_interna' %}">
 
@@ -115,9 +119,23 @@
                 <!-- ================================================== -->
                 <!-- RECIBIDOS -->
                 <!-- ================================================== -->
-                <div class="tab-pane fade show active" id="pane-recibidos" role="tabpanel" aria-labelledby="tab-recibidos">
+                <div class="tab-pane fade {% if tab_activa == 'recibidos' %}show active{% endif %}" id="pane-recibidos" role="tabpanel" aria-labelledby="tab-recibidos">
 
-                    <div class="table-responsive papelera-scroll">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+
+                        <h5 class="d-flex align-items-center gap-2 mb-0">
+                            <span>
+                                <i class="fas fa-inbox me-1"></i>
+                                Recibidos
+                            </span> {% if recibidos|length > 0 %}
+                            <span class="badge bg-danger">
+                                {{ recibidos|length }}
+                            </span> {% endif %}
+                        </h5>
+
+                    </div>
+
+                    <div class="table-responsive papelera-scroll mensajes-scroll">
 
                         <table class="table table-hover table-bordered align-middle">
 
@@ -220,7 +238,7 @@
                                         <div class="papelera-acciones">
 
                                             <!-- VER -->
-                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera" title="Ver conversación">
+                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera&tab=recibidos" title="Ver conversación">
 
                                                 <i class="fas fa-eye"></i>
 
@@ -303,9 +321,23 @@
                 <!-- ================================================== -->
                 <!-- ENVIADOS -->
                 <!-- ================================================== -->
-                <div class="tab-pane fade" id="pane-enviados" role="tabpanel" aria-labelledby="tab-enviados">
+                <div class="tab-pane fade {% if tab_activa == 'enviados' %}show active{% endif %}" id="pane-enviados" role="tabpanel" aria-labelledby="tab-enviados">
 
-                    <div class="table-responsive papelera-scroll">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+
+                        <h5 class="d-flex align-items-center gap-2 mb-0 titulo-enviados">
+                            <span>
+                                <i class="fas fa-paper-plane me-1"></i>
+                                Enviados
+                            </span> {% if enviados|length > 0 %}
+                            <span class="badge badge-enviados-panel">
+                                {{ enviados|length }}
+                            </span> {% endif %}
+                        </h5>
+
+                    </div>
+
+                    <div class="table-responsive papelera-scroll mensajes-scroll">
 
                         <table class="table table-hover table-bordered align-middle">
 
@@ -408,7 +440,7 @@
                                         <div class="papelera-acciones">
 
                                             <!-- VER -->
-                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera" title="Ver conversación">
+                                            <a class="btn btn-sm btn-secondary papelera-accion-btn" href="{% url 'ver_mensaje' h.id %}?volver=papelera&tab=enviados" title="Ver conversación">
 
                                                 <i class="fas fa-eye"></i>
 
@@ -502,6 +534,28 @@
         /* =====================================================
            ELEMENTOS
            ===================================================== */
+
+        if (window.bindConfirmSwal) {
+
+            window.bindConfirmSwal(
+                "form.js-vaciar-papelera", {
+                    icon: "warning",
+                    title: "¿Vaciar papelera?",
+                    html: "Todas las conversaciones en <b>Recibidos y Enviados</b>  " +
+                        "se eliminaran <br><br>" +
+                        "<b>Esta acción no se puede deshacer </b>",
+                    confirmButtonText: "Sí, vaciar papelera",
+                    cancelButtonText: "Cancelar",
+                    confirmButtonColor: "#dc3545"
+                }
+            );
+
+        }
+
+        const formVaciarPapelera =
+            document.querySelector(
+                ".js-vaciar-papelera"
+            );
 
         const input =
             document.getElementById("papeleraSearch");
@@ -774,52 +828,32 @@
 
                     filtrarPapelera();
 
+                    const nombreTab =
+                        this.dataset.papeleraTab;
+
+                    if (nombreTab) {
+
+                        const url =
+                            new URL(
+                                window.location.href
+                            );
+
+                        url.searchParams.set(
+                            "tab",
+                            nombreTab
+                        );
+
+                        window.history.replaceState({},
+                            "",
+                            url
+                        );
+
+                    }
+
                 }
             );
 
         });
-
-
-        /* =====================================================
-           RECUPERAR PESTAÑA DESDE ?tab=
-           ===================================================== */
-
-        const params =
-            new URLSearchParams(
-                window.location.search
-            );
-
-        const tab =
-            params.get("tab");
-
-
-        if (tab) {
-
-            const btn =
-                document.getElementById(
-                    tab === "enviados" ?
-                    "tab-enviados" :
-                    "tab-recibidos"
-                );
-
-
-            if (
-                btn &&
-                window.bootstrap &&
-                bootstrap.Tab
-            ) {
-
-                const instancia =
-                    bootstrap.Tab.getOrCreateInstance(
-                        btn
-                    );
-
-
-                instancia.show();
-
-            }
-
-        }
 
 
         /* =====================================================

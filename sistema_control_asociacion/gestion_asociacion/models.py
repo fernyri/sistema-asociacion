@@ -103,9 +103,6 @@ class UsuarioManager(BaseUserManager):
         )
 
 
-# =========================
-# Usuario personalizado
-# =========================
 class Usuario(AbstractUser):
 
     email = models.EmailField(
@@ -152,6 +149,17 @@ class Usuario(AbstractUser):
         verbose_name="Fecha de nacimiento"
     )
 
+    fecha_ingreso = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de ingreso"
+    )
+
+    email_verificado = models.BooleanField(
+        default=False,
+        verbose_name="Correo verificado"
+    )
+
     rol = models.CharField(
         max_length=50,
         choices=[
@@ -169,16 +177,33 @@ class Usuario(AbstractUser):
     # SAVE NORMALIZADO
     # =========================
     def save(self, *args, **kwargs):
-        self.email = (self.email or "").strip().lower()
-        self.username = nombre_bonito(self.username)
-        self.first_name = nombre_bonito(self.first_name)
-        self.last_name = nombre_bonito(self.last_name)
-        self.username_norm = username_norm_value(self.username)
+        self.email = (
+            self.email or ""
+        ).strip().lower()
 
-        super().save(*args, **kwargs)
+        self.username = nombre_bonito(
+            self.username
+        )
+
+        self.first_name = nombre_bonito(
+            self.first_name
+        )
+
+        self.last_name = nombre_bonito(
+            self.last_name
+        )
+
+        self.username_norm = username_norm_value(
+            self.username
+        )
+
+        super().save(
+            *args,
+            **kwargs
+        )
 
     # =========================
-    # Helpers de rol
+    # HELPERS DE ROL
     # =========================
     def is_dios(self):
         return self.rol == "Dios"
@@ -189,18 +214,48 @@ class Usuario(AbstractUser):
     def is_miembro(self):
         return self.rol == "Miembro"
 
+    # =========================
+    # HELPERS DE ESTADO
+    # =========================
+    def esta_pendiente_verificacion(self):
+        return (
+            not self.email_verificado
+            and not self.is_active
+        )
+
+    def esta_activo(self):
+        return (
+            self.email_verificado
+            and self.is_active
+        )
+
+    def esta_desactivado(self):
+        return (
+            self.email_verificado
+            and not self.is_active
+        )
+
+    # =========================
+    # REPRESENTACIÓN
+    # =========================
     def __str__(self):
         return (
-            f"{self.username} ({self.first_name} {self.last_name})"
-            if self.first_name else self.username
+            f"{self.username} "
+            f"({self.first_name} {self.last_name})"
+            if self.first_name
+            else self.username
         )
 
     class Meta:
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
         ordering = ["username"]
+
         constraints = [
-            models.UniqueConstraint(Lower("email"), name="uniq_usuario_email_lower"),
+            models.UniqueConstraint(
+                Lower("email"),
+                name="uniq_usuario_email_lower"
+            ),
         ]
 
 
@@ -616,6 +671,45 @@ class Mensaje(models.Model):
         rem = self.remitente.username if self.remitente else "Usuario eliminado"
         des = self.destinatario.username if self.destinatario else "Usuario eliminado"
         return f"{self.asunto} ({rem} -> {des})"
+
+class EstadoConversacionUsuario(models.Model):
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="estados_conversaciones"
+    )
+
+    hilo_id = models.UUIDField(
+        db_index=True
+    )
+
+    en_papelera = models.BooleanField(
+        default=False,
+        db_index=True
+    )
+
+    eliminado = models.BooleanField(
+        default=False,
+        db_index=True
+    )
+
+    actualizado_en = models.DateTimeField(
+        auto_now=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "hilo_id"],
+                name="uniq_estado_usuario_hilo"
+            )
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.usuario.username} - "
+            f"{self.hilo_id}"
+        )
 
 
 class BitacoraAcceso(models.Model):

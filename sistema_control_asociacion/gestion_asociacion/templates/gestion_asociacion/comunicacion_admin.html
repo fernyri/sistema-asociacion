@@ -1,5 +1,5 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Comunicación (Admin){% endblock %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}?v=20261023-3"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
 
@@ -14,17 +14,6 @@
                 <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
 
-            <div id="contador-no-leidos-header" class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
-
-                <span class="small text-white-50">
-                    No leídos:
-                </span>
-
-                <span class="badge bg-danger" id="contador-no-leidos-numero">
-                    {{ no_leidos }}
-                </span>
-
-            </div>
 
         </div>
 
@@ -59,12 +48,17 @@
                 <!-- ENVIADOS -->
                 <li class="nav-item">
 
-                    <button type="button" class="nav-link {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
+                    <button type="button" class="nav-link nav-enviados {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
+        <i class="fas fa-paper-plane me-1"></i>
+        Enviados
 
-                        <i class="fas fa-paper-plane me-1"></i>
-                        Enviados
-
-                    </button>
+        <span
+            id="badge-enviados"
+            class="badge badge-enviados ms-1 {% if enviados|length == 0 %}d-none{% endif %}"
+        >
+            {{ enviados|length }}
+        </span>
+    </button>
 
                 </li>
 
@@ -105,21 +99,12 @@
 
             </div>
 
-
-            <!-- ================================================== -->
-            <!-- RECIBIDOS / ENVIADOS -->
-            <!-- ACTUALIZACIÓN AJAX -->
-            <!-- ================================================== -->
             <div id="comunicacion-listas-wrapper">
 
                 {% include "gestion_asociacion/partials/comunicacion_listas_admin.html" %}
 
             </div>
 
-
-            <!-- ================================================== -->
-            <!-- NUEVO MENSAJE -->
-            <!-- ================================================== -->
             <div id="panel-nuevo" class="{% if tab_activa != 'nuevo' %}d-none{% endif %}">
 
                 <div class="mt-2">
@@ -137,20 +122,16 @@
                     </p>
 
 
-                    <!-- ================================================== -->
-                    <!-- FORMULARIO -->
-                    <!-- ================================================== -->
                     <form id="formResponder" method="post" action="{% url 'enviar_mensaje_admin' %}" enctype="multipart/form-data" novalidate>
 
                         {% csrf_token %} {% if hilo_id_respuesta %}
-                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}"> {% endif %}
+
+                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}">
+
+                        <input type="hidden" name="origen" value="{{ origen_respuesta|default:'recibidos' }}"> {% endif %}
 
                         <div class="row g-3">
 
-
-                            <!-- ========================================== -->
-                            <!-- DESTINATARIO -->
-                            <!-- ========================================== -->
                             <div class="col-md-6">
 
                                 <label class="form-label">
@@ -159,23 +140,20 @@
 
                                 <select id="destinatarioAdmin" class="form-select" name="destinatario_id">
 
-                                    <option value=""
-                                            disabled
-                                            selected>
+    <option value=""
+            disabled
+            selected
+            hidden>
+        Selecciona un miembro
+    </option>
 
-                                        Selecciona un miembro
+    {% for u in miembros %}
+    <option value="{{ u.id }}">
+        {{ u.username }}
+    </option>
+    {% endfor %}
 
-                                    </option>
-
-                                    {% for u in miembros %}
-
-                                    <option value="{{ u.id }}">
-                                        {{ u.username }}
-                                    </option>
-
-                                    {% endfor %}
-
-                                </select> {% for error in form.non_field_errors %}
+</select> {% for error in form.non_field_errors %}
 
                                 <div class="text-danger small mt-1 js-field-error" data-error-for="destinatario_id">
 
@@ -188,9 +166,6 @@
                             </div>
 
 
-                            <!-- ========================================== -->
-                            <!-- ASUNTO -->
-                            <!-- ========================================== -->
                             <div class="col-md-6">
 
                                 <label class="form-label">
@@ -212,9 +187,6 @@
                             </div>
 
 
-                            <!-- ========================================== -->
-                            <!-- MENSAJE -->
-                            <!-- ========================================== -->
                             <div class="col-12">
 
                                 <label class="form-label">
@@ -234,9 +206,6 @@
                             </div>
 
 
-                            <!-- ========================================== -->
-                            <!-- ARCHIVO -->
-                            <!-- ========================================== -->
                             <div class="col-12">
 
                                 <label class="form-label">
@@ -263,9 +232,6 @@
                             </div>
 
 
-                            <!-- ========================================== -->
-                            <!-- BOTÓN -->
-                            <!-- ========================================== -->
                             <div class="col-12">
 
                                 <button id="btnEnviarAdmin" class="btn btn-success btn-lg w-100" type="submit">
@@ -542,6 +508,13 @@
 
             tabActiva =
                 nombre;
+
+
+            // -----------------------------------------
+            // VISIBILIDAD DE CONTADORES
+            // -----------------------------------------
+
+            actualizarVisibilidadContadores();
 
 
             // -----------------------------------------
@@ -838,55 +811,138 @@
         // CONTADORES
         // =====================================================
 
-        function actualizarContadorNoLeidos(
-            cantidad
+        function obtenerCantidadEnviadosDesdeTabla() {
+
+            return document.querySelectorAll(
+                "#tablaEnviados tbody .msg-avatar-out"
+            ).length;
+
+        }
+
+
+        function actualizarContadores(
+            cantidadRecibidos,
+            cantidadEnviados
         ) {
 
-            const contenedor =
-                document.getElementById(
-                    "contador-no-leidos-header"
+            cantidadRecibidos =
+                parseInt(
+                    cantidadRecibidos || 0,
+                    10
                 );
 
 
-            const numero =
-                document.getElementById(
-                    "contador-no-leidos-numero"
+            if (
+                cantidadEnviados === undefined ||
+                cantidadEnviados === null
+            ) {
+
+                cantidadEnviados =
+                    obtenerCantidadEnviadosDesdeTabla();
+
+            }
+
+
+            cantidadEnviados =
+                parseInt(
+                    cantidadEnviados || 0,
+                    10
                 );
 
 
-            const badge =
+            const badgeRecibidos =
                 document.getElementById(
                     "badge-recibidos"
                 );
 
+            const badgeEnviados =
+                document.getElementById(
+                    "badge-enviados"
+                );
 
-            if (numero) {
 
-                numero.textContent =
-                    cantidad;
+            if (badgeRecibidos) {
+
+                badgeRecibidos.textContent =
+                    cantidadRecibidos;
 
             }
 
 
-            if (badge) {
+            if (badgeEnviados) {
 
-                badge.textContent =
-                    cantidad;
+                badgeEnviados.textContent =
+                    cantidadEnviados;
+
+            }
 
 
-                badge.classList.toggle(
+            actualizarVisibilidadContadores();
+
+        }
+
+        function actualizarVisibilidadContadores() {
+
+            const badgeRecibidos =
+                document.getElementById(
+                    "badge-recibidos"
+                );
+
+            const badgeEnviados =
+                document.getElementById(
+                    "badge-enviados"
+                );
+
+
+            const cantidadRecibidos =
+                badgeRecibidos ?
+                parseInt(
+                    badgeRecibidos.textContent || "0",
+                    10
+                ) :
+                0;
+
+
+            const cantidadEnviados =
+                badgeEnviados ?
+                parseInt(
+                    badgeEnviados.textContent || "0",
+                    10
+                ) :
+                0;
+
+
+            // =====================================================
+            // RECIBIDOS
+            // =====================================================
+
+            if (badgeRecibidos) {
+
+                const ocultarRecibidos =
+                    cantidadRecibidos <= 0 ||
+                    tabActiva === "recibidos";
+
+                badgeRecibidos.classList.toggle(
                     "d-none",
-                    cantidad <= 0
+                    ocultarRecibidos
                 );
 
             }
 
 
-            if (contenedor) {
+            // =====================================================
+            // ENVIADOS
+            // =====================================================
 
-                contenedor.classList.toggle(
+            if (badgeEnviados) {
+
+                const ocultarEnviados =
+                    cantidadEnviados <= 0 ||
+                    tabActiva === "enviados";
+
+                badgeEnviados.classList.toggle(
                     "d-none",
-                    cantidad <= 0
+                    ocultarEnviados
                 );
 
             }
@@ -972,8 +1028,9 @@
                 // ACTUALIZAR CONTADOR
                 // -----------------------------------------
 
-                actualizarContadorNoLeidos(
-                    data.no_leidos || 0
+                actualizarContadores(
+                    data.no_leidos || 0,
+                    obtenerCantidadEnviadosDesdeTabla()
                 );
 
 
@@ -1044,6 +1101,41 @@
         activarPestana(
             tabActiva,
             false
+        );
+
+
+        const badgeRecibidosInicial =
+            document.getElementById(
+                "badge-recibidos"
+            );
+
+        const badgeEnviadosInicial =
+            document.getElementById(
+                "badge-enviados"
+            );
+
+
+        const cantidadRecibidosInicial =
+            badgeRecibidosInicial ?
+            parseInt(
+                badgeRecibidosInicial.textContent || "0",
+                10
+            ) :
+            0;
+
+
+        const cantidadEnviadosInicial =
+            badgeEnviadosInicial ?
+            parseInt(
+                badgeEnviadosInicial.textContent || "0",
+                10
+            ) :
+            0;
+
+
+        actualizarContadores(
+            cantidadRecibidosInicial,
+            cantidadEnviadosInicial
         );
 
 

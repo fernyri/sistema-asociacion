@@ -1,0 +1,1504 @@
+{% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Añadir nuevo empleado{% endblock %} {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}?v={{ STATIC_VERSION|default:'1.2' }}"> {% endblock %} {% block content %} {% now "Y-m-d" as hoy %}
+
+
+
+<div class="container-fluid py-4">
+
+    <div class="crear-empleado-page">
+
+        <div class="card crear-empleado-card shadow-lg">
+
+            <div class="card-body p-4 p-lg-5">
+
+
+
+                <div class="crear-empleado-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                    <div class="d-flex align-items-center gap-3">
+
+                        <div class="crear-empleado-icono"><i class="fas fa-user-plus"></i></div>
+
+                        <div>
+
+                            <h2 class="mb-1 text-dark">Añadir nuevo empleado</h2>
+
+                            <div class="text-muted">Registra una nueva cuenta para un empleado de la asociación.</div>
+
+                        </div>
+
+                    </div>
+
+                    <a href="{% url 'gestion' %}" class="btn btn-outline-secondary">
+
+                        <i class="fas fa-arrow-left me-1"></i> Volver a Gestión
+
+                    </a>
+
+                </div>
+
+
+
+                {% if messages %}
+
+                <div class="mb-4" id="mensajeCrearUsuario">
+
+                    {% for message in messages %}
+
+                    <div class="alert alert-{{ message.tags }} text-center mb-2">{{ message }}</div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %} {% if form.non_field_errors %}
+
+                <div class="alert alert-danger">
+
+                    <div class="fw-semibold mb-1"><i class="fas fa-triangle-exclamation me-1"></i> Revisa la información</div>
+
+                    {% for error in form.non_field_errors %}
+
+                    <div>{{ error }}</div>{% endfor %}
+
+                </div>
+
+                {% endif %}
+
+
+
+                <form method="post" action="{% url 'crear_usuario' %}" id="crearEmpleadoForm" data-verificar-url="{% url 'verificar_usuario' %}" data-is-bound="{{ form.is_bound|yesno:'true,false' }}" novalidate>
+
+                    {% csrf_token %}
+
+
+
+                    <div class="seccion-formulario">
+
+                        <div class="seccion-formulario-header">
+
+                            <div class="icono"><i class="fas fa-lock"></i></div>
+
+                            <div>
+
+                                <div class="fw-bold">Datos de acceso</div>
+
+                                <div class="small text-muted">Información que utilizará el empleado para iniciar sesión.</div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="seccion-formulario-body">
+
+                            <div class="row g-4">
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.username.id_for_label }}" class="form-label">Nombre de usuario <span class="text-danger">*</span></label> {{ form.username }}
+
+                                    <div id="error-username" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.username.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">Correo electrónico <span class="text-danger">*</span></label> {{ form.email }}
+
+                                    <div id="error-email" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.email.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.password1.id_for_label }}" class="form-label">Contraseña <span class="text-danger">*</span></label>
+
+                                    <div class="password-wrapper">
+
+                                        {{ form.password1 }}
+
+                                        <button type="button" class="btn btn-outline-secondary js-toggle-password" data-target="{{ form.password1.id_for_label }}" aria-label="Mostrar contraseña">
+
+                                            <i class="fas fa-eye"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                    <div class="form-text">Mínimo 8 caracteres, al menos una letra y un número.</div>
+
+                                    <div id="error-password1" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.password1.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.password2.id_for_label }}" class="form-label">Confirmar contraseña <span class="text-danger">*</span></label>
+
+                                    <div class="password-wrapper">
+
+                                        {{ form.password2 }}
+
+                                        <button type="button" class="btn btn-outline-secondary js-toggle-password" data-target="{{ form.password2.id_for_label }}" aria-label="Mostrar contraseña">
+
+                                            <i class="fas fa-eye"></i>
+
+                                        </button>
+
+                                    </div>
+
+                                    <div id="error-password2" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.password2.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="seccion-formulario">
+
+                        <div class="seccion-formulario-header">
+
+                            <div class="icono bg-info text-dark"><i class="fas fa-address-card"></i></div>
+
+                            <div>
+
+                                <div class="fw-bold">Datos personales</div>
+
+                                <div class="small text-muted">Información general del empleado.</div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="seccion-formulario-body">
+
+                            <div class="row g-4">
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">Nombre <span class="text-danger">*</span></label> {{ form.first_name }}
+
+                                    <div id="error-first-name" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.first_name.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Apellido <span class="text-danger">*</span></label> {{ form.last_name }}
+
+                                    <div id="error-last-name" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.last_name.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.telefono.id_for_label }}" class="form-label">Teléfono</label> {{ form.telefono }}
+
+                                    <div class="form-text">Si lo capturas, debe tener exactamente 10 dígitos.</div>
+
+                                    <div id="error-telefono" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.telefono.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.genero.id_for_label }}" class="form-label">Género <span class="text-danger">*</span></label> {{ form.genero }}
+
+                                    <div id="error-genero" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.genero.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label">Fecha de nacimiento</label> {{ form.fecha_nacimiento }}
+
+                                    <div id="error-fecha-nacimiento" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.fecha_nacimiento.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-md-6">
+
+                                    <label for="id_fecha_ingreso" class="form-label">Fecha de ingreso <span class="text-danger">*</span></label>
+
+                                    <input type="date" name="fecha_ingreso" id="id_fecha_ingreso" class="form-control" value="{% if form.is_bound %}{{ form.fecha_ingreso.value|default_if_none:'' }}{% else %}{{ hoy }}{% endif %}" min="1900-01-01" max="{{ hoy }}" required>
+
+                                    <div class="form-text">Fecha en la que el empleado ingresó a la asociación.</div>
+
+                                    <div id="error-fecha-ingreso" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.fecha_ingreso.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+
+
+                                <div class="col-12">
+
+                                    <label for="{{ form.direccion.id_for_label }}" class="form-label">Dirección</label> {{ form.direccion }}
+
+                                    <div class="form-text">Debe tener al menos 20 caracteres.</div>
+
+                                    <div id="error-direccion" class="campo-error small mt-1 text-danger">
+
+                                        {% for error in form.direccion.errors %}
+
+                                        <div><i class="fas fa-circle-exclamation me-1"></i>{{ error }}</div>{% endfor %}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="rol-inicial mb-4">
+
+                        <div class="d-flex align-items-start gap-3">
+
+                            <div class="fs-5 text-info"><i class="fas fa-circle-info"></i></div>
+
+                            <div>
+
+                                <div class="fw-bold text-dark">Rol inicial:
+
+                                    <span class="text-primary">
+
+    Miembro
+
+</span>
+
+
+
+                                    <span class="badge bg-warning text-dark ms-2">
+
+    Requiere verificación
+
+</span></div>
+
+                                <div class="small text-muted mt-1">
+
+                                    El empleado será creado con rol
+
+                                    <b>Miembro</b>. Se enviará un enlace de verificación al correo electrónico indicado y deberá activar su cuenta antes de poder iniciar sesión.
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="acciones-formulario d-flex justify-content-end align-items-center flex-wrap gap-2">
+
+                        <a href="{% url 'gestion' %}" id="btnCancelarCrearEmpleado" class="btn btn-warning px-4">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+
+                        <button type="submit" id="btnCrearEmpleado" class="btn btn-success px-4" disabled>
+
+                            <i class="fas fa-user-plus me-1"></i> Crear empleado
+
+                        </button>
+
+                    </div>
+
+                    <div id="crearEmpleadoHint" class="text-center mt-2"></div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        const form = document.getElementById("crearEmpleadoForm");
+
+        const btn = document.getElementById("btnCrearEmpleado");
+
+        const hint = document.getElementById("crearEmpleadoHint");
+
+        if (!form || !btn) return;
+
+
+
+        const campos = {
+
+            username: document.getElementById("id_username"),
+
+            firstName: document.getElementById("id_first_name"),
+
+            lastName: document.getElementById("id_last_name"),
+
+            email: document.getElementById("id_email"),
+
+            telefono: document.getElementById("id_telefono"),
+
+            direccion: document.getElementById("id_direccion"),
+
+            genero: document.getElementById("id_genero"),
+
+            fechaNacimiento: document.getElementById("id_fecha_nacimiento"),
+
+            fechaIngreso: document.getElementById("id_fecha_ingreso"),
+
+            password1: document.getElementById("id_password1"),
+
+            password2: document.getElementById("id_password2")
+
+        };
+
+
+
+        const errores = {
+
+            username: document.getElementById("error-username"),
+
+            firstName: document.getElementById("error-first-name"),
+
+            lastName: document.getElementById("error-last-name"),
+
+            email: document.getElementById("error-email"),
+
+            telefono: document.getElementById("error-telefono"),
+
+            direccion: document.getElementById("error-direccion"),
+
+            genero: document.getElementById("error-genero"),
+
+            fechaNacimiento: document.getElementById("error-fecha-nacimiento"),
+
+            fechaIngreso: document.getElementById("error-fecha-ingreso"),
+
+            password1: document.getElementById("error-password1"),
+
+            password2: document.getElementById("error-password2")
+
+        };
+
+
+
+        const storageKey = "crear_empleado_temporal";
+
+        const verificarUrl = form.dataset.verificarUrl;
+
+        const fechaMaxima = "{{ hoy }}";
+
+        const persistentes = [
+
+            campos.username, campos.firstName, campos.lastName, campos.email,
+
+            campos.telefono, campos.direccion, campos.genero,
+
+            campos.fechaNacimiento, campos.fechaIngreso
+
+        ];
+
+
+
+        let estado = {
+
+            username: false,
+
+            firstName: false,
+
+            lastName: false,
+
+            email: false,
+
+            telefono: true,
+
+            direccion: true,
+
+            genero: false,
+
+            fechaNacimiento: true,
+
+            fechaIngreso: false,
+
+            password1: false,
+
+            password2: false,
+
+            duplicado: false,
+
+            verificando: false,
+
+            enviando: false
+
+        };
+
+
+
+        let debounceTimer = null;
+
+        let controller = null;
+
+
+
+        function texto(campo) {
+
+            return (campo && campo.value ? campo.value : "").trim();
+
+        }
+
+
+
+        function normalizarUsuario() {
+
+            return texto(campos.username).replace(/\s+/g, " ");
+
+        }
+
+
+
+        function normalizarEmail() {
+
+            return texto(campos.email).toLowerCase();
+
+        }
+
+
+
+        function emailValido(valor) {
+
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+
+        }
+
+
+
+        function ponerEstado(campo, errorEl, valido, mensaje = "", mostrar = true) {
+
+            if (!campo) return;
+
+            campo.classList.remove("is-valid", "is-invalid");
+
+
+
+            // Si la validación es silenciosa, solo actualizamos el estado interno.
+
+            // No mostramos ni borramos errores devueltos por Django al cargar la página.
+
+            if (!mostrar) return;
+
+
+
+            if (valido) {
+
+                campo.classList.add("is-valid");
+
+                if (errorEl) errorEl.innerHTML = "";
+
+            } else {
+
+                campo.classList.add("is-invalid");
+
+                if (errorEl) {
+
+                    errorEl.innerHTML = mensaje ?
+
+                        `<i class="fas fa-circle-exclamation me-1"></i>${mensaje}` :
+
+                        "";
+
+                }
+
+            }
+
+        }
+
+
+
+        function limpiarVisual(campo, errorEl) {
+
+            if (!campo) return;
+
+            campo.classList.remove("is-valid", "is-invalid");
+
+            if (errorEl) errorEl.innerHTML = "";
+
+        }
+
+
+
+        function guardarTemporal() {
+
+            try {
+
+                const datos = {};
+
+                persistentes.forEach(function(campo) {
+
+                    if (campo) datos[campo.id] = campo.value;
+
+                });
+
+                sessionStorage.setItem(storageKey, JSON.stringify(datos));
+
+            } catch (e) {
+
+                console.warn("No se pudieron guardar temporalmente los datos del empleado.");
+
+            }
+
+        }
+
+
+
+        function restaurarTemporal() {
+
+            try {
+
+                const guardado = sessionStorage.getItem(storageKey);
+
+                if (!guardado) return;
+
+                const datos = JSON.parse(guardado);
+
+
+
+                persistentes.forEach(function(campo) {
+
+                    if (!campo || !Object.prototype.hasOwnProperty.call(datos, campo.id)) return;
+
+
+
+                    // El select de género trae un valor por defecto; ahí sí restauramos
+
+                    // siempre el valor guardado. En los demás campos damos prioridad
+
+                    // al valor que Django haya devuelto tras un POST con errores.
+
+                    if (campo === campos.genero) {
+
+                        campo.value = datos[campo.id] || campo.value;
+
+                    } else if (!campo.value) {
+
+                        campo.value = datos[campo.id] || "";
+
+                    }
+
+                });
+
+            } catch (e) {
+
+                sessionStorage.removeItem(storageKey);
+
+            }
+
+        }
+
+
+
+        function limpiarTemporal() {
+
+            try {
+
+                sessionStorage.removeItem(storageKey);
+
+            } catch (e) {}
+
+        }
+
+
+
+        function validarUsername(mostrar = true) {
+
+            const valor = normalizarUsuario();
+
+            estado.username = valor.length > 0;
+
+            ponerEstado(campos.username, errores.username, estado.username,
+
+                "El nombre de usuario es obligatorio.", mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarNombre(mostrar = true) {
+
+            estado.firstName = texto(campos.firstName).length > 0;
+
+            ponerEstado(campos.firstName, errores.firstName, estado.firstName,
+
+                "El nombre es obligatorio.", mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarApellido(mostrar = true) {
+
+            estado.lastName = texto(campos.lastName).length > 0;
+
+            ponerEstado(campos.lastName, errores.lastName, estado.lastName,
+
+                "El apellido es obligatorio.", mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarEmail(mostrar = true) {
+
+            const valor = normalizarEmail();
+
+            estado.email = emailValido(valor);
+
+
+
+            let mensaje = "";
+
+            if (!valor) mensaje = "El correo electrónico es obligatorio.";
+
+            else if (!estado.email) mensaje = "Introduce un correo electrónico válido.";
+
+            else if (estado.duplicado) mensaje = "El usuario o correo ya está registrado.";
+
+
+
+            ponerEstado(campos.email, errores.email,
+
+                estado.email && !estado.duplicado, mensaje, mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarTelefono(mostrar = true) {
+
+            if (!campos.telefono) return;
+
+            campos.telefono.value = campos.telefono.value.replace(/\D/g, "").slice(0, 10);
+
+            const valor = texto(campos.telefono);
+
+            estado.telefono = !valor || /^[0-9]{10}$/.test(valor);
+
+            ponerEstado(campos.telefono, errores.telefono, estado.telefono,
+
+                "El teléfono debe tener exactamente 10 dígitos.", mostrar && !!valor);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarDireccion(mostrar = true) {
+
+            const valor = texto(campos.direccion);
+
+            estado.direccion = !valor || valor.length >= 10;
+
+            ponerEstado(campos.direccion, errores.direccion, estado.direccion,
+
+                "La dirección debe tener al menos 10 caracteres.", mostrar && !!valor);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarGenero(mostrar = true) {
+
+            estado.genero = !!campos.genero && ["M", "F", "O"].includes(campos.genero.value);
+
+            ponerEstado(campos.genero, errores.genero, estado.genero,
+
+                "Selecciona un género válido.", mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarFechaNacimiento(mostrar = true) {
+
+            const valor = campos.fechaNacimiento ? campos.fechaNacimiento.value : "";
+
+            if (!valor) {
+
+                estado.fechaNacimiento = true;
+
+                ponerEstado(campos.fechaNacimiento, errores.fechaNacimiento, true, "", false);
+
+                validarFechaIngreso(mostrar);
+
+                actualizarBoton();
+
+                return;
+
+            }
+
+
+
+            const anio = parseInt(valor.split("-")[0], 10);
+
+            estado.fechaNacimiento = anio >= 1900 && valor <= fechaMaxima;
+
+
+
+            let mensaje = "";
+
+            if (anio < 1900) mensaje = "El año no puede ser menor a 1900.";
+
+            else if (valor > fechaMaxima) mensaje = "La fecha de nacimiento no puede estar en el futuro.";
+
+
+
+            ponerEstado(campos.fechaNacimiento, errores.fechaNacimiento,
+
+                estado.fechaNacimiento, mensaje, mostrar);
+
+            validarFechaIngreso(mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarFechaIngreso(mostrar = true) {
+
+            const valor = campos.fechaIngreso ? campos.fechaIngreso.value : "";
+
+            if (!valor) {
+
+                estado.fechaIngreso = false;
+
+                ponerEstado(campos.fechaIngreso, errores.fechaIngreso, false,
+
+                    "La fecha de ingreso es obligatoria.", mostrar);
+
+                actualizarBoton();
+
+                return;
+
+            }
+
+
+
+            const anio = parseInt(valor.split("-")[0], 10);
+
+            let valido = true;
+
+            let mensaje = "";
+
+
+
+            if (anio < 1900) {
+
+                valido = false;
+
+                mensaje = "El año de ingreso no puede ser menor a 1900.";
+
+            } else if (valor > fechaMaxima) {
+
+                valido = false;
+
+                mensaje = "La fecha de ingreso no puede estar en el futuro.";
+
+            } else if (campos.fechaNacimiento && campos.fechaNacimiento.value && valor < campos.fechaNacimiento.value) {
+
+                valido = false;
+
+                mensaje = "La fecha de ingreso no puede ser anterior a la fecha de nacimiento.";
+
+            }
+
+
+
+            estado.fechaIngreso = valido;
+
+            ponerEstado(campos.fechaIngreso, errores.fechaIngreso, valido, mensaje, mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarPassword1(mostrar = true) {
+
+            const clave = campos.password1 ? campos.password1.value : "";
+
+            const usuario = normalizarUsuario().toLowerCase();
+
+            const minimo = clave.length >= 8;
+
+            const letra = /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/.test(clave);
+
+            const numero = /[0-9]/.test(clave);
+
+            const contieneUsuario = usuario.length > 0 && clave.toLowerCase().includes(usuario);
+
+
+
+            estado.password1 = minimo && letra && numero && !contieneUsuario;
+
+
+
+            let mensaje = "";
+
+            if (!clave) mensaje = "La contraseña es obligatoria.";
+
+            else if (!minimo) mensaje = "La contraseña debe tener al menos 8 caracteres.";
+
+            else if (!letra || !numero) mensaje = "Debe incluir al menos una letra y un número.";
+
+            else if (contieneUsuario) mensaje = "La contraseña no puede contener el nombre de usuario.";
+
+
+
+            ponerEstado(campos.password1, errores.password1,
+
+                estado.password1, mensaje, mostrar);
+
+            validarPassword2(!!(campos.password2 && campos.password2.value));
+
+            actualizarBoton();
+
+        }
+
+
+
+        function validarPassword2(mostrar = true) {
+
+            const p1 = campos.password1 ? campos.password1.value : "";
+
+            const p2 = campos.password2 ? campos.password2.value : "";
+
+            estado.password2 = p2.length > 0 && p1 === p2;
+
+
+
+            let mensaje = "";
+
+            if (!p2) mensaje = "Debes confirmar la contraseña.";
+
+            else if (p1 !== p2) mensaje = "Las contraseñas no coinciden.";
+
+
+
+            ponerEstado(campos.password2, errores.password2,
+
+                estado.password2, mensaje, mostrar);
+
+            actualizarBoton();
+
+        }
+
+
+
+        function formularioValido() {
+
+            return estado.username && estado.firstName && estado.lastName &&
+
+                estado.email && estado.telefono && estado.direccion && estado.genero &&
+
+                estado.fechaNacimiento && estado.fechaIngreso && estado.password1 &&
+
+                estado.password2 && !estado.duplicado && !estado.verificando;
+
+        }
+
+
+
+        function actualizarBoton() {
+
+            const valido = formularioValido();
+
+            btn.disabled = !valido || estado.enviando;
+
+
+
+            if (estado.enviando) {
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Creando empleado...';
+
+            } else if (estado.verificando) {
+
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Verificando...';
+
+            } else {
+
+                btn.innerHTML = '<i class="fas fa-user-plus me-1"></i> Crear empleado';
+
+            }
+
+
+
+            if (hint) {
+
+                hint.innerHTML = valido || estado.enviando ?
+
+                    "" :
+
+                    '<small class="text-muted">Completa correctamente los campos obligatorios para crear el empleado.</small>';
+
+            }
+
+        }
+
+
+
+        function debounce(fn, delay = 400) {
+
+            clearTimeout(debounceTimer);
+
+            debounceTimer = setTimeout(fn, delay);
+
+        }
+
+
+
+        function verificarDuplicados() {
+
+            validarUsername(false);
+
+            validarEmail(false);
+
+
+
+            if (!estado.username || !estado.email || !verificarUrl) {
+
+                estado.duplicado = false;
+
+                estado.verificando = false;
+
+                actualizarBoton();
+
+                return;
+
+            }
+
+
+
+            if (controller) controller.abort();
+
+            controller = new AbortController();
+
+            estado.verificando = true;
+
+            actualizarBoton();
+
+
+
+            const url = `${verificarUrl}?username=${encodeURIComponent(normalizarUsuario().toLowerCase())}&email=${encodeURIComponent(normalizarEmail())}`;
+
+
+
+            fetch(url, {
+
+                signal: controller.signal
+
+            })
+
+            .then(response => response.json())
+
+            .then(data => {
+
+                estado.duplicado = !!data.exists;
+
+                validarEmail(true);
+
+            })
+
+            .catch(error => {
+
+                if (error.name === "AbortError") return;
+
+                estado.duplicado = false;
+
+                if (errores.email) errores.email.innerHTML = '<span class="text-warning">No se pudo verificar disponibilidad por el momento.</span>';
+
+            })
+
+            .finally(() => {
+
+                estado.verificando = false;
+
+                actualizarBoton();
+
+            });
+
+        }
+
+
+
+        function validarTodo(mostrar = true) {
+
+            validarUsername(mostrar);
+
+            validarNombre(mostrar);
+
+            validarApellido(mostrar);
+
+            validarEmail(mostrar);
+
+            validarTelefono(mostrar);
+
+            validarDireccion(mostrar);
+
+            validarGenero(mostrar);
+
+            validarFechaNacimiento(mostrar);
+
+            validarFechaIngreso(mostrar);
+
+            validarPassword1(mostrar);
+
+            validarPassword2(mostrar);
+
+        }
+
+
+
+        // Mientras el usuario escribe solo actualizamos el estado interno.
+
+        // El mensaje visual aparece al salir del campo (blur) o al elegir una opción/fecha.
+
+
+
+        campos.username.addEventListener("input", function() {
+
+            estado.duplicado = false;
+
+            limpiarVisual(campos.username, errores.username);
+
+            validarUsername(false);
+
+            if (campos.password1.value) validarPassword1(false);
+
+        });
+
+
+
+        campos.username.addEventListener("blur", function() {
+
+            campos.username.value = normalizarUsuario();
+
+            validarUsername(true);
+
+            if (estado.username) verificarDuplicados();
+
+        });
+
+
+
+        campos.firstName.addEventListener("input", function() {
+
+            limpiarVisual(campos.firstName, errores.firstName);
+
+            validarNombre(false);
+
+        });
+
+        campos.firstName.addEventListener("blur", () => validarNombre(true));
+
+
+
+        campos.lastName.addEventListener("input", function() {
+
+            limpiarVisual(campos.lastName, errores.lastName);
+
+            validarApellido(false);
+
+        });
+
+        campos.lastName.addEventListener("blur", () => validarApellido(true));
+
+
+
+        campos.email.addEventListener("input", function() {
+
+            estado.duplicado = false;
+
+            limpiarVisual(campos.email, errores.email);
+
+            validarEmail(false);
+
+        });
+
+
+
+        campos.email.addEventListener("blur", function() {
+
+            campos.email.value = normalizarEmail();
+
+            validarEmail(true);
+
+            if (estado.email) verificarDuplicados();
+
+        });
+
+
+
+        campos.telefono.addEventListener("input", function() {
+
+            limpiarVisual(campos.telefono, errores.telefono);
+
+            validarTelefono(false);
+
+        });
+
+        campos.telefono.addEventListener("blur", () => validarTelefono(true));
+
+
+
+        campos.direccion.addEventListener("input", function() {
+
+            limpiarVisual(campos.direccion, errores.direccion);
+
+            validarDireccion(false);
+
+        });
+
+        campos.direccion.addEventListener("blur", () => validarDireccion(true));
+
+
+
+        // Select y fechas se validan cuando el usuario termina de elegir el valor.
+
+        campos.genero.addEventListener("change", () => validarGenero(true));
+
+        campos.fechaNacimiento.addEventListener("change", () => validarFechaNacimiento(true));
+
+        campos.fechaNacimiento.addEventListener("blur", () => validarFechaNacimiento(true));
+
+        campos.fechaIngreso.addEventListener("change", () => validarFechaIngreso(true));
+
+        campos.fechaIngreso.addEventListener("blur", () => validarFechaIngreso(true));
+
+
+
+        campos.password1.addEventListener("input", function() {
+
+            limpiarVisual(campos.password1, errores.password1);
+
+            validarPassword1(false);
+
+        });
+
+        campos.password1.addEventListener("blur", () => validarPassword1(true));
+
+
+
+        campos.password2.addEventListener("input", function() {
+
+            limpiarVisual(campos.password2, errores.password2);
+
+            validarPassword2(false);
+
+        });
+
+        campos.password2.addEventListener("blur", () => validarPassword2(true));
+
+
+
+        persistentes.forEach(function(campo) {
+
+            if (!campo) return;
+
+            campo.addEventListener("input", guardarTemporal);
+
+            campo.addEventListener("change", guardarTemporal);
+
+        });
+
+
+
+        const btnCancelar = document.getElementById("btnCancelarCrearEmpleado");
+
+        if (btnCancelar) {
+
+            btnCancelar.addEventListener("click", limpiarTemporal);
+
+        }
+
+
+
+        document.querySelectorAll(".js-toggle-password").forEach(function(boton) {
+
+            boton.addEventListener("click", function() {
+
+                const input = document.getElementById(boton.dataset.target);
+
+                if (!input) return;
+
+                const icono = boton.querySelector("i");
+
+                const mostrar = input.type === "password";
+
+                input.type = mostrar ? "text" : "password";
+
+                if (icono) {
+
+                    icono.classList.toggle("fa-eye", !mostrar);
+
+                    icono.classList.toggle("fa-eye-slash", mostrar);
+
+                }
+
+                boton.setAttribute("aria-label", mostrar ? "Ocultar contraseña" : "Mostrar contraseña");
+
+            });
+
+        });
+
+
+
+        form.addEventListener("submit", function(event) {
+
+            campos.username.value = normalizarUsuario();
+
+            campos.email.value = normalizarEmail();
+
+            validarTodo(true);
+
+
+
+            if (!formularioValido()) {
+
+                event.preventDefault();
+
+                if (typeof Swal !== "undefined") {
+
+                    Swal.fire({
+
+                        icon: "warning",
+
+                        title: "Revisa el formulario",
+
+                        text: "Hay campos incompletos o con información no válida."
+
+                    });
+
+                }
+
+                return;
+
+            }
+
+
+
+            limpiarTemporal();
+
+            estado.enviando = true;
+
+            actualizarBoton();
+
+        });
+
+
+
+        restaurarTemporal();
+
+        // En una visita nueva proponemos hoy; una fecha elegida antes
+        // se conserva al recargar sin sobrescribir errores del POST.
+        if (form.dataset.isBound !== "true" && campos.fechaIngreso) {
+            try {
+                const temporal = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+                const anterior = temporal[campos.fechaIngreso.id];
+                if (anterior && /^\d{4}-\d{2}-\d{2}$/.test(anterior)) {
+                    campos.fechaIngreso.value = anterior;
+                }
+            } catch (e) {}
+        }
+
+        validarTodo(false);
+
+        actualizarBoton();
+
+        guardarTemporal();
+
+
+
+        if (estado.username && estado.email) verificarDuplicados();
+
+
+
+        const mensaje = document.getElementById("mensajeCrearUsuario");
+
+        if (mensaje) {
+
+            setTimeout(function() {
+
+                mensaje.style.transition = "opacity 0.5s ease";
+
+                mensaje.style.opacity = "0";
+
+                setTimeout(() => mensaje.remove(), 500);
+
+            }, 2500);
+
+        }
+
+    });
+</script>
+
+<script>
+    (function() {
+        const scrollKey = "crear_usuario_scroll";
+        const navigation = performance.getEntriesByType("navigation")[0];
+        const esRecarga = navigation && navigation.type === "reload";
+
+        // Guardar la posición al desplazarse.
+        let pendiente = false;
+
+        window.addEventListener("scroll", function() {
+            if (pendiente) return;
+
+            pendiente = true;
+
+            requestAnimationFrame(function() {
+                sessionStorage.setItem(
+                    scrollKey,
+                    String(window.scrollY)
+                );
+
+                pendiente = false;
+            });
+        }, {
+            passive: true
+        });
+
+        // Recuperar la posición solamente al actualizar.
+        window.addEventListener("load", function() {
+            if (!esRecarga) {
+                sessionStorage.removeItem(scrollKey);
+                return;
+            }
+
+            const posicion = sessionStorage.getItem(scrollKey);
+
+            if (posicion === null) return;
+
+            const scrollAnterior = history.scrollRestoration;
+            history.scrollRestoration = "manual";
+
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    window.scrollTo({
+                        top: Number(posicion),
+                        behavior: "instant"
+                    });
+                });
+            });
+        });
+    })();
+</script>
+
+{% endblock %}

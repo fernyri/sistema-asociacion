@@ -1,12 +1,10 @@
-/* =========================================================
-   Comunicación - Estilo moderno claro
-   Versión optimizada
-   ========================================================= */
-
 :root {
     --com-blue: #2563eb;
     --com-blue-dark: #1d4ed8;
     --com-blue-soft: #eff6ff;
+    --com-sent: #6366f1;
+    --com-sent-dark: #4f46e5;
+    --com-sent-soft: rgba(99, 102, 241, 0.08);
     --com-text: #111827;
     --com-text-muted: #64748b;
     --com-border: #dbe3ef;
@@ -18,9 +16,7 @@
 }
 
 
-/* =========================================================
-   Contenedor y card principal
-   ========================================================= */
+/* Contenedor principal */
 
 .comunicacion-page {
     width: 100%;
@@ -39,7 +35,7 @@
 .comunicacion-card>.card-header {
     border: none;
     padding: 1rem 1.3rem;
-    background: linear-gradient( 135deg, var(--com-blue), var(--com-blue-dark)) !important;
+    background: linear-gradient(135deg, var(--com-blue), var(--com-blue-dark)) !important;
     color: #ffffff !important;
 }
 
@@ -54,9 +50,7 @@
 }
 
 
-/* =========================================================
-   Títulos y texto
-   ========================================================= */
+/* Títulos y textos */
 
 .comunicacion-page h5 {
     color: var(--com-header-dark);
@@ -68,19 +62,38 @@
 }
 
 
-/* =========================================================
-   Iconos de comunicación
-   ========================================================= */
+/* Encabezado principal */
 
 .comunicacion-page .comunicacion-card>.card-header h5,
 .comunicacion-page .comunicacion-card>.card-header h5 i {
     color: #ffffff !important;
 }
 
-.comunicacion-page #panel-recibidos h5 i,
-.comunicacion-page #panel-enviados h5 i {
+
+/* Título Recibidos */
+
+.comunicacion-page #panel-recibidos h5 i {
     color: var(--com-blue) !important;
 }
+
+
+/* Título Enviados - estático */
+
+.comunicacion-page #panel-enviados h5 {
+    color: var(--com-sent) !important;
+    background: transparent !important;
+    cursor: default !important;
+    user-select: none;
+    pointer-events: none;
+}
+
+.comunicacion-page #panel-enviados h5 i {
+    color: var(--com-sent) !important;
+    background: transparent !important;
+}
+
+
+/* Navegación */
 
 .comunicacion-page .nav-link i {
     color: var(--com-blue);
@@ -91,9 +104,35 @@
 }
 
 
-/* =========================================================
-   Buscador y formularios
-   ========================================================= */
+/* Pestaña Enviados */
+
+.comunicacion-page .nav-link.nav-enviados {
+    color: var(--com-sent) !important;
+}
+
+.comunicacion-page .nav-link.nav-enviados i {
+    color: var(--com-sent) !important;
+}
+
+.comunicacion-page .nav-pills .nav-link.nav-enviados.active,
+.comunicacion-page .nav-link.nav-enviados.active {
+    background-color: var(--com-sent) !important;
+    border-color: var(--com-sent) !important;
+    color: #ffffff !important;
+}
+
+.comunicacion-page .nav-pills .nav-link.nav-enviados.active i,
+.comunicacion-page .nav-link.nav-enviados.active i {
+    color: #ffffff !important;
+}
+
+.comunicacion-page .nav-link.nav-enviados:not(.active):hover {
+    color: var(--com-sent-dark) !important;
+    background: var(--com-sent-soft);
+}
+
+
+/* Buscador y formularios */
 
 .comunicacion-page .input-group {
     border-radius: 12px;
@@ -147,9 +186,7 @@
 }
 
 
-/* =========================================================
-   Tablas
-   ========================================================= */
+/* Tablas */
 
 .comunicacion-page .table-responsive {
     overflow: hidden;
@@ -186,10 +223,7 @@
     color: var(--com-text);
     border-color: var(--com-table-border);
     vertical-align: middle;
-}
-
-.comunicacion-page .table tbody tr {
-    transition: background 0.18s ease, transform 0.18s ease;
+    transition: background 0.18s ease;
 }
 
 .comunicacion-page .table tbody tr:hover td {
@@ -197,9 +231,7 @@
 }
 
 
-/* =========================================================
-   Estados de mensajes
-   ========================================================= */
+/* Estados de mensajes */
 
 .comunicacion-page .msg-unread td {
     background: #fff7ed;
@@ -214,49 +246,49 @@
 }
 
 
-/* =========================================================
-   Avatares
-   ========================================================= */
+/* Avatares */
 
-.msg-avatar-sm {
+.comunicacion-page .msg-avatar-sm {
     width: 38px;
     height: 38px;
     min-width: 38px;
-    border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
     background: var(--com-blue);
     color: #ffffff;
     font-weight: 700;
     box-shadow: 0 2px 7px rgba(37, 99, 235, 0.25);
 }
 
-.msg-avatar-out {
-    background: #64748b;
-    box-shadow: 0 2px 7px rgba(100, 116, 139, 0.25);
+
+/* Avatar Enviados */
+
+.comunicacion-page .msg-avatar-sm.msg-avatar-out {
+    background: linear-gradient(135deg, var(--com-sent), var(--com-sent-dark));
+    color: #ffffff;
+    box-shadow: 0 2px 7px rgba(99, 102, 241, 0.28);
 }
 
 
-/* =========================================================
-   Badges
-   ========================================================= */
-
-
-/* Cantidad de mensajes dentro de una conversación */
-
-.comunicacion-page .badge-conversacion-count {
-    background: #dbeafe !important;
-    color: #1d4ed8 !important;
-    border: 1px solid #bfdbfe;
-    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.10);
-}
+/* Badges */
 
 .comunicacion-page .badge {
     border-radius: 999px;
     padding: 0.45em 0.75em;
     font-size: 0.78rem;
     font-weight: 700;
+}
+
+
+/* Cantidad de mensajes de una conversación */
+
+.comunicacion-page .badge-conversacion-count {
+    background: #dbeafe !important;
+    color: var(--com-blue-dark) !important;
+    border: 1px solid #bfdbfe;
+    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.10);
 }
 
 .comunicacion-page .badge.bg-warning {
@@ -273,49 +305,78 @@
 }
 
 
-/* =========================================================
-   Botones
-   ========================================================= */
+/* Botones */
 
 .comunicacion-page .btn {
     border-radius: 10px;
     font-weight: 600;
-    transition: all 0.18s ease;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .comunicacion-page .btn:hover {
     transform: translateY(-1px);
 }
 
+
+/* Primario */
+
 .comunicacion-page .btn-primary {
     background: var(--com-blue);
     border-color: var(--com-blue);
 }
 
-.comunicacion-page .btn-primary:hover {
+.comunicacion-page .btn-primary:hover,
+.comunicacion-page .btn-primary:focus {
     background: var(--com-blue-dark);
     border-color: var(--com-blue-dark);
 }
+
+
+/* Ver - Enviados */
+
+.comunicacion-page .btn-enviado {
+    background: var(--com-sent);
+    border-color: var(--com-sent);
+    color: #ffffff;
+}
+
+.comunicacion-page .btn-enviado:hover,
+.comunicacion-page .btn-enviado:focus {
+    background: var(--com-sent-dark);
+    border-color: var(--com-sent-dark);
+    color: #ffffff;
+}
+
+
+/* Secundario */
 
 .comunicacion-page .btn-secondary {
     background: #64748b;
     border-color: #64748b;
 }
 
-.comunicacion-page .btn-secondary:hover {
+.comunicacion-page .btn-secondary:hover,
+.comunicacion-page .btn-secondary:focus {
     background: #475569;
     border-color: #475569;
 }
 
+
+/* Éxito */
+
 .comunicacion-page .btn-success {
-    background: linear-gradient( 135deg, var(--com-success), var(--com-success-dark));
+    background: linear-gradient(135deg, var(--com-success), var(--com-success-dark));
     border: none;
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
 }
 
-.comunicacion-page .btn-success:hover {
-    background: linear-gradient( 135deg, var(--com-success-dark), #166534);
+.comunicacion-page .btn-success:hover,
+.comunicacion-page .btn-success:focus {
+    background: linear-gradient(135deg, var(--com-success-dark), #166534);
 }
+
+
+/* Eliminar */
 
 .comunicacion-page .btn-outline-danger {
     border-color: var(--com-danger);
@@ -323,15 +384,39 @@
     background: #ffffff;
 }
 
-.comunicacion-page .btn-outline-danger:hover {
+.comunicacion-page .btn-outline-danger:hover,
+.comunicacion-page .btn-outline-danger:focus {
     background: var(--com-danger);
+    border-color: var(--com-danger);
     color: #ffffff;
 }
 
 
-/* =========================================================
-   Alertas
-   ========================================================= */
+/* Botón Volver - Conversación */
+
+.comunicacion-page .conversacion-volver {
+    display: inline-flex;
+    align-items: center;
+    color: #ffffff !important;
+    text-decoration: none;
+    font-weight: 600;
+    opacity: 0.9;
+    transition: opacity 0.18s ease;
+}
+
+.comunicacion-page .conversacion-volver i {
+    color: #ffffff !important;
+}
+
+.comunicacion-page .conversacion-volver:hover,
+.comunicacion-page .conversacion-volver:focus {
+    color: #ffffff !important;
+    text-decoration: none;
+    opacity: 1;
+}
+
+
+/* Alertas */
 
 .comunicacion-page .alert {
     border: none;
@@ -344,9 +429,7 @@
 }
 
 
-/* =========================================================
-   Espaciado existente
-   ========================================================= */
+/* Espaciado */
 
 .comunicacion-page .mb-4 {
     padding-bottom: 0.5rem;
@@ -357,42 +440,21 @@
 }
 
 
-/* =========================================================
-   Conversación - historial
-   ========================================================= */
+/* Conversación - historial */
 
 .comunicacion-page .comunicacion-card>.card-body.conversacion-historial {
-    background: linear-gradient( 180deg, #edf5ff 0%, #e3eeff 100%) !important;
-    /* Altura controlada del chat */
     height: calc(100vh - 330px);
     min-height: 420px;
     max-height: 650px;
-    /* Scroll únicamente dentro del historial */
     overflow-y: auto;
     overflow-x: hidden;
     padding: 1.5rem;
+    background: linear-gradient(180deg, #edf5ff 0%, #e3eeff 100%) !important;
     scroll-behavior: smooth;
 }
 
 
-/* Scroll del historial */
-
-.comunicacion-page .conversacion-historial::-webkit-scrollbar {
-    width: 8px;
-}
-
-.comunicacion-page .conversacion-historial::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb {
-    background: #bfd3ee;
-    border-radius: 10px;
-}
-
-.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb:hover {
-    background: #94b6df;
-}
+/* Mensajes */
 
 .comunicacion-page .conversacion-historial .mensaje-propio {
     background: #dceaff !important;
@@ -411,6 +473,9 @@
     border-radius: 14px !important;
 }
 
+
+/* Encabezado de conversación */
+
 .comunicacion-page .conversacion-label {
     color: #dbeafe !important;
     font-weight: 600;
@@ -427,14 +492,27 @@
 }
 
 
-/* =========================================================
-   Responsive
-   ========================================================= */
+/* Scrollbars */
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar {
+    width: 8px;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb {
+    background: #bfd3ee;
+    border-radius: 10px;
+}
+
+.comunicacion-page .conversacion-historial::-webkit-scrollbar-thumb:hover {
+    background: #94b6df;
+}
 
 
-/* =========================================================
-   Papelera - listado con scroll interno
-   ========================================================= */
+/* Papelera - listado */
 
 .comunicacion-page .table-responsive.papelera-scroll {
     display: block;
@@ -461,7 +539,7 @@
 }
 
 
-/* Scroll */
+/* Scroll Papelera */
 
 .comunicacion-page .table-responsive.papelera-scroll::-webkit-scrollbar {
     width: 8px;
@@ -482,9 +560,7 @@
 }
 
 
-/* =========================================================
-   Papelera - acciones en una sola fila
-   ========================================================= */
+/* Papelera - acciones */
 
 .comunicacion-page .papelera-col-acciones {
     width: 340px;
@@ -510,6 +586,10 @@
     margin: 0;
 }
 
+.comunicacion-page .papelera-acciones form {
+    display: flex;
+}
+
 .comunicacion-page .papelera-accion-btn {
     width: 100%;
     height: 100%;
@@ -523,10 +603,158 @@
 }
 
 
-/* Evita que los formularios modifiquen la altura */
+/* Papelera - buscador */
 
-.comunicacion-page .papelera-acciones form {
-    display: flex;
+.comunicacion-page #papeleraSearchClear {
+    border-color: var(--com-border);
+    border-left: 0;
+    background: #ffffff;
+    color: var(--com-text-muted);
+}
+
+.comunicacion-page #papeleraSearchClear:hover {
+    background: #f1f5f9;
+    color: var(--com-danger);
+}
+
+
+/* Comunicación - scroll interno Recibidos / Enviados */
+
+.comunicacion-page .table-responsive.mensajes-scroll {
+    display: block !important;
+    height: clamp(280px, calc(100vh - 500px), 520px) !important;
+    max-height: clamp(280px, calc(100vh - 500px), 520px) !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    border: 1px solid var(--com-table-border);
+    border-radius: 14px;
+    background: #ffffff;
+    scrollbar-width: thin;
+    scrollbar-color: #bfd3ee transparent;
+}
+
+
+/* Encabezado fijo */
+
+.comunicacion-page .table-responsive.mensajes-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--com-header-dark) !important;
+    color: #ffffff !important;
+}
+
+
+/* Scrollbar */
+
+.comunicacion-page .table-responsive.mensajes-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.comunicacion-page .table-responsive.mensajes-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.comunicacion-page .table-responsive.mensajes-scroll::-webkit-scrollbar-thumb {
+    background: #bfd3ee;
+    border-radius: 10px;
+}
+
+.comunicacion-page .table-responsive.mensajes-scroll::-webkit-scrollbar-thumb:hover {
+    background: #94b6df;
+}
+
+
+/* Badge de Enviados */
+
+.comunicacion-page .badge-enviados {
+    background: #7c3aed !important;
+    /* morado visible */
+    color: #ffffff !important;
+    border-radius: 999px;
+    padding: 0.35em 0.65em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+}
+
+
+/* Cuando la pestaña Enviados está activa */
+
+.comunicacion-page .nav-link.nav-enviados.active .badge-enviados {
+    background: #ffffff !important;
+    color: #5b21b6 !important;
+    box-shadow: none;
+}
+
+
+/* CONTADOR DE CONVERSACIONES ENVIADAS */
+
+.comunicacion-page .badge-enviados-panel {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 7px;
+    background: #7c3aed !important;
+    color: #ffffff !important;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+}
+
+
+/* PAPELERA - CONTADOR RECIBIDOS ROJO */
+
+.comunicacion-page.papelera-page #tab-recibidos .badge,
+.comunicacion-page.papelera-page #tab-recibidos.active .badge {
+    background: #dc3545 !important;
+    color: #ffffff !important;
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.25);
+}
+
+
+/* PAPELERA - CONTADOR ENVIADOS */
+
+.comunicacion-page.papelera-page #tab-enviados .badge,
+.comunicacion-page.papelera-page #tab-enviados.active .badge {
+    background: #4338ca !important;
+    color: #ffffff !important;
+    border-radius: 999px;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(67, 56, 202, 0.25);
+}
+
+
+/* PAPELERA - BOTÓN VER */
+
+.comunicacion-page.papelera-page .papelera-accion-btn.btn-secondary {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.20);
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.comunicacion-page.papelera-page .papelera-accion-btn.btn-secondary:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.28);
+}
+
+.comunicacion-page.papelera-page .papelera-accion-btn.btn-secondary:active {
+    transform: translateY(0);
 }
 
 @media (max-width: 768px) {
@@ -542,23 +770,24 @@
     .comunicacion-page .btn {
         font-size: 0.85rem;
     }
-    .msg-avatar-sm {
+    /* Avatares */
+    .comunicacion-page .msg-avatar-sm {
         width: 34px;
         height: 34px;
         min-width: 34px;
+        font-size: 15px;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--com-blue), #4c8dff);
+        border: none;
     }
+    .comunicacion-page .msg-avatar-sm.msg-avatar-out {
+        background: linear-gradient(135deg, var(--com-sent), var(--com-sent-dark));
+    }
+    /* Tablas */
     .comunicacion-page .table {
         font-size: 0.88rem;
         border-radius: 14px;
         overflow: hidden;
-    }
-    /* Efectos que ya estaban activos únicamente en móvil */
-    .comunicacion-card {
-        transition: all 0.25s ease;
-    }
-    .comunicacion-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.10);
     }
     .comunicacion-page .table-hover tbody tr:hover td {
         background: rgba(13, 110, 253, 0.08) !important;
@@ -566,8 +795,20 @@
     .comunicacion-page tr.msg-unread td {
         background: rgba(13, 110, 253, 0.08) !important;
     }
+    /* Card */
+    .comunicacion-card {
+        transition: all 0.25s ease;
+    }
+    .comunicacion-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 35px rgba(0, 0, 0, 0.10);
+    }
+    /* Botones */
     .comunicacion-page .btn-primary:hover {
         box-shadow: 0 6px 14px rgba(13, 110, 253, 0.25);
+    }
+    .comunicacion-page .btn-enviado:hover {
+        box-shadow: 0 6px 14px rgba(99, 102, 241, 0.25);
     }
     .comunicacion-page .btn-success:hover {
         box-shadow: 0 6px 14px rgba(25, 135, 84, 0.25);
@@ -575,6 +816,7 @@
     .comunicacion-page .btn-danger:hover {
         box-shadow: 0 6px 14px rgba(220, 53, 69, 0.25);
     }
+    /* Formularios */
     .comunicacion-page .form-control,
     .comunicacion-page .form-select {
         transition: all 0.2s ease;
@@ -583,24 +825,21 @@
     .comunicacion-page .form-select:hover {
         border-color: rgba(13, 110, 253, 0.35);
     }
-    .comunicacion-page .msg-avatar-sm {
-        font-size: 15px;
-        font-weight: 900;
-        background: linear-gradient(135deg, #0d6efd, #4c8dff);
-        border: none;
+    .comunicacion-page textarea.form-control {
+        min-height: 160px;
+        line-height: 1.6;
     }
+    /* Badges */
     .comunicacion-page .badge.bg-warning {
         color: #212529;
         font-weight: 800;
         box-shadow: 0 3px 10px rgba(255, 193, 7, 0.25);
     }
-    .comunicacion-page textarea.form-control {
-        min-height: 160px;
-        line-height: 1.6;
-    }
+    /* Encabezados */
     .comunicacion-page .card-header h5 {
         font-size: 1.1rem;
     }
+    /* Tamaños */
     .comunicacion-page .table td,
     .comunicacion-page .table th,
     .comunicacion-page .btn {
@@ -610,19 +849,18 @@
         font-size: 1.05rem;
         line-height: 1.7;
     }
+    /* Conversación */
     .comunicacion-page .conversacion-historial {
         height: calc(100vh - 260px);
         min-height: 350px;
         max-height: none;
         padding: 1rem;
     }
+    /* Papelera */
     .comunicacion-page .table-responsive.papelera-scroll {
         height: calc(100vh - 310px);
         max-height: calc(100vh - 310px);
     }
-    /* =========================================================
-   Papelera - acciones responsive
-   ========================================================= */
     .comunicacion-page .papelera-col-acciones {
         width: 290px;
         min-width: 290px;
@@ -642,17 +880,146 @@
 
 
 /* =========================================================
-   Papelera - buscador
+   AÑADIR NUEVO EMPLEADO (crear_usuario.html)
+   Sección independiente: conserva el diseño original.
    ========================================================= */
 
-.comunicacion-page #papeleraSearchClear {
-    border-color: var(--com-border);
-    border-left: 0;
-    background: #ffffff;
-    color: var(--com-text-muted);
+.crear-empleado-page {
+    max-width: 1150px;
+    margin: 0 auto;
 }
 
-.comunicacion-page #papeleraSearchClear:hover {
-    background: #f1f5f9;
-    color: var(--com-danger);
+.crear-empleado-card {
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.crear-empleado-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.crear-empleado-icono {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #e8f1ff;
+    color: #0d6efd;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.seccion-formulario {
+    border: 1px solid #e3e6ea;
+    border-radius: 14px;
+    background: #fff;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.seccion-formulario-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e3e6ea;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.seccion-formulario-header .icono {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d6efd;
+    color: #fff;
+}
+
+.seccion-formulario-body {
+    padding: 22px;
+}
+
+.crear-empleado-page .form-label {
+    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 7px;
+}
+
+.crear-empleado-page input,
+.crear-empleado-page select,
+.crear-empleado-page textarea {
+    width: 100%;
+}
+
+.crear-empleado-page input:not([type="checkbox"]),
+.crear-empleado-page select,
+.crear-empleado-page textarea {
+    display: block;
+    padding: .625rem .75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: #212529;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .5rem;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.crear-empleado-page input:not([type="checkbox"]):focus,
+.crear-empleado-page select:focus,
+.crear-empleado-page textarea:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .15);
+}
+
+.crear-empleado-page textarea {
+    min-height: 95px;
+    resize: vertical;
+}
+
+.password-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.password-wrapper input {
+    border-radius: .5rem 0 0 .5rem !important;
+}
+
+.password-wrapper .btn {
+    border-radius: 0 .5rem .5rem 0;
+}
+
+.rol-inicial {
+    border: 1px solid #b6e0f2;
+    background: #eaf8fd;
+    border-radius: 12px;
+    padding: 16px 18px;
+}
+
+.acciones-formulario {
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+    margin-top: 8px;
+}
+
+.campo-error {
+    min-height: 20px;
+}
+
+@media (max-width: 767px) {
+    .seccion-formulario-body {
+        padding: 16px;
+    }
+    .crear-empleado-card {
+        border-radius: 10px;
+    }
 }

@@ -64,21 +64,10 @@ urlpatterns = [
     path("eliminar/<int:user_id>/", views.eliminar_usuario, name="eliminar_usuario"),
     path("nomina/", views.nomina, name="nomina"),
     path("evaluacion_desem/", views.evaluacion_desem, name="evaluacion_desem"),
-    path(
-    "evaluacion_desem/<int:evaluacion_id>/editar/",
-    views.editar_evaluacion_desem,
-    name="editar_evaluacion_desem"
-    ),
-    path(
-        "evaluacion_desem/<int:evaluacion_id>/eliminar/",
-        views.eliminar_evaluacion_desem,
-        name="eliminar_evaluacion_desem"
-    ),
-    path(
-    "gestion/mi-perfil/editar/",
-    views.editar_superuser,
-    name="editar_superuser"
-    ),
+    path("evaluacion_desem/<int:evaluacion_id>/editar/", views.editar_evaluacion_desem, name="editar_evaluacion_desem"),
+    path("evaluacion_desem/<int:evaluacion_id>/eliminar/",views.eliminar_evaluacion_desem,name="eliminar_evaluacion_desem"),
+    path("gestion/mi-perfil/editar/",views.editar_superuser,name="editar_superuser"),
+    path("gestion/usuarios/nuevo/",views.crear_usuario,name="crear_usuario"),
 
     # =========================
     # Comunicación
@@ -99,6 +88,7 @@ urlpatterns = [
     path("comunicacion/<int:mensaje_id>/papelera/", views.mover_a_papelera, name="mover_a_papelera"),
     path("comunicacion/<int:mensaje_id>/restaurar/", views.restaurar_mensaje, name="restaurar_mensaje"),
     path("comunicacion/<int:mensaje_id>/eliminar/", views.eliminar_definitivo, name="eliminar_definitivo"),
+    path("papelera/vaciar/", views.vaciar_papelera, name="vaciar_papelera"),
 
     # =========================
     # Password reset

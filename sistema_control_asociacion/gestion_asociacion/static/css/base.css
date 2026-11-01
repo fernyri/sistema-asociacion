@@ -146,6 +146,47 @@ body {
 }
 
 
+/* =========================================================
+   SWEETALERT2 - BOTONES GLOBALES
+   ========================================================= */
+
+
+/* Botón de confirmar: VERDE */
+
+.swal2-popup .swal2-confirm {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+    color: #ffffff !important;
+}
+
+.swal2-popup .swal2-confirm:hover {
+    background-color: #157347 !important;
+    border-color: #146c43 !important;
+}
+
+.swal2-popup .swal2-confirm:focus {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25) !important;
+}
+
+
+/* Botón de cancelar: AMARILLO */
+
+.swal2-popup .swal2-cancel {
+    background-color: #ffc107 !important;
+    border-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.swal2-popup .swal2-cancel:hover {
+    background-color: #ffca2c !important;
+    border-color: #ffc720 !important;
+}
+
+.swal2-popup .swal2-cancel:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.30) !important;
+}
+
+
 /* =========================
    Responsividad
    ========================= */

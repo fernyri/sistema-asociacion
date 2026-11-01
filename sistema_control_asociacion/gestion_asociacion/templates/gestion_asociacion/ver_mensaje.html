@@ -32,7 +32,7 @@
                     mensaje{% if mensajes_hilo|length != 1 %}s{% endif %}
                 </span>
 
-                <a class="btn btn-sm btn-dark" href="{% url back_url %}">
+                <a href="{% url back_url %}{% if back_tab %}?tab={{ back_tab }}{% endif %}" class="conversacion-volver">
                     <i class="fas fa-arrow-left me-1"></i> Volver
                 </a>
 
@@ -54,27 +54,29 @@
 
         <!-- RESPONDER -->
 
+        <!-- RESPONDER -->
+
         {% if not desde_papelera %}
 
         <div class="p-3 text-end">
 
             {% if destinatario_respuesta and destinatario_respuesta.is_active %} {% if es_admin %}
 
-            <a href="{% url 'comunicacion_admin' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}" class="btn btn-outline-primary">
+            <a href="{% url 'comunicacion_admin' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}&origen={{ origen_conversacion|urlencode }}" class="btn btn-outline-primary">
                 <i class="fas fa-reply me-1"></i> Responder
             </a>
 
             {% else %}
 
-            <a href="{% url 'comunicacion_interna' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}" class="btn btn-outline-primary">
+            <a href="{% url 'comunicacion_interna' %}?tab=nuevo&destinatario_id={{ destinatario_respuesta.id }}&asunto={{ msg.asunto|urlencode }}&hilo_id={{ msg.hilo_id }}&origen={{ origen_conversacion|urlencode }}" class="btn btn-outline-primary">
                 <i class="fas fa-reply me-1"></i> Responder
             </a>
 
             {% endif %} {% else %}
 
             <span class="text-muted small">
-                No es posible responder porque el otro usuario ya no está activo.
-            </span> {% endif %}
+        No es posible responder porque el otro usuario ya no está activo.
+    </span> {% endif %}
 
         </div>
 

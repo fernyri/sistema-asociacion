@@ -1,5 +1,5 @@
 {% extends 'gestion_asociacion/base.html' %} {% load static %} {% block title %}Comunicación Interna{% endblock %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}"> {% endblock %} {% block content %}
+<link rel="stylesheet" href="{% static 'css/comunicacion.css' %}?v=20261024-2"> {% endblock %} {% block content %}
 
 <div class="comunicacion-page">
 
@@ -13,18 +13,6 @@
             <h5 class="mb-0">
                 <i class="fas fa-comments me-2"></i> Comunicación
             </h5>
-
-            <div id="contador-no-leidos-header" class="d-flex align-items-center gap-2 {% if no_leidos|default:0 == 0 %}d-none{% endif %}">
-
-                <span class="small text-white-50">
-                    No leídos:
-                </span>
-
-                <span class="badge bg-danger" id="contador-no-leidos-numero">
-                    {{ no_leidos }}
-                </span>
-
-            </div>
 
         </div>
 
@@ -59,11 +47,16 @@
                 <!-- ENVIADOS -->
                 <li class="nav-item">
 
-                    <button type="button" class="nav-link {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
-
+                    <button type="button" class="nav-link nav-enviados {% if tab_activa == 'enviados' %}active{% endif %}" data-com-tab="enviados">
                         <i class="fas fa-paper-plane me-1"></i>
                         Enviados
 
+                        <span
+                            id="badge-enviados"
+                            class="badge badge-enviados ms-1 {% if enviados_count|default:0 == 0 %}d-none{% endif %}"
+                        >
+                            {{ enviados_count|default:0 }}
+                        </span>
                     </button>
 
                 </li>
@@ -142,7 +135,10 @@
                     <form id="formResponderMiembro" method="post" action="{% url 'enviar_mensaje_miembro' %}" enctype="multipart/form-data" novalidate>
 
                         {% csrf_token %} {% if hilo_id_respuesta %}
-                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}"> {% endif %}
+
+                        <input type="hidden" name="hilo_id" value="{{ hilo_id_respuesta }}">
+
+                        <input type="hidden" name="origen" value="{{ origen_respuesta|default:'recibidos' }}"> {% endif %}
 
                         <div class="row g-3">
 
@@ -158,29 +154,30 @@
 
                                 <select id="destinatarioMiembro" class="form-select" name="destinatario_id">
 
-                                    <option value=""
-                                            disabled
-                                            selected>
+    <option
+        value=""
+        disabled
+        selected
+        hidden
+    >
+        Selecciona un administrador o Dios
+    </option>
 
-                                        Selecciona un administrador o Dios
+    {% for a in admins %}
 
-                                    </option>
+    <option value="{{ a.id }}">
 
-                                    {% for a in admins %}
+        {{ a.username }}
 
-                                    <option value="{{ a.id }}">
+        {% if a.rol %}
+            - {{ a.rol }}
+        {% endif %}
 
-                                        {{ a.username }}
+    </option>
 
-                                        {% if a.rol %}
-                                            - {{ a.rol }}
-                                        {% endif %}
+    {% endfor %}
 
-                                    </option>
-
-                                    {% endfor %}
-
-                                </select>
+</select>
 
 
                                 <!-- Error del destinatario -->
@@ -567,6 +564,9 @@
                 nombre;
 
 
+            actualizarVisibilidadContadores();
+
+
             // -----------------------------------------
             // Botones
             // -----------------------------------------
@@ -852,59 +852,96 @@
         // CONTADORES
         // =====================================================
 
-        function actualizarContadorNoLeidos(
-            cantidad
+        function actualizarContadores(
+            cantidadRecibidos,
+            cantidadEnviados
         ) {
 
-            const contenedor =
-                document.getElementById(
-                    "contador-no-leidos-header"
+            cantidadRecibidos =
+                parseInt(
+                    cantidadRecibidos || 0,
+                    10
                 );
 
-
-            const numero =
-                document.getElementById(
-                    "contador-no-leidos-numero"
+            cantidadEnviados =
+                parseInt(
+                    cantidadEnviados || 0,
+                    10
                 );
 
-
-            const badge =
+            const badgeRecibidos =
                 document.getElementById(
                     "badge-recibidos"
                 );
 
-
-            if (numero) {
-
-                numero.textContent =
-                    cantidad;
-
-            }
-
-
-            if (badge) {
-
-                badge.textContent =
-                    cantidad;
-
-
-                badge.classList.toggle(
-                    "d-none",
-                    cantidad <= 0
+            const badgeEnviados =
+                document.getElementById(
+                    "badge-enviados"
                 );
 
+            if (badgeRecibidos) {
+                badgeRecibidos.textContent =
+                    cantidadRecibidos;
             }
 
+            if (badgeEnviados) {
+                badgeEnviados.textContent =
+                    cantidadEnviados;
+            }
 
-            if (contenedor) {
+            actualizarVisibilidadContadores();
+        }
 
-                contenedor.classList.toggle(
-                    "d-none",
-                    cantidad <= 0
+
+        function actualizarVisibilidadContadores() {
+
+            const badgeRecibidos =
+                document.getElementById(
+                    "badge-recibidos"
                 );
 
+            const badgeEnviados =
+                document.getElementById(
+                    "badge-enviados"
+                );
+
+            const cantidadRecibidos =
+                badgeRecibidos ?
+                parseInt(
+                    badgeRecibidos.textContent || "0",
+                    10
+                ) :
+                0;
+
+            const cantidadEnviados =
+                badgeEnviados ?
+                parseInt(
+                    badgeEnviados.textContent || "0",
+                    10
+                ) :
+                0;
+
+            if (badgeRecibidos) {
+                const ocultarRecibidos =
+                    cantidadRecibidos <= 0 ||
+                    tabActiva === "recibidos";
+
+                badgeRecibidos.classList.toggle(
+                    "d-none",
+                    ocultarRecibidos
+                );
             }
 
+            if (badgeEnviados) {
+                const ocultarEnviados =
+                    cantidadEnviados <= 0 ||
+                    tabActiva === "enviados";
+
+                badgeEnviados.classList.toggle(
+                    "d-none",
+                    ocultarEnviados
+                );
+            }
         }
 
 
@@ -986,8 +1023,9 @@
                 // Contador
                 // -----------------------------------------
 
-                actualizarContadorNoLeidos(
-                    data.no_leidos || 0
+                actualizarContadores(
+                    data.no_leidos || 0,
+                    data.enviados_count || 0
                 );
 
 
@@ -1058,6 +1096,38 @@
         activarPestana(
             tabActiva,
             false
+        );
+
+
+        const badgeRecibidosInicial =
+            document.getElementById(
+                "badge-recibidos"
+            );
+
+        const badgeEnviadosInicial =
+            document.getElementById(
+                "badge-enviados"
+            );
+
+        const cantidadRecibidosInicial =
+            badgeRecibidosInicial ?
+            parseInt(
+                badgeRecibidosInicial.textContent || "0",
+                10
+            ) :
+            0;
+
+        const cantidadEnviadosInicial =
+            badgeEnviadosInicial ?
+            parseInt(
+                badgeEnviadosInicial.textContent || "0",
+                10
+            ) :
+            0;
+
+        actualizarContadores(
+            cantidadRecibidosInicial,
+            cantidadEnviadosInicial
         );
 
 

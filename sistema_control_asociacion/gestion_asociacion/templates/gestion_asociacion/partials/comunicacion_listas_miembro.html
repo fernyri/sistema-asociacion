@@ -22,7 +22,7 @@
 
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive mensajes-scroll">
 
         <table id="tablaRecibidos" class="table table-hover table-bordered align-middle">
 
@@ -105,21 +105,19 @@
 
                         <div class="d-flex gap-2">
 
-                            <a class="btn btn-sm btn-primary flex-fill" href="{% url 'ver_mensaje' h.id %}">
-
+                            <a class="btn btn-sm btn-primary flex-fill" href="{% url 'ver_mensaje' h.id %}?volver=recibidos">
                                 <i class="fas fa-eye me-1"></i> Ver
-
                             </a>
 
                             <form method="post" action="{% url 'mover_a_papelera' h.id %}" class="js-confirm-papelera">
 
                                 {% csrf_token %}
 
+                                <input type="hidden" name="origen" value="recibidos">
+
                                 <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover conversación a papelera">
-
-                                    <i class="fas fa-trash"></i>
-
-                                </button>
+        <i class="fas fa-trash"></i>
+    </button>
 
                             </form>
 
@@ -133,9 +131,7 @@
 
                 <tr>
                     <td colspan="5" class="text-center text-muted py-4">
-
                         <i class="fas fa-inbox me-1"></i> No tienes conversaciones recibidas.
-
                     </td>
                 </tr>
 
@@ -158,17 +154,21 @@
 
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
 
-        <h5 class="mb-0">
-            <i class="fas fa-paper-plane me-1"></i> Enviados
-        </h5>
+        <h5 class="d-flex align-items-center gap-2 mb-0 titulo-enviados">
 
-        <span class="text-muted small">
-            Una fila representa una conversación completa.
-        </span>
+            <span>
+                <i class="fas fa-paper-plane me-1"></i>
+                Enviados
+            </span> {% if enviados_count|default:0 > 0 %}
+            <span class="badge badge-enviados-panel">
+                {{ enviados_count }}
+            </span> {% endif %}
+
+        </h5>
 
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive mensajes-scroll">
 
         <table id="tablaEnviados" class="table table-hover table-bordered align-middle">
 
@@ -236,21 +236,21 @@
 
                         <div class="d-flex gap-2">
 
-                            <a class="btn btn-sm btn-secondary flex-fill" href="{% url 'ver_mensaje' h.id %}">
-
+                            <a class="btn btn-sm btn-enviado flex-fill" href="{% url 'ver_mensaje' h.id %}?volver=enviados">
                                 <i class="fas fa-eye me-1"></i> Ver
-
                             </a>
 
                             <form method="post" action="{% url 'mover_a_papelera' h.id %}" class="js-confirm-papelera">
 
                                 {% csrf_token %}
 
+                                <input type="hidden" name="origen" value="enviados">
+
                                 <button class="btn btn-sm btn-outline-danger" type="submit" title="Mover conversación a papelera">
 
-                                    <i class="fas fa-trash"></i>
+        <i class="fas fa-trash"></i>
 
-                                </button>
+    </button>
 
                             </form>
 
@@ -264,9 +264,7 @@
 
                 <tr>
                     <td colspan="4" class="text-center text-muted py-4">
-
                         <i class="fas fa-paper-plane me-1"></i> No has enviado conversaciones.
-
                     </td>
                 </tr>
 

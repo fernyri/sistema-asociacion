@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <!-- Estilos generales -->
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v={{ STATIC_VERSION|default:'1.1' }}"> {% block extra_css %}{% endblock %} {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v={{ STATIC_VERSION|default:'1.2' }}"> {% block extra_css %}{% endblock %} {% block extra_head %}{% endblock %}
 </head>
 
 <body class="{% if request.user.is_authenticated %}auth-body{% endif %}">
@@ -320,7 +320,6 @@
                 text: "Podrás restaurarlo desde la papelera.",
                 confirmButtonText: "Sí, mover",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#d33",
             });
 
             bindConfirm("form.js-confirm-restaurar", {
@@ -337,7 +336,6 @@
                 html: "Esta acción <b>no se puede deshacer</b>.<br>¿Quieres continuar?",
                 confirmButtonText: "Sí, eliminar",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#d33",
             });
 
             bindConfirm("form.js-confirm-rol", {
@@ -354,7 +352,6 @@
                 text: "¿Deseas continuar?",
                 confirmButtonText: "Sí, cambiar rol",
                 cancelButtonText: "Cancelar",
-                confirmButtonColor: "#f0ad4e",
             });
 
             window.bindConfirmSwal = bindConfirm;

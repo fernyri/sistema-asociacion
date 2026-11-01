@@ -1,178 +1,350 @@
-{% extends 'gestion_asociacion/base.html' %} {% block title %}Gestión de Personal{% endblock %} {% block content %}
-
+{% extends 'gestion_asociacion/base.html' %} {% block title %} Gestión de Personal {% endblock %} {% block content %}
 
 <div class="container-fluid mt-4 px-0">
+
     <div class="row m-0 justify-content-center">
 
         <main class="col-12 px-0">
+
             <div class="card shadow-lg p-4 bg-white rounded w-100">
 
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <!-- =====================================================
+                     ENCABEZADO
+                     ===================================================== -->
+
+                <div class="d-flex justify-content-between
+                            align-items-center
+                            flex-wrap
+                            gap-2
+                            mb-3">
+
                     <h2 class="m-0 text-dark">
                         <i class="fas fa-users"></i> Gestión de Personal
                     </h2>
+
                 </div>
 
+
+                <!-- =====================================================
+                     MENSAJES
+                     ===================================================== -->
+
                 {% if messages %}
+
                 <div class="mb-3" id="mensajeGestion">
 
                     {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} text-center mb-2 mensaje-auto">
+
+                    <div class="alert alert-{{ message.tags }}
+                                text-center
+                                mb-2
+                                mensaje-auto">
+
                         {{ message }}
+
                     </div>
+
                     {% endfor %}
 
                 </div>
+
                 {% endif %}
 
-                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <button class="btn btn-success btn-lg shadow-sm px-4" onclick="addEmployee()">
-                        <i class="fas fa-user-plus"></i> Añadir nuevo empleado
-                    </button>
 
-                    <div class="input-group" style="min-width:280px; max-width:520px; width:100%;">
-                        <input type="text" id="search" class="form-control rounded-start shadow-sm" placeholder="Buscar por nombre o rol" onkeyup="applyFilters()">
+                <!-- =====================================================
+                     AÑADIR EMPLEADO + BUSCADOR
+                     ===================================================== -->
+
+                <div class="d-flex justify-content-between
+                            align-items-center
+                            mb-3
+                            flex-wrap
+                            gap-2">
+
+                    <a href="{% url 'crear_usuario' %}" class="btn btn-success
+                              btn-lg
+                              shadow-sm
+                              px-4">
+
+                        <i class="fas fa-user-plus"></i> Añadir nuevo empleado
+
+                    </a>
+
+
+                    <div class="input-group" style="min-width:280px;
+                                max-width:520px;
+                                width:100%;">
+
+                        <input type="text" id="search" class="form-control
+                                      rounded-start
+                                      shadow-sm" placeholder="Buscar por nombre, fecha, rol o estado" oninput="applyFilters()">
 
                         <button class="btn btn-primary shadow-sm" type="button" onclick="applyFilters()">
-                            <i class="fas fa-search"></i> Buscar
+
+                            <i class="fas fa-search"></i>
+                            Buscar
+
                         </button>
+
                     </div>
+
                 </div>
+
+
+                <!-- =====================================================
+                     FILTROS
+                     ===================================================== -->
 
                 <ul class="nav nav-pills gap-2 mb-3" id="userFilters" role="tablist">
 
+
+                    <!-- Todos -->
                     <li class="nav-item" role="presentation">
+
                         <button class="nav-link active" type="button" data-filter="all" onclick="setTabFilter(this)">
-                            <i class="fas fa-layer-group me-1"></i> Todos
+
+                            <i class="fas fa-layer-group me-1"></i>
+                            Todos
+
                         </button>
+
                     </li>
 
+
+                    <!-- Miembros -->
                     <li class="nav-item" role="presentation">
+
                         <button class="nav-link" type="button" data-filter="miembro" onclick="setTabFilter(this)">
-                            <i class="fas fa-user me-1"></i> Miembros
+
+                            <i class="fas fa-user me-1"></i>
+                            Miembros
+
                         </button>
+
                     </li>
 
+
+                    <!-- Administradores -->
                     <li class="nav-item" role="presentation">
+
                         <button class="nav-link" type="button" data-filter="admin" onclick="setTabFilter(this)">
-                            <i class="fas fa-user-shield me-1"></i> Administradores
+
+                            <i class="fas fa-user-shield me-1"></i>
+                            Administradores
+
                         </button>
+
+                    </li>
+
+
+                    <!-- Dios -->
+                    <li class="nav-item" role="presentation">
+
+                        <button class="nav-link" type="button" data-filter="dios" onclick="setTabFilter(this)">
+
+                            <i class="fas fa-crown me-1"></i>
+                            Dios
+
+                        </button>
+
                     </li>
 
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" type="button" data-filter="dios" onclick="setTabFilter(this)">
-                            <i class="fas fa-crown me-1"></i> Dios
-                        </button>
+                        <button class="nav-link" type="button" data-filter="pendiente" onclick="setTabFilter(this)">
+        <i class="fas fa-clock me-1"></i>
+        Pendientes
+    </button>
                     </li>
 
+
+                    <!-- Inactivos -->
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" type="button" data-filter="inactivo" onclick="setTabFilter(this)">
-                            <i class="fas fa-user-slash me-1"></i> Inactivos
-                        </button>
+        <i class="fas fa-user-slash me-1"></i>
+        Desactivados
+    </button>
                     </li>
 
                 </ul>
 
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+
+                <!-- =====================================================
+                     RESUMEN
+                     ===================================================== -->
+
+                <div class="d-flex justify-content-between
+                            align-items-center
+                            flex-wrap
+                            gap-2
+                            mb-2">
 
                     <div class="text-muted small">
+
                         <i class="fas fa-filter me-1"></i>
-                        <span id="filterSummary">Mostrando 0 de 0</span>
+
+                        <span id="filterSummary">
+                            Mostrando 0 de 0
+                        </span>
+
                     </div>
 
+
                     <div class="text-muted small">
+
                         <i class="fas fa-info-circle"></i> Para editar, eliminar o cambiar rol, abre el <b>Perfil</b>.
+
                     </div>
 
                 </div>
 
+
+                <!-- =====================================================
+                     TABLA
+                     ===================================================== -->
+
                 <div class="table-responsive">
 
-                    <table class="table table-hover text-center align-middle">
+                    <table class="table
+                                  table-hover
+                                  text-center
+                                  align-middle">
 
                         <thead class="table-dark">
+
                             <tr>
-                                <th>Nombre</th>
-                                <th>Cargo</th>
-                                <th>Departamento</th>
-                                <th>Fecha de Ingreso</th>
-                                <th>Rol</th>
-                                <th>Estado</th>
-                                <th>Perfil</th>
+
+                                <th>
+                                    Nombre
+                                </th>
+
+                                <th>
+                                    Fecha de Ingreso
+                                </th>
+
+                                <th>
+                                    Rol
+                                </th>
+
+                                <th>
+                                    Estado
+                                </th>
+
+                                <th>
+                                    Perfil
+                                </th>
+
                             </tr>
+
                         </thead>
+
 
                         <tbody id="employeeTable">
 
                             {% for miembro in miembros %}
 
-                            <tr class="row-click" role="button" tabindex="0" data-href="{% url 'usuario_detalle' miembro.id %}" data-rol="{% if miembro.rol == 'Dios' %}dios{% elif miembro.rol == 'Administrador' %}admin{% else %}miembro{% endif %}" data-estado="{% if miembro.is_active %}activo{% else %}inactivo{% endif %}"
+                            <tr class="row-click" role="button" tabindex="0" data-href="{% url 'usuario_detalle' miembro.id %}" data-rol="{% if miembro.rol == 'Dios' %}dios{% elif miembro.rol == 'Administrador' %}admin{% else %}miembro{% endif %}" data-estado="{% if not miembro.email_verificado %}pendiente{% elif miembro.is_active %}activo{% else %}inactivo{% endif %}"
                                 title="Abrir perfil de {{ miembro.username }}">
 
+
+                                <!-- Nombre -->
                                 <td class="fw-semibold">
+
                                     {{ miembro.username }}
+
                                 </td>
 
+
+                                <!-- Fecha de ingreso -->
                                 <td>
-                                    {{ miembro.cargo|default:"-" }}
+
+                                    {% if miembro.fecha_ingreso %} {{ miembro.fecha_ingreso|date:"d/m/Y" }} {% else %} - {% endif %}
+
                                 </td>
 
-                                <td>
-                                    {{ miembro.departamento|default:"-" }}
-                                </td>
 
-                                <td>
-                                    {{ miembro.fecha_ingreso|default:"-" }}
-                                </td>
-
+                                <!-- Rol -->
                                 <td>
 
                                     {% if miembro.rol == "Dios" %}
 
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="fas fa-crown me-1"></i>Dios
+                                    <span class="badge
+                                                 bg-warning
+                                                 text-dark">
+
+                                        <i class="fas fa-crown me-1"></i>
+                                        Dios
+
                                     </span> {% elif miembro.rol == "Administrador" %}
 
                                     <span class="badge bg-primary">
-                                        <i class="fas fa-shield-halved me-1"></i>Administrador
+
+                                        <i class="fas fa-shield-halved me-1"></i>
+                                        Administrador
+
                                     </span> {% else %}
 
-                                    <span class="badge bg-info text-dark">
-                                        <i class="fas fa-user me-1"></i>Miembro
+                                    <span class="badge
+                                                 bg-info
+                                                 text-dark">
+
+                                        <i class="fas fa-user me-1"></i>
+                                        Miembro
+
                                     </span> {% endif %}
 
                                 </td>
 
+
+                                <!-- Estado -->
                                 <td>
 
-                                    {% if miembro.is_active %}
+                                    {% if not miembro.email_verificado %}
+
+                                    <span class="badge bg-warning text-dark">
+            <i class="fas fa-clock me-1"></i>
+            Pendiente de verificación
+        </span> {% elif miembro.is_active %}
 
                                     <span class="badge bg-success">
-                                        Activo
-                                    </span> {% else %}
+            <i class="fas fa-circle-check me-1"></i>
+            Activo
+        </span> {% else %}
 
                                     <span class="badge bg-danger">
-                                        Inactivo
-                                    </span> {% endif %}
+            <i class="fas fa-user-slash me-1"></i>
+            Desactivado
+        </span> {% endif %}
 
                                 </td>
 
+
+                                <!-- Perfil -->
                                 <td>
 
-                                    <a class="btn btn-outline-dark btn-sm btn-view" href="{% url 'usuario_detalle' miembro.id %}">
+                                    <a class="btn
+                                              btn-outline-dark
+                                              btn-sm
+                                              btn-view" href="{% url 'usuario_detalle' miembro.id %}">
+
                                         <i class="fas fa-eye"></i> Ver
+
                                     </a>
 
                                 </td>
 
                             </tr>
 
+
                             {% empty %}
 
                             <tr>
-                                <td colspan="7" class="text-center text-muted">
+
+                                <td colspan="5" class="text-center text-muted">
+
                                     No hay usuarios registrados.
+
                                 </td>
+
                             </tr>
 
                             {% endfor %}
@@ -183,182 +355,499 @@
 
                 </div>
 
-                <div id="noResults" class="text-center text-muted py-3" style="display:none;">
+
+                <!-- =====================================================
+                     SIN RESULTADOS
+                     ===================================================== -->
+
+                <div id="noResults" class="text-center
+                            text-muted
+                            py-3" style="display:none;">
+
                     <i class="fas fa-face-frown"></i> No se encontraron resultados con ese filtro.
+
                 </div>
 
             </div>
+
         </main>
 
     </div>
+
 </div>
 
+
+<!-- =========================================================
+     FILTROS Y NAVEGACIÓN
+     ========================================================= -->
+
 <script>
-    function addEmployee() {
-        alert('Añadir nuevo empleado');
+    // Estado exclusivo de esta pestaña del navegador.
+    const GESTION_ESTADO_KEY = "gestion_personal_estado_v2";
+    const GESTION_FILTROS_VALIDOS = ["all", "miembro", "admin", "dios", "pendiente", "inactivo"];
+
+    function leerEstadoGestion() {
+        try {
+            return JSON.parse(sessionStorage.getItem(GESTION_ESTADO_KEY)) || {};
+        } catch (error) {
+            return {};
+        }
     }
 
-    let currentTabFilter = "all";
+    const estadoInicialGestion = leerEstadoGestion();
+    let currentTabFilter = GESTION_FILTROS_VALIDOS.includes(estadoInicialGestion.filtro) ?
+        estadoInicialGestion.filtro : "all";
+
+    function guardarEstadoGestion() {
+        try {
+            const buscador = document.getElementById("search");
+            const contenedor = document.querySelector(".main-content");
+            sessionStorage.setItem(GESTION_ESTADO_KEY, JSON.stringify({
+                filtro: currentTabFilter,
+                busqueda: buscador ? buscador.value : "",
+                scrollVentana: window.scrollY,
+                scrollContenido: contenedor ? contenedor.scrollTop : 0
+            }));
+        } catch (error) {
+            // Si el navegador restringe el almacenamiento, los filtros siguen funcionando.
+        }
+    }
+
+
+
+    // =========================================================
+    // CAMBIAR FILTRO
+    // =========================================================
 
     function setTabFilter(btn) {
 
         document
             .querySelectorAll("#userFilters .nav-link")
-            .forEach(b => b.classList.remove("active"));
+            .forEach(function(button) {
+
+                button.classList.remove("active");
+
+            });
+
 
         btn.classList.add("active");
 
-        currentTabFilter = btn.getAttribute("data-filter") || "all";
 
+        currentTabFilter =
+            btn.getAttribute("data-filter") ||
+            "all";
+
+        guardarEstadoGestion();
         applyFilters();
     }
 
+
+    // =========================================================
+    // APLICAR FILTROS
+    // =========================================================
+
     function applyFilters() {
 
-        const searchEl = document.getElementById("search");
+        const searchEl =
+            document.getElementById("search");
+
 
         const input = (
-            (searchEl && searchEl.value) || ""
-        ).toLowerCase().trim();
+                (searchEl && searchEl.value) || ""
+            )
+            .toLowerCase()
+            .trim();
 
-        const tbody = document.getElementById("employeeTable");
 
+        const tbody =
+            document.getElementById(
+                "employeeTable"
+            );
+
+
+        /*
+         * Solo contamos filas reales de usuarios.
+         *
+         * No contamos la fila:
+         * "No hay usuarios registrados."
+         */
         const rows = tbody ?
-            Array.from(tbody.getElementsByTagName("tr")) : [];
+            Array.from(
+                tbody.querySelectorAll(
+                    "tr.row-click"
+                )
+            ) : [];
 
-        const noResults = document.getElementById("noResults");
 
-        const summary = document.getElementById("filterSummary");
+        const noResults =
+            document.getElementById(
+                "noResults"
+            );
+
+
+        const summary =
+            document.getElementById(
+                "filterSummary"
+            );
+
 
         let visibleCount = 0;
 
-        rows.forEach((row) => {
 
-            const tds = row.getElementsByTagName("td");
+        rows.forEach(function(row) {
 
-            if (!tds || tds.length === 0) return;
+            const tds =
+                row.getElementsByTagName("td");
+
 
             const rol = (
-                row.getAttribute("data-rol") || ""
+                row.getAttribute("data-rol") ||
+                ""
             ).toLowerCase();
 
+
             const estado = (
-                row.getAttribute("data-estado") || ""
+                row.getAttribute("data-estado") ||
+                ""
             ).toLowerCase();
+
+
+            // =============================================
+            // FILTRO POR PESTAÑA
+            // =============================================
 
             let passTab = true;
 
-            if (currentTabFilter === "miembro") {
-                passTab = (rol === "miembro");
-            } else if (currentTabFilter === "admin") {
-                passTab = (rol === "admin");
-            } else if (currentTabFilter === "dios") {
-                passTab = (rol === "dios");
-            } else if (currentTabFilter === "inactivo") {
-                passTab = (estado === "inactivo");
+
+            if (
+                currentTabFilter === "miembro"
+            ) {
+
+                passTab =
+                    rol === "miembro";
+
+
+            } else if (
+                currentTabFilter === "admin"
+            ) {
+
+                passTab =
+                    rol === "admin";
+
+
+            } else if (
+                currentTabFilter === "dios"
+            ) {
+
+                passTab =
+                    rol === "dios";
+
+
+            } else if (
+                currentTabFilter === "pendiente"
+            ) {
+
+                passTab =
+                    estado === "pendiente";
+
+            } else if (
+                currentTabFilter === "inactivo"
+            ) {
+
+                passTab =
+                    estado === "inactivo";
             }
 
+
+            // =============================================
+            // BUSCADOR
+            //
+            // Columnas buscables:
+            // 0 = nombre
+            // 1 = fecha de ingreso
+            // 2 = rol
+            // 3 = estado
+            //
+            // Excluimos Perfil / "Ver".
+            // =============================================
+
             const text =
-                ((tds[0] && tds[0].innerText) || "") + " " +
-                ((tds[1] && tds[1].innerText) || "") + " " +
-                ((tds[2] && tds[2].innerText) || "") + " " +
-                ((tds[3] && tds[3].innerText) || "") + " " +
-                ((tds[4] && tds[4].innerText) || "") + " " +
-                ((tds[5] && tds[5].innerText) || "");
+                Array.from(tds)
+                .slice(0, 4)
+                .map(function(td) {
 
-            const passSearch = text.toLowerCase().includes(input);
+                    return (
+                        td.innerText || ""
+                    );
 
-            const match = passTab && passSearch;
+                })
+                .join(" ")
+                .toLowerCase();
 
-            row.style.display = match ? "" : "none";
 
-            if (match) visibleCount++;
+            const passSearch =
+                text.includes(input);
+
+
+            // =============================================
+            // RESULTADO
+            // =============================================
+
+            const match =
+                passTab &&
+                passSearch;
+
+
+            row.style.display =
+                match ?
+                "" :
+                "none";
+
+
+            if (match) {
+                visibleCount++;
+            }
+
         });
+
+
+        // =============================================
+        // MENSAJE SIN RESULTADOS
+        // =============================================
 
         if (noResults) {
 
             noResults.style.display =
-                (rows.length > 0 && visibleCount === 0) ?
+                (
+                    rows.length > 0 &&
+                    visibleCount === 0
+                ) ?
                 "block" :
                 "none";
         }
 
+
+        // =============================================
+        // CONTADOR
+        // =============================================
+
         if (summary) {
+
             summary.innerText =
                 `Mostrando ${visibleCount} de ${rows.length}`;
         }
     }
 
+
+    // =========================================================
+    // FILA CLICABLE
+    // =========================================================
+
     (function() {
 
-        const tbody = document.getElementById("employeeTable");
+        const tbody =
+            document.getElementById(
+                "employeeTable"
+            );
+
 
         if (!tbody) return;
 
-        tbody.addEventListener("click", function(e) {
 
-            const target = e.target;
+        // ---------------------------------------------
+        // Click
+        // ---------------------------------------------
 
-            if (
-                target &&
-                (target.closest && target.closest("a.btn-view"))
-            ) return;
+        tbody.addEventListener(
+            "click",
+            function(e) {
 
-            const row = target.closest("tr.row-click");
+                const target =
+                    e.target;
 
-            if (!row) return;
 
-            const href = row.getAttribute("data-href");
+                /*
+                 * Si presiona directamente el botón Ver,
+                 * dejamos que el enlace funcione normalmente.
+                 */
+                if (
+                    target &&
+                    target.closest &&
+                    target.closest(
+                        "a.btn-view"
+                    )
+                ) {
+                    return;
+                }
 
-            if (href) {
-                window.location.href = href;
-            }
-        });
 
-        tbody.addEventListener("keydown", function(e) {
+                const row =
+                    target.closest(
+                        "tr.row-click"
+                    );
 
-            const row =
-                e.target.closest &&
-                e.target.closest("tr.row-click");
 
-            if (!row) return;
+                if (!row) return;
 
-            if (e.key === "Enter" || e.key === " ") {
 
-                e.preventDefault();
+                const href =
+                    row.getAttribute(
+                        "data-href"
+                    );
 
-                const href = row.getAttribute("data-href");
 
                 if (href) {
-                    window.location.href = href;
+                    window.location.href =
+                        href;
                 }
             }
-        });
+        );
+
+
+        // ---------------------------------------------
+        // Teclado
+        // ---------------------------------------------
+
+        tbody.addEventListener(
+            "keydown",
+            function(e) {
+
+                const row =
+                    e.target.closest &&
+                    e.target.closest(
+                        "tr.row-click"
+                    );
+
+
+                if (!row) return;
+
+
+                if (
+                    e.key === "Enter" ||
+                    e.key === " "
+                ) {
+
+                    e.preventDefault();
+
+
+                    const href =
+                        row.getAttribute(
+                            "data-href"
+                        );
+
+
+                    if (href) {
+
+                        window.location.href =
+                            href;
+                    }
+                }
+            }
+        );
 
     })();
 
+
+    // =========================================================
+    // CARGA INICIAL: pestaña, buscador y scroll.
+    // =========================================================
+
+    const buscadorGestion = document.getElementById("search");
+    if (buscadorGestion) {
+        buscadorGestion.value = estadoInicialGestion.busqueda || "";
+        buscadorGestion.addEventListener("input", guardarEstadoGestion);
+    }
+
+    document.querySelectorAll("#userFilters .nav-link").forEach(function(boton) {
+        boton.classList.toggle("active", boton.dataset.filter === currentTabFilter);
+    });
+
     applyFilters();
+
+    // Usamos la restauración nativa del navegador siempre que sea posible.
+    // Solo corregimos el scroll si el navegador no lo ha restaurado por sí mismo.
+    let restaurandoGestion = true;
+
+    function restaurarScrollGestion() {
+        const contenedor = document.querySelector(".main-content");
+        if (contenedor && Number.isFinite(estadoInicialGestion.scrollContenido)) {
+            contenedor.scrollTop = estadoInicialGestion.scrollContenido;
+        }
+        const y = estadoInicialGestion.scrollVentana;
+        if (Number.isFinite(y) && Math.abs(window.scrollY - y) > 2) {
+            window.scrollTo({
+                top: y,
+                behavior: "instant"
+            });
+        }
+        restaurandoGestion = false;
+    }
+
+    window.addEventListener("pageshow", function() {
+        requestAnimationFrame(restaurarScrollGestion);
+    });
+
+    window.addEventListener("scroll", function() {
+        if (!restaurandoGestion) guardarEstadoGestion();
+    }, {
+        passive: true
+    });
+
+    const contenidoGestion = document.querySelector(".main-content");
+    if (contenidoGestion) {
+        contenidoGestion.addEventListener("scroll", function() {
+            if (!restaurandoGestion) guardarEstadoGestion();
+        }, {
+            passive: true
+        });
+    }
+
+    window.addEventListener("pagehide", guardarEstadoGestion);
 </script>
 
+
+<!-- =========================================================
+     MENSAJES
+     ========================================================= -->
+
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener(
+        "DOMContentLoaded",
+        function() {
 
-        const mensaje = document.getElementById("mensajeGestion");
+            const mensaje =
+                document.getElementById(
+                    "mensajeGestion"
+                );
 
-        if (!mensaje) return;
 
-        setTimeout(function() {
+            if (!mensaje) return;
 
-            mensaje.style.transition = "opacity 0.5s ease";
-            mensaje.style.opacity = "0";
 
-            setTimeout(function() {
-                mensaje.remove();
-            }, 500);
+            setTimeout(
+                function() {
 
-        }, 2500);
+                    mensaje.style.transition =
+                        "opacity 0.5s ease";
 
-    });
+                    mensaje.style.opacity =
+                        "0";
+
+
+                    setTimeout(
+                        function() {
+
+                            mensaje.remove();
+
+                        },
+                        500
+                    );
+
+                },
+                2500
+            );
+        }
+    );
 </script>
 
 {% endblock %}

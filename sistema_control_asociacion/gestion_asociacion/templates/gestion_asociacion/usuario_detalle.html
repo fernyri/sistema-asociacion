@@ -148,6 +148,10 @@
                                 <b>Nacimiento:</b> {{ usuario_obj.fecha_nacimiento|default:"-" }}
                             </div>
 
+                            <div>
+                                <b>Fecha de ingreso:</b> {% if usuario_obj.fecha_ingreso %} {{ usuario_obj.fecha_ingreso|date:"d/m/Y" }} {% else %} - {% endif %}
+                            </div>
+
                         </div>
                     </div>
 
@@ -184,7 +188,7 @@
 
 
                     <form method="post" action="{% url 'eliminar_usuario' user_id=usuario_obj.id %}" class="js-confirm-eliminar" style="display:inline;" data-swal-title="Eliminar usuario" data-swal-html="Esta acción <b>no se puede deshacer</b>.<br>¿Eliminar a <b>{{ usuario_obj.username }}</b>?"
-                        data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#d33">
+                        data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning">
 
                         {% csrf_token %}
 
@@ -211,7 +215,7 @@
 
 
                     <form method="post" action="{% url 'eliminar_usuario' user_id=usuario_obj.id %}" class="js-confirm-eliminar" style="display:inline;" data-swal-title="Eliminar usuario" data-swal-html="Esta acción <b>no se puede deshacer</b>.<br>¿Eliminar a <b>{{ usuario_obj.username }}</b>?"
-                        data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#d33">
+                        data-swal-confirm="Sí, eliminar" data-swal-cancel="Cancelar" data-swal-icon="warning">
 
                         {% csrf_token %}
 
@@ -241,48 +245,43 @@
                         <div class="d-flex align-items-center gap-2 mb-2">
 
                             <span class="badge bg-warning text-dark">
-                                <i class="fas fa-shield-halved me-1"></i>
-                                Alto impacto
-                            </span>
+                <i class="fas fa-shield-halved me-1"></i>
+                Alto impacto
+            </span>
 
                             <span class="text-dark fw-bold">
-                                Acciones sensibles
-                            </span>
+                Acciones sensibles
+            </span>
 
                         </div>
 
 
                         <div class="text-muted small mb-3">
-
                             Estas acciones modifican permisos o afectan directamente la estructura del sistema. Se recomienda confirmarlas cuidadosamente antes de ejecutarlas.
-
                         </div>
 
 
+                        <!-- =====================================================
+             MISMO USUARIO
+             ===================================================== -->
                         {% if usuario_obj.id == request.user.id %}
 
                         <div class="alert alert-secondary m-0">
-
                             <i class="fas fa-user-lock"></i> No puedes modificar tu propio rol desde esta vista.
-
                         </div>
-
 
                         {% elif usuario_obj.rol == "Dios" %}
 
                         <div class="alert alert-dark m-0">
-
                             <i class="fas fa-crown"></i> Su gestión no está disponible desde esta vista.
-
                         </div>
-
 
                         {% elif user_role == "Dios" and usuario_obj.rol == "Miembro" %}
 
                         <div class="d-flex gap-2 flex-wrap">
 
-                            <form method="post" action="{% url 'cambiar_rol_usuario' user_id=usuario_obj.id %}" class="js-confirm-cambiar-rol" style="display:inline;" data-rol-user="{{ usuario_obj.username|escapejs }}" data-nuevo-rol="Administrador" data-swal-title="Subir a Administrador"
-                                data-swal-html="Vas a cambiar el rol de <b>{{ usuario_obj.username }}</b> a <b>Administrador</b>." data-swal-confirm="Sí, cambiar rol" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#f0ad4e">
+                            <form method="post" action="{% url 'cambiar_rol_usuario' user_id=usuario_obj.id %}" class="js-confirm-cambiar-rol" style="display:inline;" data-swal-title="Promover a Administrador" data-swal-html="Vas a promover a <b>{{ usuario_obj.username }}</b> a <b>Administrador</b>."
+                                data-swal-confirm="Sí, promover" data-swal-cancel="Cancelar" data-swal-icon="warning">
 
                                 {% csrf_token %}
 
@@ -290,22 +289,21 @@
 
                                 <button type="submit" class="btn btn-warning btn-sm">
 
-                                    <i class="fas fa-user-shield"></i>
-                                    Cambiar a Administrador
+                    <i class="fas fa-user-shield"></i>
+                    Asignar rol: Administrador
 
-                                </button>
+                </button>
 
                             </form>
 
                         </div>
 
-
                         {% elif user_role == "Dios" and usuario_obj.rol == "Administrador" %}
 
                         <div class="d-flex gap-2 flex-wrap">
 
-                            <form method="post" action="{% url 'cambiar_rol_usuario' user_id=usuario_obj.id %}" class="js-confirm-cambiar-rol" style="display:inline;" data-rol-user="{{ usuario_obj.username|escapejs }}" data-nuevo-rol="Miembro" data-swal-title="Bajar a Miembro" data-swal-html="Vas a cambiar el rol de <b>{{ usuario_obj.username }}</b> a <b>Miembro</b>."
-                                data-swal-confirm="Sí, cambiar rol" data-swal-cancel="Cancelar" data-swal-icon="warning" data-swal-confirm-color="#0d6efd">
+                            <form method="post" action="{% url 'cambiar_rol_usuario' user_id=usuario_obj.id %}" class="js-confirm-cambiar-rol" style="display:inline;" data-swal-title="Cambiar a Miembro" data-swal-html="Vas a cambiar el rol de <b>{{ usuario_obj.username }}</b> de <b>Administrador</b> a <b>Miembro</b>."
+                                data-swal-confirm="Sí, cambiar rol" data-swal-cancel="Cancelar" data-swal-icon="warning">
 
                                 {% csrf_token %}
 
@@ -313,334 +311,73 @@
 
                                 <button type="submit" class="btn btn-primary btn-sm">
 
-                                    <i class="fas fa-user"></i>
-                                    Cambiar a Miembro
+                    <i class="fas fa-user"></i>
+                    Cambiar a Miembro
 
-                                </button>
+                </button>
+
+                            </form>
+
+                        </div>
+
+                        {% elif user_role == "Administrador" and usuario_obj.rol == "Miembro" %}
+
+                        <div class="d-flex gap-2 flex-wrap">
+
+                            <form method="post" action="{% url 'promover_usuario' user_id=usuario_obj.id %}" class="js-confirm-rol" style="display:inline;" data-rol-user="{{ usuario_obj.username|escapejs }}" data-swal-title="Promover a Administrador" data-swal-html="Vas a promover a <b>{{ usuario_obj.username }}</b> a <b>Administrador</b>.<br><br>Despues de hacerlo, <b>no podras regresarlo a Miembro</b>."
+                                data-swal-confirm="Sí, promover" data-swal-cancel="Cancelar" data-swal-icon="warning">
+
+                                {% csrf_token %}
+
+                                <input type="hidden" name="next" value="{% url 'usuario_detalle' usuario_obj.id %}">
+
+                                <button type="submit" class="btn btn-warning btn-sm">
+
+                    <i class="fas fa-user-shield"></i>
+                    Asignar rol: Administrador
+
+                </button>
 
                             </form>
 
                         </div>
 
 
-                        {% elif usuario_obj.rol == "Miembro" %}
-
-                        <form method="post" action="{% url 'promover_usuario' user_id=usuario_obj.id %}" class="js-confirm-rol" style="display:inline;" data-rol-user="{{ usuario_obj.username|escapejs }}">
-
-                            {% csrf_token %}
-
-                            <input type="hidden" name="next" value="{% url 'gestion' %}">
-
-                            <button type="submit" class="btn btn-warning btn-sm">
-
-                                <i class="fas fa-user-shield"></i>
-                                Asignar rol: Administrador
-
-                            </button>
-
-                        </form>
-
-
-                        {% elif usuario_obj.rol == "Administrador" %}
+                        <!-- =====================================================
+             ADMINISTRADOR VIENDO A OTRO ADMINISTRADOR
+             ===================================================== -->
+                        {% elif user_role == "Administrador" and usuario_obj.rol == "Administrador" %}
 
                         <div class="alert alert-secondary m-0">
-
-                            <i class="fas fa-lock"></i> No tienes permisos para modificar a este usuario.
-
+                            <i class="fas fa-lock"></i> No tienes permisos para modificar el rol de este usuario.
                         </div>
 
                         {% endif %}
 
-
                     </div>
+
                 </div>
 
+                <script>
+                    document.addEventListener("DOMContentLoaded", function() {
 
-            </div>
+                        const mensaje =
+                            document.getElementById("mensajeUsuarioDetalle");
 
-        </main>
+                        if (!mensaje) return;
 
-    </div>
-</div>
+                        setTimeout(function() {
 
+                            mensaje.style.transition = "opacity 0.5s ease";
+                            mensaje.style.opacity = "0";
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
+                            setTimeout(function() {
+                                mensaje.remove();
+                            }, 500);
 
-        const mensaje =
-            document.getElementById("mensajeUsuarioDetalle");
-
-        if (!mensaje) return;
-
-        setTimeout(function() {
-
-            mensaje.style.transition = "opacity 0.5s ease";
-            mensaje.style.opacity = "0";
-
-            setTimeout(function() {
-                mensaje.remove();
-            }, 500);
-
-        }, 2500);
-
-    });
-</script>
-
-
-<script>
-    (function() {
-
-        if (typeof Swal === "undefined") return;
-
-
-        document
-            .querySelectorAll("form.js-confirm-rol")
-            .forEach((form) => {
-
-                if (form.dataset.swalBound === "1") return;
-
-                form.dataset.swalBound = "1";
-
-                form.addEventListener("submit", function(e) {
-
-                    if (form.dataset.swalOk === "1") {
-
-                        form.dataset.swalOk = "0";
-                        return;
-
-                    }
-
-                    e.preventDefault();
-
-                    const user =
-                        form.getAttribute("data-rol-user") ||
-                        "este usuario";
-
-                    Swal.fire({
-
-                        icon: "warning",
-
-                        title: "Asignar rol Administrador",
-
-                        html: `
-                            Estás a punto de otorgar permisos de
-                            <b>Administrador</b> a <b>${user}</b>.
-                            <br><br>
-
-                            <span class="text-muted small">
-                                Esto habilita acceso a módulos sensibles
-                                y acciones de alto impacto.
-                            </span>
-                        `,
-
-                        showCancelButton: true,
-
-                        confirmButtonText: "Sí, asignar rol",
-
-                        cancelButtonText: "Cancelar",
-
-                        confirmButtonColor: "#f0ad4e",
-
-                        reverseButtons: true,
-
-                        focusCancel: true,
-
-                    }).then((result) => {
-
-                        if (result.isConfirmed) {
-
-                            form.dataset.swalOk = "1";
-
-                            form.submit();
-
-                        }
+                        }, 2500);
 
                     });
+                </script>
 
-                });
-
-            });
-
-
-        document
-            .querySelectorAll(
-                "form.js-confirm-cambiar-rol"
-            )
-            .forEach((form) => {
-
-                if (form.dataset.swalBound === "1") return;
-
-                form.dataset.swalBound = "1";
-
-                form.addEventListener("submit", function(e) {
-
-                    if (form.dataset.swalOk === "1") {
-
-                        form.dataset.swalOk = "0";
-                        return;
-
-                    }
-
-                    e.preventDefault();
-
-
-                    const title =
-                        form.getAttribute(
-                            "data-swal-title"
-                        ) || "Cambiar rol";
-
-                    const html =
-                        form.getAttribute(
-                            "data-swal-html"
-                        ) || "¿Deseas continuar?";
-
-                    const confirmText =
-                        form.getAttribute(
-                            "data-swal-confirm"
-                        ) || "Sí, cambiar";
-
-                    const cancelText =
-                        form.getAttribute(
-                            "data-swal-cancel"
-                        ) || "Cancelar";
-
-                    const icon =
-                        form.getAttribute(
-                            "data-swal-icon"
-                        ) || "warning";
-
-                    const confirmColor =
-                        form.getAttribute(
-                            "data-swal-confirm-color"
-                        ) || "#0d6efd";
-
-
-                    Swal.fire({
-
-                        icon,
-
-                        title,
-
-                        html,
-
-                        showCancelButton: true,
-
-                        confirmButtonText: confirmText,
-
-                        cancelButtonText: cancelText,
-
-                        confirmButtonColor: confirmColor,
-
-                        reverseButtons: true,
-
-                        focusCancel: true,
-
-                    }).then((result) => {
-
-                        if (result.isConfirmed) {
-
-                            form.dataset.swalOk = "1";
-
-                            form.submit();
-
-                        }
-
-                    });
-
-                });
-
-            });
-
-    })();
-</script>
-
-<script>
-    (function() {
-
-        if (typeof Swal === "undefined") return;
-
-        document
-            .querySelectorAll("form.js-confirm-eliminar")
-            .forEach((form) => {
-
-                if (form.dataset.swalBound === "1") return;
-
-                form.dataset.swalBound = "1";
-
-                form.addEventListener("submit", function(e) {
-
-                    // Si ya fue confirmado, dejamos enviar el formulario
-                    if (form.dataset.swalOk === "1") {
-                        form.dataset.swalOk = "0";
-                        return;
-                    }
-
-                    e.preventDefault();
-
-                    const title =
-                        form.getAttribute("data-swal-title") ||
-                        "Eliminar usuario";
-
-                    const html =
-                        form.getAttribute("data-swal-html") ||
-                        "¿Estás seguro de que deseas eliminar este usuario?";
-
-                    const confirmText =
-                        form.getAttribute("data-swal-confirm") ||
-                        "Sí, eliminar";
-
-                    const cancelText =
-                        form.getAttribute("data-swal-cancel") ||
-                        "Cancelar";
-
-                    const icon =
-                        form.getAttribute("data-swal-icon") ||
-                        "warning";
-
-                    const confirmColor =
-                        form.getAttribute("data-swal-confirm-color") ||
-                        "#d33";
-
-
-                    Swal.fire({
-
-                        icon: icon,
-
-                        title: title,
-
-                        html: html,
-
-                        showCancelButton: true,
-
-                        confirmButtonText: confirmText,
-
-                        cancelButtonText: cancelText,
-
-                        confirmButtonColor: confirmColor,
-
-                        cancelButtonColor: "#6c757d",
-
-                        reverseButtons: true,
-
-                        focusCancel: true,
-
-                    }).then((result) => {
-
-                        if (result.isConfirmed) {
-
-                            form.dataset.swalOk = "1";
-
-                            form.submit();
-
-                        }
-
-                    });
-
-                });
-
-            });
-
-    })();
-</script>
-
-{% endblock %}
+                {% endblock %}
