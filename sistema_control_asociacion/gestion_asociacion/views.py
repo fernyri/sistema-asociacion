@@ -222,6 +222,7 @@ def _mensajes_usuario(
 
     return mensajes
 
+
 def _resumen_hilos(
     user: Usuario,
     sentido: str,
@@ -235,6 +236,9 @@ def _resumen_hilos(
         )
     )
 
+    # =====================================================
+    # AGRUPAR MENSAJES POR CONVERSACIÓN
+    # =====================================================
     hilos = {}
 
     for mensaje in mensajes:
@@ -246,43 +250,40 @@ def _resumen_hilos(
     for clave, mensajes_hilo in hilos.items():
 
         # =====================================================
-        # QUIÉN INICIÓ LA CONVERSACIÓN
+        # IDENTIFICAR EL ÚLTIMO MENSAJE
         # =====================================================
+        ultimo_mensaje = mensajes_hilo[-1]
 
-        primer_mensaje = mensajes_hilo[0]
-
-        iniciado_por_usuario = (
-            primer_mensaje.remitente_id == user.id
+        ultimo_enviado_por_usuario = (
+            ultimo_mensaje.remitente_id == user.id
         )
 
         # =====================================================
         # MIEMBRO:
-        # clasificar según quién inició el hilo
+        # CLASIFICAR SEGÚN QUIÉN ENVIÓ EL ÚLTIMO MENSAJE
         # =====================================================
-
         if clasificar_por_iniciador:
 
             # RECIBIDOS:
-            # solamente conversaciones iniciadas por otra persona
+            # El último mensaje vino de otro participante.
             if (
                 sentido == "recibidos"
-                and iniciado_por_usuario
+                and ultimo_enviado_por_usuario
             ):
                 continue
 
             # ENVIADOS:
-            # solamente conversaciones iniciadas por el usuario
+            # El último mensaje lo envió el usuario actual.
             if (
                 sentido == "enviados"
-                and not iniciado_por_usuario
+                and not ultimo_enviado_por_usuario
             ):
                 continue
 
         # =====================================================
-        # COMPORTAMIENTO ANTERIOR
-        # Admin / Dios lo conservan
+        # ADMINISTRADOR / DIOS:
+        # CONSERVAR EL COMPORTAMIENTO ACTUAL
         # =====================================================
-
         else:
 
             tiene_recibidos = any(
@@ -307,16 +308,13 @@ def _resumen_hilos(
             ):
                 continue
 
-
         # =====================================================
         # MENSAJE REPRESENTATIVO
         # =====================================================
-
         if clasificar_por_iniciador:
 
-            # Para Miembro mostramos la última actividad
-            # de toda la conversación.
-            mensaje_representativo = mensajes_hilo[-1]
+            # Miembro: mostrar la última actividad del hilo.
+            mensaje_representativo = ultimo_mensaje
 
         elif sentido == "recibidos":
 
@@ -343,15 +341,12 @@ def _resumen_hilos(
         else:
             continue
 
-
         if not mensaje_representativo:
             continue
 
-
         # =====================================================
-        # OTRO PARTICIPANTE
+        # IDENTIFICAR AL OTRO PARTICIPANTE
         # =====================================================
-
         otro_usuario = None
 
         for m in reversed(mensajes_hilo):
@@ -370,11 +365,9 @@ def _resumen_hilos(
                 otro_usuario = m.remitente
                 break
 
-
         # =====================================================
-        # MENSAJES NO LEÍDOS DEL HILO
+        # CONTAR MENSAJES NO LEÍDOS DEL HILO
         # =====================================================
-
         no_leidos_hilo = sum(
             1
             for m in mensajes_hilo
@@ -384,11 +377,9 @@ def _resumen_hilos(
             )
         )
 
-
         # =====================================================
-        # RESUMEN
+        # CONSTRUIR RESUMEN
         # =====================================================
-
         resumen.append({
             "id": mensaje_representativo.id,
             "hilo_id": mensaje_representativo.hilo_id,
@@ -401,7 +392,9 @@ def _resumen_hilos(
             "total_mensajes": len(mensajes_hilo),
         })
 
-
+    # =====================================================
+    # ORDENAR POR ACTIVIDAD MÁS RECIENTE
+    # =====================================================
     resumen.sort(
         key=lambda item: item["creado_en"],
         reverse=True
@@ -540,50 +533,97 @@ def _normalizar_origen_comunicacion(valor):
 
     return "recibidos"
 
+
 @login_required
 def registrar_entrada(request):
     if request.method != "POST":
         return redirect("dashboard")
 
     if getattr(request.user, "rol", "") != "Miembro":
-        messages.error(request, "Solo los miembros pueden registrar asistencia.")
+        messages.error(
+            request,
+            "Solo los miembros pueden registrar asistencia."
+        )
         return redirect("dashboard")
 
     cerrar_asistencias_incompletas_vencidas()
 
-    hoy = timezone.localdate()
-    hora_actual = timezone.localtime().time()
-    hora_limite_retardo = obtener_hora_limite_retardo()
-    config_asistencia = obtener_configuracion_asistencia()
-    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
+    try:
+        with transaction.atomic():
+            # Bloquea la fila del usuario durante el registro
+            # en bases de datos que soportan SELECT FOR UPDATE.
+            Usuario.objects.select_for_update().get(
+                pk=request.user.pk
+            )
 
-    asistencia = Asistencia.objects.filter(
-        usuario=request.user,
-        fecha=hoy
-    ).first()
+            # Fecha y hora obtenidas por Django,
+            # nunca desde el navegador.
+            ahora = timezone.localtime(timezone.now())
+            hoy = ahora.date()
+            hora_actual = ahora.time().replace(tzinfo=None)
 
-    if asistencia and asistencia.hora_entrada:
-        messages.warning(request, "Ya registraste tu entrada de hoy.")
+            config = obtener_configuracion_asistencia()
+            hora_limite_retardo = config.hora_limite_retardo()
+            hora_limite_extraordinario = (
+                config.hora_limite_extraordinario
+            )
+
+            asistencia = (
+                Asistencia.objects
+                .select_for_update()
+                .filter(
+                    usuario=request.user,
+                    fecha=hoy
+                )
+                .first()
+            )
+
+            if asistencia and asistencia.hora_entrada:
+                messages.warning(
+                    request,
+                    "Ya registraste tu entrada de hoy."
+                )
+                return redirect("dashboard")
+
+            if not asistencia:
+                asistencia = Asistencia(
+                    usuario=request.user,
+                    fecha=hoy
+                )
+
+            asistencia.hora_entrada = hora_actual
+            asistencia.hora_salida = None
+            asistencia.estado = "salida_pendiente"
+
+            if hora_actual >= hora_limite_extraordinario:
+                asistencia.observacion = (
+                    "Entrada registrada fuera del horario laboral."
+                )
+            elif hora_actual > hora_limite_retardo:
+                asistencia.observacion = (
+                    "Entrada registrada con retardo."
+                )
+            else:
+                asistencia.observacion = (
+                    "Entrada registrada correctamente."
+                )
+
+            asistencia.save()
+
+    except IntegrityError:
+        messages.warning(
+            request,
+            "Ya existe un registro de asistencia para hoy."
+        )
         return redirect("dashboard")
 
-    if not asistencia:
-        asistencia = Asistencia(usuario=request.user, fecha=hoy)
-
-    asistencia.hora_entrada = hora_actual
-    asistencia.hora_salida = None
-    asistencia.estado = "salida_pendiente"
-
-    if hora_actual >= hora_limite_extraordinario:
-        asistencia.observacion = "Entrada registrada fuera del horario laboral."
-    elif hora_actual > hora_limite_retardo:
-         asistencia.observacion = "Entrada registrada con retardo."
-    else:
-         asistencia.observacion = "Entrada registrada correctamente."
-
-    asistencia.save()
-
-    messages.success(request, "Entrada registrada correctamente.")
+    messages.success(
+        request,
+        "Entrada registrada correctamente."
+    )
     return redirect("dashboard")
+
+
 
 
 @login_required
@@ -592,48 +632,91 @@ def registrar_salida(request):
         return redirect("dashboard")
 
     if getattr(request.user, "rol", "") != "Miembro":
-        messages.error(request, "Solo los miembros pueden registrar asistencia.")
+        messages.error(
+            request,
+            "Solo los miembros pueden registrar asistencia."
+        )
         return redirect("dashboard")
 
     cerrar_asistencias_incompletas_vencidas()
 
-    hoy = timezone.localdate()
-    hora_actual = timezone.localtime().time()
-    hora_limite_retardo = obtener_hora_limite_retardo()
-    config_asistencia = obtener_configuracion_asistencia()
-    hora_limite_extraordinario = config_asistencia.hora_limite_extraordinario
+    with transaction.atomic():
+        Usuario.objects.select_for_update().get(
+            pk=request.user.pk
+        )
 
-    asistencia = Asistencia.objects.filter(
-        usuario=request.user,
-        fecha=hoy
-    ).first()
+        # Hora confiable del servidor Django.
+        ahora = timezone.localtime(timezone.now())
+        hoy = ahora.date()
+        hora_actual = ahora.time().replace(tzinfo=None)
 
-    if not asistencia or not asistencia.hora_entrada:
-        messages.error(request, "Primero debes registrar tu entrada.")
-        return redirect("dashboard")
+        config = obtener_configuracion_asistencia()
+        hora_limite_retardo = config.hora_limite_retardo()
+        hora_limite_extraordinario = (
+            config.hora_limite_extraordinario
+        )
 
-    if asistencia.hora_salida:
-        messages.warning(request, "Ya registraste tu salida de hoy.")
-        return redirect("dashboard")
+        asistencia = (
+            Asistencia.objects
+            .select_for_update()
+            .filter(
+                usuario=request.user,
+                fecha=hoy
+            )
+            .first()
+        )
 
-    if hora_actual < asistencia.hora_entrada:
-        messages.error(request, "La hora de salida no puede ser menor a la hora de entrada.")
-        return redirect("dashboard")
+        if not asistencia or not asistencia.hora_entrada:
+            messages.error(
+                request,
+                "Primero debes registrar tu entrada."
+            )
+            return redirect("dashboard")
 
-    asistencia.hora_salida = hora_actual
-    asistencia.estado = "asistencia_completa"
+        if asistencia.hora_salida:
+            messages.warning(
+                request,
+                "Ya registraste tu salida de hoy."
+            )
+            return redirect("dashboard")
 
-    if asistencia.hora_entrada >= hora_limite_extraordinario:
-        asistencia.observacion = "Asistencia registrada fuera del horario laboral configurado."
-    elif asistencia.hora_entrada > hora_limite_retardo:
-        asistencia.observacion = "Asistencia completa con retardo."
-    else:
-        asistencia.observacion = "Asistencia completa."
+        if hora_actual < asistencia.hora_entrada:
+            messages.error(
+                request,
+                "La hora de salida no puede ser menor a la hora de entrada."
+            )
+            return redirect("dashboard")
 
-    asistencia.save(update_fields=["hora_salida", "estado", "observacion"])
+        asistencia.hora_salida = hora_actual
+        asistencia.estado = "asistencia_completa"
 
-    messages.success(request, "Salida registrada correctamente.")
+        if asistencia.hora_entrada >= hora_limite_extraordinario:
+            asistencia.observacion = (
+                "Asistencia registrada fuera del horario laboral configurado."
+            )
+        elif asistencia.hora_entrada > hora_limite_retardo:
+            asistencia.observacion = (
+                "Asistencia completa con retardo."
+            )
+        else:
+            asistencia.observacion = (
+                "Asistencia completa."
+            )
+
+        asistencia.save(
+            update_fields=[
+                "hora_salida",
+                "estado",
+                "observacion"
+            ]
+        )
+
+    messages.success(
+        request,
+        "Salida registrada correctamente."
+    )
     return redirect("dashboard")
+
 
 
 def _user_puede_ver_mensaje(user: Usuario, msg: Mensaje) -> bool:
@@ -2907,10 +2990,12 @@ def comunicacion_admin_ajax(request):
         "enviados_count": enviados_count,
     })
 
+
 @login_required
 def ver_mensaje(request, mensaje_id: int):
+
     # ============================================================
-    # Buscar mensaje base
+    # BUSCAR MENSAJE BASE
     # ============================================================
     msg = (
         Mensaje.objects
@@ -2925,7 +3010,7 @@ def ver_mensaje(request, mensaje_id: int):
     )
 
     # ============================================================
-    # Mensaje inexistente
+    # MENSAJE INEXISTENTE
     # ============================================================
     if not msg:
         messages.error(
@@ -2938,7 +3023,7 @@ def ver_mensaje(request, mensaje_id: int):
         )
 
     # ============================================================
-    # Seguridad
+    # SEGURIDAD: SOLO PARTICIPANTES
     # ============================================================
     if not _user_puede_ver_mensaje(
         request.user,
@@ -2954,14 +3039,14 @@ def ver_mensaje(request, mensaje_id: int):
         )
 
     # ============================================================
-    # Garantizar hilo
+    # GARANTIZAR HILO
     # ============================================================
     hilo_id = _asegurar_hilo_id(
         msg
     )
 
     # ============================================================
-    # Estado del hilo para este usuario
+    # ESTADO DEL HILO PARA ESTE USUARIO
     # ============================================================
     estado_usuario = _estado_hilo_usuario(
         request.user,
@@ -2984,7 +3069,7 @@ def ver_mensaje(request, mensaje_id: int):
         )
 
     # ============================================================
-    # Obtener conversación
+    # OBTENER CONVERSACIÓN
     # ============================================================
     mensajes_hilo = list(
         Mensaje.objects
@@ -3018,7 +3103,26 @@ def ver_mensaje(request, mensaje_id: int):
         )
 
     # ============================================================
-    # Marcar recibidos como leídos
+    # MOTIVO ORIGINAL DEL CASO ESPECIAL
+    # ============================================================
+    # Se obtiene el primer motivo registrado en la conversación.
+    # Las conversaciones habituales no mostrarán ningún motivo.
+    #
+    # El motivo se recupera de los mensajes autorizados para
+    # el usuario, conservando la privacidad del hilo.
+    # ============================================================
+
+    motivo_hilo = next(
+        (
+            mensaje.get_motivo_especial_display()
+            for mensaje in mensajes_hilo
+            if mensaje.motivo_especial
+        ),
+        None
+    )
+
+    # ============================================================
+    # MARCAR RECIBIDOS COMO LEÍDOS
     # ============================================================
     ids_no_leidos = [
         mensaje.id
@@ -3041,7 +3145,7 @@ def ver_mensaje(request, mensaje_id: int):
                 mensaje.leido = True
 
     # ============================================================
-    # Destinatario de respuesta
+    # DESTINATARIO DE RESPUESTA
     # ============================================================
     destinatario_respuesta = None
 
@@ -3067,12 +3171,8 @@ def ver_mensaje(request, mensaje_id: int):
             break
 
     # ============================================================
-    # Origen
+    # ORIGEN Y PESTAÑA DE REGRESO
     # ============================================================
-    # ============================================================
-# ORIGEN Y PESTAÑA DE REGRESO
-# ============================================================
-
     volver = _normalizar_origen_comunicacion(
         request.GET.get("volver")
     )
@@ -3083,11 +3183,9 @@ def ver_mensaje(request, mensaje_id: int):
 
     back_tab = ""
 
-
     # ============================================================
     # VENIMOS DE PAPELERA
     # ============================================================
-
     if desde_papelera:
 
         back_url = "papelera"
@@ -3104,11 +3202,9 @@ def ver_mensaje(request, mensaje_id: int):
 
         back_tab = tab_papelera
 
-
     # ============================================================
     # VENIMOS DE ENVIADOS
     # ============================================================
-
     elif volver == "enviados":
 
         back_url = (
@@ -3119,11 +3215,9 @@ def ver_mensaje(request, mensaje_id: int):
 
         back_tab = "enviados"
 
-
     # ============================================================
     # VENIMOS DE RECIBIDOS
     # ============================================================
-
     else:
 
         back_url = (
@@ -3135,15 +3229,20 @@ def ver_mensaje(request, mensaje_id: int):
         back_tab = "recibidos"
 
     # ============================================================
-    # Render
+    # RENDER
     # ============================================================
     return render(
         request,
         "gestion_asociacion/ver_mensaje.html",
         {
             "msg": msg,
+
             "mensajes_hilo":
                 mensajes_hilo,
+
+            # NUEVO: MOTIVO DEL CASO ESPECIAL
+            "motivo_hilo":
+                motivo_hilo,
 
             "destinatario_respuesta":
                 destinatario_respuesta,
@@ -3164,6 +3263,7 @@ def ver_mensaje(request, mensaje_id: int):
                 desde_papelera,
         }
     )
+
 
 @login_required
 def conversacion_hilo_ajax(request, mensaje_id):
@@ -3328,18 +3428,49 @@ def conversacion_hilo_ajax(request, mensaje_id):
     )
 
 
+
 @login_required
 def enviar_mensaje_miembro(request):
+
+    # ============================================================
+    # PERMISOS
+    # ============================================================
     if _es_admin(request.user):
         return redirect("comunicacion_admin")
 
     if request.method != "POST":
         return redirect("comunicacion_interna")
 
+    # ============================================================
+    # DATOS DEL FORMULARIO
+    # ============================================================
     destinatario_id = request.POST.get(
         "destinatario_id"
     )
 
+    tipo_comunicacion = (
+        request.POST.get("tipo_comunicacion") or ""
+    ).strip()
+
+    motivo_especial = (
+        request.POST.get("motivo_especial") or ""
+    ).strip()
+
+    hilo_id_respuesta = (
+        request.POST.get("hilo_id") or ""
+    ).strip()
+
+    origen_respuesta = (
+        _normalizar_origen_comunicacion(
+            request.POST.get("origen")
+        )
+        if hilo_id_respuesta
+        else ""
+    )
+
+    # ============================================================
+    # BUSCAR DESTINATARIO
+    # ============================================================
     destinatario = (
         Usuario.objects
         .filter(
@@ -3350,6 +3481,9 @@ def enviar_mensaje_miembro(request):
         .first()
     )
 
+    # ============================================================
+    # DATOS PARA CONSERVAR LA INTERFAZ
+    # ============================================================
     recibidos = _mensajes_recibidos(
         request.user,
         clasificar_por_iniciador=True
@@ -3368,9 +3502,7 @@ def enviar_mensaje_miembro(request):
             rol__in=["Administrador", "Dios"],
             is_active=True
         )
-        .order_by(
-            "username"
-        )
+        .order_by("username")
     )
 
     no_leidos = _contar_hilos_no_leidos(
@@ -3386,24 +3518,13 @@ def enviar_mensaje_miembro(request):
         request.FILES
     )
 
-    hilo_id_respuesta = (
-        request.POST.get("hilo_id") or ""
-    ).strip()
-
-    origen_respuesta = (
-        _normalizar_origen_comunicacion(
-            request.POST.get("origen")
-        )
-        if hilo_id_respuesta
-        else ""
-    )
-
+    # ============================================================
+    # VALIDAR HILO DE RESPUESTA
+    # ============================================================
     hilo_uuid = None
 
-    # ============================================================
-    # Validar hilo de respuesta
-    # ============================================================
     if hilo_id_respuesta:
+
         hilo_uuid = _parse_hilo_id(
             hilo_id_respuesta
         )
@@ -3429,7 +3550,7 @@ def enviar_mensaje_miembro(request):
             )
 
     # ============================================================
-    # Validar destinatario
+    # VALIDAR DESTINATARIO
     # ============================================================
     if not destinatario:
         form.add_error(
@@ -3439,11 +3560,53 @@ def enviar_mensaje_miembro(request):
         )
 
     # ============================================================
-    # Formulario inválido
+    # VALIDAR TIPO Y MOTIVO DEL CASO ESPECIAL
     # ============================================================
+    motivos_validos = {
+        "problema_no_resuelto",
+        "queja_administrativa",
+        "asunto_confidencial",
+        "otro",
+    }
+
+    # Solo se solicita el motivo cuando se inicia
+    # una conversación nueva con Dios.
+    if destinatario and not hilo_id_respuesta:
+
+        if destinatario.rol == "Dios":
+
+            if tipo_comunicacion != "especial":
+                form.add_error(
+                    None,
+                    "Debes seleccionar Caso especial "
+                    "para contactar a Dios."
+                )
+
+            if motivo_especial not in motivos_validos:
+                form.add_error(
+                    None,
+                    "Selecciona un motivo válido "
+                    "para el caso especial."
+                )
+
+        elif destinatario.rol == "Administrador":
+
+            if tipo_comunicacion != "habitual":
+                form.add_error(
+                    None,
+                    "Selecciona Consulta habitual "
+                    "para contactar a un Administrador."
+                )
+
+    # ============================================================
+    # COMPROBAR FORMULARIO
+    # ============================================================
+    formulario_valido = form.is_valid()
+
     if (
-        not form.is_valid()
+        not formulario_valido
         or not destinatario
+        or (hilo_id_respuesta and not hilo_uuid)
     ):
         return render(
             request,
@@ -3454,38 +3617,47 @@ def enviar_mensaje_miembro(request):
                 "admins": admins,
                 "form": form,
                 "no_leidos": no_leidos,
-                "papelera_count":
-                    papelera_count,
+                "papelera_count": papelera_count,
+
+                # Conservar selección cuando hay errores
                 "destinatario_id_seleccionado":
                     destinatario_id,
+
+                "tipo_comunicacion_seleccionado":
+                    tipo_comunicacion,
+
+                "motivo_especial_seleccionado":
+                    motivo_especial,
+
                 "hilo_id_respuesta":
                     hilo_id_respuesta,
+
                 "origen_respuesta":
                     origen_respuesta,
+
                 "es_respuesta":
                     bool(hilo_id_respuesta),
-                "tab_activa":
-                    "nuevo",
-                "enviados_count":
-                    enviados_count,
+
+                "tab_activa": "nuevo",
+                "enviados_count": enviados_count,
             }
         )
 
     # ============================================================
-    # Guardar mensaje
+    # GUARDAR MENSAJE
     # ============================================================
     with transaction.atomic():
-        msg = form.save(
-            commit=False
-        )
+
+        msg = form.save(commit=False)
 
         msg.remitente = request.user
         msg.destinatario = destinatario
 
         # ========================================================
-        # Si es respuesta, conservar hilo y asunto original
+        # RESPUESTA A CONVERSACIÓN EXISTENTE
         # ========================================================
         if hilo_uuid:
+
             asunto_original = _asunto_hilo(
                 hilo_uuid
             )
@@ -3495,10 +3667,26 @@ def enviar_mensaje_miembro(request):
 
             msg.hilo_id = hilo_uuid
 
+            # El motivo permanece en el mensaje original.
+            # No es necesario repetirlo en cada respuesta.
+            msg.motivo_especial = ""
+
+        # ========================================================
+        # CONVERSACIÓN NUEVA
+        # ========================================================
+        else:
+
+            if destinatario.rol == "Dios":
+                msg.motivo_especial = motivo_especial
+
+            else:
+                msg.motivo_especial = ""
+
+        # Guardar asunto, cuerpo, archivo y motivo
         msg.save()
 
         # ========================================================
-        # Reactivar conversación para ambos participantes
+        # REACTIVAR HILO PARA AMBOS PARTICIPANTES
         # ========================================================
         _reactivar_hilo_para_usuario(
             request.user,
@@ -3511,7 +3699,7 @@ def enviar_mensaje_miembro(request):
         )
 
     # ============================================================
-    # Mensaje de confirmación
+    # MENSAJE DE CONFIRMACIÓN
     # ============================================================
     messages.success(
         request,
@@ -3519,7 +3707,7 @@ def enviar_mensaje_miembro(request):
     )
 
     # ============================================================
-    # Si era respuesta, volver a la misma conversación
+    # RESPUESTA: REGRESAR A LA MISMA CONVERSACIÓN
     # ============================================================
     if hilo_uuid:
         return redirect(
@@ -3528,11 +3716,12 @@ def enviar_mensaje_miembro(request):
         )
 
     # ============================================================
-    # Si era mensaje nuevo, ir a Enviados
+    # MENSAJE NUEVO: IR A ENVIADOS
     # ============================================================
     return redirect(
         f"{reverse('comunicacion_interna')}?tab=enviados"
     )
+
 
 
 @login_required

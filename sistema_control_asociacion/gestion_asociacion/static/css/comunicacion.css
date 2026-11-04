@@ -1015,11 +1015,228 @@
     min-height: 20px;
 }
 
+
+/* ==========================================================
+   DETALLE DE CONVERSACIÓN
+   Diseño compacto con scroll interno
+   Miembro / Administrador / Dios
+   ========================================================== */
+
+.comunicacion-page .conversacion-card-detalle {
+    width: 100%;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    height: calc(100dvh - 140px);
+    max-height: 720px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+
+/* Encabezado fijo dentro de la conversación */
+
+.comunicacion-page .conversacion-card-detalle>.card-header {
+    flex-shrink: 0;
+}
+
+
+/* Historial: única zona con desplazamiento */
+
+.comunicacion-page .conversacion-card-detalle .conversacion-historial {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #b8c9e3 transparent;
+}
+
+
+/* Bloques externos al historial */
+
+.comunicacion-page .conversacion-card-detalle>.px-4,
+.comunicacion-page .conversacion-card-detalle>.p-3 {
+    flex-shrink: 0;
+}
+
+
+/* Scroll para Chrome, Edge y Opera */
+
+.comunicacion-page .conversacion-card-detalle .conversacion-historial::-webkit-scrollbar {
+    width: 7px;
+}
+
+.comunicacion-page .conversacion-card-detalle .conversacion-historial::-webkit-scrollbar-thumb {
+    background: #b8c9e3;
+    border-radius: 10px;
+}
+
+
+/* ==========================================================
+   CONTENEDOR EXTERIOR - CONVERSACIÓN DE MIEMBRO
+   No afecta a Administrador ni Dios
+   ========================================================== */
+
+.main-content-wrapper.contenedor-conversacion-miembro {
+    width: 100%;
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+    flex: 0 1 1180px;
+    min-width: 0;
+}
+
+
+/* Recuadro blanco exterior */
+
+.contenedor-conversacion-miembro>.main-content {
+    width: 100%;
+    max-width: 1180px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+}
+
+
+/* Tarjeta de conversación */
+
+.contenedor-conversacion-miembro .conversacion-card-detalle {
+    width: 100%;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* ==========================================================
+   ALERTA DE CASO ESPECIAL EN CONVERSACIÓN
+   ========================================================== */
+
+.conversacion-alerta-especial {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 16px 24px 10px;
+    padding: 16px 18px;
+    background: #fff7db;
+    border: 1px solid #f0d98a;
+    border-left: 5px solid #d4a017;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.caso-especial-icono {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff1b8;
+    color: #8a6500;
+    border-radius: 50%;
+    font-size: 1rem;
+}
+
+.caso-especial-contenido {
+    flex: 1;
+    min-width: 0;
+}
+
+.caso-especial-encabezado {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.caso-especial-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 12px;
+    background: #d4a017;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.caso-especial-privado {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: #fff3cd;
+    color: #7a5a00;
+    border: 1px solid #efd27a;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.caso-especial-motivo {
+    margin-bottom: 6px;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.caso-especial-label {
+    font-weight: 700;
+    color: #6d5200;
+}
+
+.caso-especial-valor {
+    font-weight: 600;
+    color: #2f2a1f;
+}
+
+.caso-especial-descripcion {
+    font-size: 0.94rem;
+    color: #6f5b1e;
+    line-height: 1.45;
+}
+
+
+/* Responsive */
+
 @media (max-width: 767px) {
-    .seccion-formulario-body {
-        padding: 16px;
+    .conversacion-alerta-especial {
+        margin: 14px 14px 8px;
+        padding: 14px;
+        gap: 12px;
     }
-    .crear-empleado-card {
-        border-radius: 10px;
+    .caso-especial-icono {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        font-size: 0.95rem;
+    }
+    .caso-especial-motivo {
+        font-size: 0.95rem;
+    }
+    .caso-especial-descripcion {
+        font-size: 0.9rem;
+    }
+}
+
+
+/* Adaptación responsive */
+
+@media (max-width: 767px) {
+    .main-content-wrapper.contenedor-conversacion-miembro {
+        max-width: 100%;
+        flex: 0 1 100%;
+    }
+    .contenedor-conversacion-miembro>.main-content {
+        max-width: 100%;
+    }
+    .contenedor-conversacion-miembro .conversacion-card-detalle {
+        max-width: 100%;
     }
 }

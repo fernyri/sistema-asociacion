@@ -193,7 +193,7 @@
             </nav>
             {% endif %}
 
-            <main class="main-content-wrapper">
+            <main class="main-content-wrapper {% if request.user.rol == 'Miembro' and request.resolver_match.url_name == 'ver_mensaje' %}contenedor-conversacion-miembro{% endif %}">
                 <div class="main-content">
                     {% block content %}{% endblock %}
                 </div>

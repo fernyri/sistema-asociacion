@@ -118,13 +118,13 @@
 
                     <h5 class="mb-2">
 
-                        <i class="fas fa-envelope me-1"></i> Enviar mensaje a Administrador
+                        <i class="fas fa-envelope me-1"></i> Enviar nuevo mensaje
 
                     </h5>
 
                     <p class="text-muted small mb-3">
 
-                        Selecciona un administrador o Dios, escribe asunto y mensaje. Puedes adjuntar archivo.
+                        Para consultas habituales contacta a un Administrador. Para casos especiales puedes contactar a Dios.
 
                     </p>
 
@@ -132,7 +132,7 @@
                     <!-- ================================================== -->
                     <!-- FORMULARIO -->
                     <!-- ================================================== -->
-                    <form id="formResponderMiembro" method="post" action="{% url 'enviar_mensaje_miembro' %}" enctype="multipart/form-data" novalidate>
+                    <form id="formResponderMiembro" data-draft-user="{{ request.user.pk }}" data-post-errors="{% if form.is_bound and form.errors %}1{% else %}0{% endif %}" method="post" action="{% url 'enviar_mensaje_miembro' %}" enctype="multipart/form-data" novalidate>
 
                         {% csrf_token %} {% if hilo_id_respuesta %}
 
@@ -143,6 +143,17 @@
                         <div class="row g-3">
 
 
+                            {% if not es_respuesta %}
+                            <!-- Tipo de comunicación: solo para conversaciones nuevas -->
+                            <div class="col-md-6">
+                                <label for="tipoComunicacionMiembro" class="form-label">Tipo de comunicación</label>
+                                <select id="tipoComunicacionMiembro" name="tipo_comunicacion" class="form-select" required>
+                                    <option value="habitual" {% if form.is_bound %}{% if request.POST.tipo_comunicacion != 'especial' %}selected{% endif %}{% elif tipo_comunicacion_seleccionado != 'especial' %}selected{% endif %}>Consulta habitual — Administrador</option>
+                                    <option value="especial" {% if form.is_bound %}{% if request.POST.tipo_comunicacion == 'especial' %}selected{% endif %}{% elif tipo_comunicacion_seleccionado == 'especial' %}selected{% endif %}>Caso especial — Dios</option>
+                                </select>
+                            </div>
+                            {% endif %}
+
                             <!-- ========================================== -->
                             <!-- DESTINATARIO -->
                             <!-- ========================================== -->
@@ -152,32 +163,14 @@
                                     Destinatario
                                 </label>
 
-                                <select id="destinatarioMiembro" class="form-select" name="destinatario_id">
-
-    <option
-        value=""
-        disabled
-        selected
-        hidden
-    >
-        Selecciona un administrador o Dios
-    </option>
-
-    {% for a in admins %}
-
-    <option value="{{ a.id }}">
-
-        {{ a.username }}
-
-        {% if a.rol %}
-            - {{ a.rol }}
-        {% endif %}
-
-    </option>
-
-    {% endfor %}
-
-</select>
+                                <select id="destinatarioMiembro" class="form-select" name="destinatario_id" required>
+                                    <option value="" disabled selected hidden>Selecciona un destinatario</option>
+                                    {% for a in admins %}
+                                    <option value="{{ a.id }}" data-rol="{{ a.rol }}" {% if destinatario_id_seleccionado|stringformat:'s' == a.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ a.username }} - {{ a.rol }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
 
 
                                 <!-- Error del destinatario -->
@@ -193,6 +186,20 @@
 
                             </div>
 
+
+                            {% if not es_respuesta %}
+                            <div id="motivoEspecialContainer" class="col-md-6 d-none">
+                                <label for="motivoEspecialMiembro" class="form-label">Motivo del caso especial <span class="text-danger">*</span></label>
+                                <select id="motivoEspecialMiembro" name="motivo_especial" class="form-select">
+                                    <option value="">Selecciona un motivo</option>
+                                    <option value="problema_no_resuelto" {% if form.is_bound %}{% if request.POST.motivo_especial == 'problema_no_resuelto' %}selected{% endif %}{% elif motivo_especial_seleccionado == 'problema_no_resuelto' %}selected{% endif %}>Problema no resuelto por administración</option>
+                                    <option value="queja_administrativa" {% if form.is_bound %}{% if request.POST.motivo_especial == 'queja_administrativa' %}selected{% endif %}{% elif motivo_especial_seleccionado == 'queja_administrativa' %}selected{% endif %}>Queja relacionada con un administrador</option>
+                                    <option value="asunto_confidencial" {% if form.is_bound %}{% if request.POST.motivo_especial == 'asunto_confidencial' %}selected{% endif %}{% elif motivo_especial_seleccionado == 'asunto_confidencial' %}selected{% endif %}>Asunto confidencial</option>
+                                    <option value="otro" {% if form.is_bound %}{% if request.POST.motivo_especial == 'otro' %}selected{% endif %}{% elif motivo_especial_seleccionado == 'otro' %}selected{% endif %}>Otro caso especial</option>
+                                </select>
+                                <div class="form-text">Solo los participantes autorizados pueden consultar el mensaje.</div>
+                            </div>
+                            {% endif %}
 
                             <!-- ========================================== -->
                             <!-- ASUNTO -->
@@ -350,11 +357,49 @@
 
 
         // =====================================================
+        // TIPO DE COMUNICACIÓN Y CASO ESPECIAL
+        // =====================================================
+        const tipoComunicacion = document.getElementById("tipoComunicacionMiembro");
+        const motivoContainer = document.getElementById("motivoEspecialContainer");
+        const motivoEspecial = document.getElementById("motivoEspecialMiembro");
+
+        function actualizarTipoComunicacion() {
+            if (!destinatarioMiembro) return;
+            if (!tipoComunicacion) return; // Respuesta a conversación existente.
+
+            const especial = tipoComunicacion.value === "especial";
+            const opcionSeleccionada = destinatarioMiembro.selectedOptions[0];
+            const valorActual = destinatarioMiembro.value;
+
+            Array.from(destinatarioMiembro.options).forEach(function(opcion) {
+                if (!opcion.value) return;
+                opcion.hidden = opcion.dataset.rol !== (especial ? "Dios" : "Administrador");
+                opcion.disabled = opcion.hidden;
+            });
+
+            // Conservar selección válida y limpiar únicamente cuando cambia el rol.
+            if (opcionSeleccionada && opcionSeleccionada.disabled) {
+                destinatarioMiembro.value = "";
+            } else {
+                destinatarioMiembro.value = valorActual;
+            }
+            if (motivoContainer) motivoContainer.classList.toggle("d-none", !especial);
+            if (motivoEspecial) {
+                motivoEspecial.required = especial;
+                if (!especial) motivoEspecial.value = "";
+            }
+        }
+
+        if (tipoComunicacion) {
+            tipoComunicacion.addEventListener("change", actualizarTipoComunicacion);
+        }
+
+        // =====================================================
         // RECUPERAR DESTINATARIO
         // =====================================================
 
         const destinatarioSeleccionado =
-            "{{ destinatario_id_seleccionado|default:''|escapejs }}";
+            "{% if form.is_bound %}{{ request.POST.destinatario_id|default:''|escapejs }}{% else %}{{ destinatario_id_seleccionado|default:''|escapejs }}{% endif %}";
 
 
         if (destinatarioMiembro) {
@@ -373,6 +418,74 @@
 
         }
 
+
+        actualizarTipoComunicacion();
+
+        // =====================================================
+        // CONSERVAR EL BORRADOR SOLO AL RECARGAR (F5 / Ctrl+R)
+        // =====================================================
+        const claveBorrador = "comunicacion_miembro_borrador_" +
+            form.dataset.draftUser;
+
+        const navegacionBorrador =
+            performance.getEntriesByType("navigation")[0];
+        const esRecargaBorrador = navegacionBorrador &&
+            navegacionBorrador.type === "reload";
+
+        const camposBorrador = [
+            "tipo_comunicacion",
+            "destinatario_id",
+            "motivo_especial",
+            "asunto",
+            "cuerpo"
+        ];
+
+        function guardarBorrador() {
+            if (!form || form.querySelector('[name="hilo_id"]')) return;
+            const datos = {};
+            camposBorrador.forEach(function(nombre) {
+                const campo = form.elements.namedItem(nombre);
+                if (campo) datos[nombre] = campo.value;
+            });
+            try {
+                sessionStorage.setItem(claveBorrador, JSON.stringify(datos));
+            } catch (e) {
+                console.warn("No se pudo conservar el borrador.", e);
+            }
+        }
+
+        if (form && !form.querySelector('[name="hilo_id"]')) {
+            if (esRecargaBorrador) {
+                try {
+                    const datos = JSON.parse(
+                        sessionStorage.getItem(claveBorrador) || "null"
+                    );
+                    if (datos) {
+                        const tipo = form.elements.namedItem("tipo_comunicacion");
+                        if (tipo && ["habitual", "especial"].includes(datos.tipo_comunicacion)) {
+                            tipo.value = datos.tipo_comunicacion;
+                            actualizarTipoComunicacion();
+                        }
+                        ["destinatario_id", "motivo_especial", "asunto", "cuerpo"].forEach(function(nombre) {
+                            const campo = form.elements.namedItem(nombre);
+                            if (campo && typeof datos[nombre] === "string") {
+                                campo.value = datos[nombre];
+                            }
+                        });
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem(claveBorrador);
+                }
+            } else {
+                // Al abrir Comunicación desde otra página no reutilizar
+                // un borrador de una visita anterior.
+                sessionStorage.removeItem(claveBorrador);
+            }
+
+            form.addEventListener("input", guardarBorrador);
+            form.addEventListener("change", guardarBorrador);
+            window.addEventListener("pagehide", guardarBorrador);
+        }
 
         // =====================================================
         // QUITAR ERROR VISUAL
@@ -833,7 +946,16 @@
 
             form.addEventListener(
                 "submit",
-                function() {
+                function(event) {
+                    if (tipoComunicacion && tipoComunicacion.value === "especial" &&
+                        (!motivoEspecial || !motivoEspecial.value)) {
+                        event.preventDefault();
+                        if (motivoEspecial) {
+                            motivoEspecial.classList.add("is-invalid");
+                            motivoEspecial.focus();
+                        }
+                        return;
+                    }
 
                     btnEnviar.disabled =
                         true;
@@ -1141,6 +1263,69 @@
         );
 
     });
+</script>
+
+<script>
+    // Mantener la posición tanto al recargar como cuando Django devuelve
+    // el formulario con errores de validación.
+    (function() {
+        const KEY = "comunicacion_miembro_scroll";
+        const formulario = document.getElementById("formResponderMiembro");
+        const nav = performance.getEntriesByType("navigation")[0];
+        const esRecarga = Boolean(nav && nav.type === "reload");
+        const hayErroresPost = Boolean(formulario && formulario.dataset.postErrors === "1");
+
+        if ("scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
+
+        function guardarPosicion() {
+            try {
+                sessionStorage.setItem(KEY, String(window.scrollY));
+            } catch (error) {
+                // Si el navegador restringe sessionStorage, no interrumpir el formulario.
+            }
+        }
+
+        // Guardar en el momento de enviar, antes de navegar a la respuesta de Django.
+        if (formulario) {
+            formulario.addEventListener("submit", guardarPosicion);
+        }
+        window.addEventListener("pagehide", guardarPosicion);
+
+        if (esRecarga || hayErroresPost) {
+            let posicion = null;
+            try {
+                const valor = sessionStorage.getItem(KEY);
+                if (valor !== null) {
+                    const numero = Number(valor);
+                    if (Number.isFinite(numero) && numero >= 0) posicion = numero;
+                }
+            } catch (error) {}
+
+            if (posicion !== null) {
+                const restaurar = function() {
+                    window.scrollTo({
+                        top: posicion,
+                        left: 0,
+                        behavior: "instant"
+                    });
+                };
+                // DOM listo y carga completa: cubre el renderizado de mensajes de error.
+                restaurar();
+                window.addEventListener("load", function() {
+                    restaurar();
+                    requestAnimationFrame(restaurar);
+                }, {
+                    once: true
+                });
+            }
+        } else {
+            try {
+                sessionStorage.removeItem(KEY);
+            } catch (error) {}
+        }
+    })();
 </script>
 
 {% endblock %}

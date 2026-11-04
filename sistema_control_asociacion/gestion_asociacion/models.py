@@ -422,6 +422,12 @@ class Asistencia(models.Model):
 
     class Meta:
         ordering = ["-fecha"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "fecha"],
+                name="asistencia_unica_usuario_fecha"
+            )
+        ]
 
 
 # =========================
@@ -601,8 +607,8 @@ class Personal(models.Model):
 # =========================
 # Eventos
 # =========================
-class Evento(models.Model):
 
+class Evento(models.Model):
     titulo = models.CharField(max_length=100)
     fecha = models.DateField()
     descripcion = models.TextField()
@@ -646,6 +652,31 @@ class Mensaje(models.Model):
 
     asunto = models.CharField(max_length=160)
     cuerpo = models.TextField()
+
+    motivo_especial = models.CharField(
+    max_length=40,
+    blank=True,
+    choices=[
+        (
+            "problema_no_resuelto",
+            "Problema no resuelto por administración"
+        ),
+        (
+            "queja_administrativa",
+            "Queja relacionada con un administrador"
+        ),
+        (
+            "asunto_confidencial",
+            "Asunto confidencial"
+        ),
+        (
+            "otro",
+            "Otro caso especial"
+        ),
+    ],
+    default="",
+    verbose_name="Motivo de comunicación especial"
+)
 
     archivo = models.FileField(
         upload_to="mensajes_adjuntos/%Y/%m/",
