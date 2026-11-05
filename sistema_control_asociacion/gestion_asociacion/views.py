@@ -51,6 +51,7 @@ from .models import (
     EvaluacionDesempeno,
 )
 from .tokens import email_verification_token
+from .services.asistencia_service import cerrar_asistencias_incompletas_vencidas
 
 
 User = get_user_model()
@@ -80,24 +81,6 @@ def obtener_hora_limite_retardo():
     return config.hora_limite_retardo()
 
 
-def cerrar_asistencias_incompletas_vencidas():
-    hoy = timezone.localdate()
-    config = obtener_configuracion_asistencia()
-
-    asistencias_pendientes = Asistencia.objects.filter(
-        fecha__lt=hoy,
-        hora_entrada__isnull=False,
-        hora_salida__isnull=True
-    )
-
-    for asistencia in asistencias_pendientes:
-        asistencia.hora_salida = config.hora_salida_automatica
-        asistencia.estado = "salida_automatica"
-        asistencia.observacion = (
-            "El usuario no registró salida. "
-            "El sistema cerró la asistencia automáticamente."
-        )
-        asistencia.save(update_fields=["hora_salida", "estado", "observacion"])
 
 def _es_admin(u: Usuario) -> bool:
     return getattr(u, "rol", "") in ["Administrador", "Dios"]
